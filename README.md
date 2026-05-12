@@ -1,14 +1,21 @@
 # mendesalexandre/php-nfse-nacional
 
+[![CI](https://github.com/mendesalexandre/php-nfse-nacional/actions/workflows/ci.yml/badge.svg)](https://github.com/mendesalexandre/php-nfse-nacional/actions/workflows/ci.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/mendesalexandre/php-nfse-nacional.svg)](https://packagist.org/packages/mendesalexandre/php-nfse-nacional)
+[![PHP Version](https://img.shields.io/packagist/php-v/mendesalexandre/php-nfse-nacional.svg)](https://packagist.org/packages/mendesalexandre/php-nfse-nacional)
+[![License](https://img.shields.io/packagist/l/mendesalexandre/php-nfse-nacional.svg)](LICENSE)
+
 SDK PHP framework-agnostic para integração com NFS-e Nacional (Padrão
 Brasileiro SEFIN). Funciona em Laravel, Symfony, projeto vanilla — qualquer
 coisa com PHP 8.1+ e suporte a PSR-3/PSR-18.
 
 ## Status
 
-🚧 **Em desenvolvimento.** Ciclo de vida da NFS-e completo (emissão, consulta,
-cancelamento, DANFSE NT 008). Falta bateria de testes e validação ponta-a-ponta
-em homologação SEFIN.
+Ciclo de vida da NFS-e completo: **emissão, consulta, cancelamento, download
+e DANFSe NT 008/2026**. PHPStan level 8 limpo, 62 testes verdes, validado
+ponta-a-ponta em homologação SEFIN (NFS-e #57, chave
+`51079092200179028000138000000000005726057774456203`). Pré-1.0 — API pode
+sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
 
@@ -193,10 +200,14 @@ src/
 - [x] ConsultaService (status NFS-e, eventos)
 - [x] CancelamentoService (e101101)
 - [x] DownloadService (XML + PDF cancelada)
-- [x] DANFSE PDF — NT 008/2026 (TCPDF + QR Code)
-- [ ] Testes unitários (PHPUnit)
-- [ ] CI no GitHub Actions
-- [ ] Validação ponta-a-ponta em homologação SEFIN
+- [x] DANFSe PDF — NT 008/2026 (TCPDF + QR Code)
+- [x] Testes unitários (PHPUnit) — 62 testes
+- [x] PHPStan level 8 limpo
+- [x] CI no GitHub Actions (PHP 8.1 – 8.4)
+- [x] Validação ponta-a-ponta em homologação SEFIN
+- [ ] Cobertura ampliada (DanfseGenerator, Certificate, Signer)
+- [ ] Substituição de NFS-e (evento 101102)
+- [ ] Lote síncrono de DPS
 
 ## Licença
 
