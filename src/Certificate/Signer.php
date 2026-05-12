@@ -27,7 +27,7 @@ use PhpNfseNacional\Exceptions\CertificateException;
  *
  * Sem isso, openssl_sign retorna `error:03000098:digital envelope routines::invalid digest`.
  */
-final class Signer
+class Signer
 {
     public function __construct(
         private readonly Certificate $certificate,

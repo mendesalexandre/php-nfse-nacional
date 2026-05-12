@@ -5,6 +5,30 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **Workflow CI no GitHub Actions** (`.github/workflows/ci.yml`) — PHPUnit
+  matriz PHP 8.1/8.2/8.3/8.4 + PHPStan level 8. Cache do Composer.
+- **`CancelamentoServiceTest`** (3 testes) — cobre regra de cStat aceito
+  ({100, 135, 155, 840} → ok; demais → SefinException).
+- **`DownloadServiceTest`** (5 testes) — valida chave de acesso, cobre
+  pdfDanfse (sucesso, conteúdo não-PDF, HTTP ≠ 200) e xmlNfse (extração do
+  envelope gzip+base64).
+- **DTO tests** — `EnderecoTest` (7), `IdentificacaoTest` (7),
+  `ServicoTest` (5), `PrestadorTest` (5). Total da suíte: **94 testes**
+  (era 62).
+
+### Modificado
+- `Signer` deixou de ser `final` pra permitir extensão em testes (mock do
+  fluxo de assinatura sem precisar gerar PFX). Sem impacto em código de
+  produção.
+- `composer.json` — script `phpstan` passa `--memory-limit=512M` (a análise
+  estourava o default de 128 MB).
+
+### Documentação
+- README — removido "Em desenvolvimento, falta bateria de testes" (já são
+  94). Roadmap atualizado refletindo CI e validação SEFIN concluídas.
+  Adicionados badges CI / Packagist / PHP version / License.
+
 ## [0.3.1] — 2026-05-12
 
 ### Adicionado
