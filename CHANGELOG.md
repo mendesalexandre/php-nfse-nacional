@@ -5,16 +5,32 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-05-12
+
 ### Adicionado
+- **Substituição de NFS-e (evento e101102)** — `EventoSubstituicao` +
+  `SubstituicaoService`, exposto como `$nfse->substituicao()->substituir(
+  $chaveOriginal, $chaveSubstituta, $motivo, $justificativa)`. Reusa o
+  `EventoBuilder` genérico — só adiciona `chSubstituta` no grupo
+  `<e101102>`. Mesma regra de aceitação de cStat do cancelamento (100,
+  135, 155 → ok; 840 → idempotente; demais → SefinException).
+- **5 examples novos** cobrindo o ciclo de vida completo: `cancelar.php`,
+  `substituir.php`, `consultar.php`, `download.php` e `danfse-local.php`,
+  mais um `_bootstrap.php` compartilhado (env vars do prestador →
+  `NFSe::create()`).
 - **Workflow CI no GitHub Actions** (`.github/workflows/ci.yml`) — PHPUnit
-  matriz PHP 8.1/8.2/8.3/8.4 + PHPStan level 8. Cache do Composer.
+  matriz PHP 8.1/8.2/8.3/8.4 + PHPStan level 8 em job separado. Cache do
+  Composer.
 - **`CancelamentoServiceTest`** (3 testes) — cobre regra de cStat aceito
   ({100, 135, 155, 840} → ok; demais → SefinException).
+- **`SubstituicaoServiceTest`** (3 testes) — espelha o cancelamento.
+- **`EventoSubstituicaoTest`** (5 testes) — validações da DTO (chaves de 50
+  dígitos, chaves diferentes, justificativa 15-200 chars, máscaras).
 - **`DownloadServiceTest`** (5 testes) — valida chave de acesso, cobre
   pdfDanfse (sucesso, conteúdo não-PDF, HTTP ≠ 200) e xmlNfse (extração do
   envelope gzip+base64).
 - **DTO tests** — `EnderecoTest` (7), `IdentificacaoTest` (7),
-  `ServicoTest` (5), `PrestadorTest` (5). Total da suíte: **94 testes**
+  `ServicoTest` (5), `PrestadorTest` (5). Total da suíte: **102 testes**
   (era 62).
 
 ### Modificado
@@ -26,8 +42,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Documentação
 - README — removido "Em desenvolvimento, falta bateria de testes" (já são
-  94). Roadmap atualizado refletindo CI e validação SEFIN concluídas.
-  Adicionados badges CI / Packagist / PHP version / License.
+  102). Adicionado bloco "Substituição" + roadmap atualizado. Badges CI /
+  Packagist / PHP version / License.
 
 ## [0.3.1] — 2026-05-12
 

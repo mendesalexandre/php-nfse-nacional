@@ -117,6 +117,22 @@ $resposta = $nfse->cancelamento()->cancelar(
 );
 ```
 
+### Substituição
+
+Cancela uma NFS-e e a vincula a uma substituidora previamente emitida.
+A substituidora precisa ter sido emitida antes via `$nfse->emissao()->emitir(...)`.
+
+```php
+use PhpNfseNacional\DTO\MotivoCancelamento;
+
+$resposta = $nfse->substituicao()->substituir(
+    chaveOriginal:   '51079092200179028000138000000000005726057774456203',
+    chaveSubstituta: '51079092200179028000138000000000005826057774456204',
+    motivo:          MotivoCancelamento::ErroEmissao,
+    justificativa:   'Reemissão por divergência de valor',
+);
+```
+
 ### Eventos customizados
 
 Pra outros tipos de evento que aparecerem no leiaute, implemente a interface
@@ -205,9 +221,12 @@ src/
 - [x] PHPStan level 8 limpo
 - [x] CI no GitHub Actions (PHP 8.1 – 8.4)
 - [x] Validação ponta-a-ponta em homologação SEFIN
+- [x] Substituição de NFS-e (evento 101102)
+- [x] Examples completos do ciclo de vida (emitir, cancelar, substituir,
+      consultar, download, danfse-local)
 - [ ] Cobertura ampliada (DanfseGenerator, Certificate, Signer)
-- [ ] Substituição de NFS-e (evento 101102)
 - [ ] Lote síncrono de DPS
+- [ ] Múltiplos serviços por NFS-e
 
 ## Licença
 
