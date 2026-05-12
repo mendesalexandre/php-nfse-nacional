@@ -73,7 +73,8 @@ final class DanfseXmlParser
      */
     private function extrairIdentificacao(DOMXPath $xpath): array
     {
-        $infNfse = $xpath->query('//n:infNFSe')->item(0);
+        $infNfseList = $xpath->query('//n:infNFSe');
+        $infNfse = $infNfseList !== false ? $infNfseList->item(0) : null;
         $chave = null;
         if ($infNfse !== null && $infNfse->attributes !== null) {
             $idAttr = $infNfse->attributes->getNamedItem('Id');
@@ -169,7 +170,7 @@ final class DanfseXmlParser
     }
 
     /**
-     * @return array<string, float|string|null>
+     * @return array<string, float|null>
      */
     private function extrairValores(DOMXPath $xpath): array
     {
@@ -202,7 +203,8 @@ final class DanfseXmlParser
 
     private function texto(DOMXPath $xpath, string $expr): ?string
     {
-        $node = $xpath->query($expr)->item(0);
+        $list = $xpath->query($expr);
+        $node = $list !== false ? $list->item(0) : null;
         if ($node === null) {
             return null;
         }

@@ -67,7 +67,6 @@ final class NFSe
             emissao: new EmissaoService($config, $dpsBuilder, $signer, $client, $logger),
             consulta: new ConsultaService($client, $endpoints),
             cancelamento: new CancelamentoService(
-                $config,
                 $eventoBuilder,
                 $signer,
                 $client,

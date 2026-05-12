@@ -53,8 +53,9 @@ final class DanfseGenerator
             $this->desenharTarjaCancelada();
         }
 
+        /** @var string $output  TCPDF::Output('S') sempre retorna string */
         $output = $this->pdf->Output('', 'S');
-        return is_string($output) ? $output : '';
+        return $output;
     }
 
     // ====== BLOCOS ======

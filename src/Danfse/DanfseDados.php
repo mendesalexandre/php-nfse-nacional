@@ -18,7 +18,7 @@ final class DanfseDados
      * @param array<string, string|null> $prestador     CNPJ, IM, razão social, endereço, contatos
      * @param array<string, string|null> $tomador       Documento (CPF/CNPJ), nome, endereço, contatos
      * @param array<string, string|null> $servico       cTribNac, descrição, NBS, local prestação
-     * @param array<string, float|string|null> $valores Valores monetários e alíquotas
+     * @param array<string, float|null> $valores Valores monetários e alíquotas
      * @param array<string, string|null> $tributos      Outras informações tributárias
      * @param string|null $qrCodeUrl                    URL pra QR Code (consulta Portal)
      * @param bool $cancelada                           Status — true se cStat=101/102

@@ -7,7 +7,6 @@ namespace PhpNfseNacional\Services;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use PhpNfseNacional\Certificate\Signer;
-use PhpNfseNacional\Config;
 use PhpNfseNacional\Dps\EventoCancelamentoBuilder;
 use PhpNfseNacional\DTO\MotivoCancelamento;
 use PhpNfseNacional\Exceptions\SefinException;
@@ -33,7 +32,6 @@ final class CancelamentoService
     private LoggerInterface $logger;
 
     public function __construct(
-        private readonly Config $config,
         private readonly EventoCancelamentoBuilder $builder,
         private readonly Signer $signer,
         private readonly SefinClient $client,
