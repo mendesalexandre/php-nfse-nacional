@@ -16,7 +16,7 @@ use PhpNfseNacional\Exceptions\NfseException;
  * Estrutura esperada:
  *   <NFSe versao="1.01" xmlns="http://www.sped.fazenda.gov.br/nfse">
  *     <infNFSe Id="NFS{50 dígitos}">
- *       <xLocEmi>Sinop</xLocEmi>
+ *       <xLocEmi>Município Emissor</xLocEmi>
  *       <nNFSe>148</nNFSe>
  *       <cStat>100</cStat>
  *       <dhProc>2026-05-12T15:12:24-03:00</dhProc>

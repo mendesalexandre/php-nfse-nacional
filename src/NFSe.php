@@ -10,7 +10,7 @@ use Psr\Log\NullLogger;
 use PhpNfseNacional\Certificate\Certificate;
 use PhpNfseNacional\Certificate\Signer;
 use PhpNfseNacional\Dps\DpsBuilder;
-use PhpNfseNacional\Dps\EventoCancelamentoBuilder;
+use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
 use PhpNfseNacional\Services\CancelamentoService;
@@ -61,7 +61,7 @@ final class NFSe
         $signer = new Signer($certificate);
 
         $dpsBuilder = new DpsBuilder($config);
-        $eventoBuilder = new EventoCancelamentoBuilder($config);
+        $eventoBuilder = new EventoBuilder($config);
 
         return new self(
             emissao: new EmissaoService($config, $dpsBuilder, $signer, $client, $logger),

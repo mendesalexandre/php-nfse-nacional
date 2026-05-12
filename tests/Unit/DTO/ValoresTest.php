@@ -68,9 +68,9 @@ final class ValoresTest extends TestCase
         new Valores(100.0, 0.0, 15.0);
     }
 
-    public function test_caso_real_cartorio_os_543624(): void
+    public function test_caso_real_padrao_os_543624(): void
     {
-        // 3 atos somados: vServ=73.30, vDR=22.00 (taxas + ISSQN por dentro)
+        // Cenário com 3 atos: vServ=73,30, vDR=22,00 (deduções + ISSQN por dentro)
         $v = new Valores(
             valorServicos: 73.30,
             deducoesReducoes: 22.00,

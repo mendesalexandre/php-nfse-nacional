@@ -10,7 +10,8 @@ use PhpNfseNacional\Exceptions\ValidationException;
  * Descrição do serviço prestado.
  *
  * - cTribNac: 6 dígitos do código de tributação nacional (LC 116/2003).
- *   Cartório usa SEMPRE '210101' (serviços notariais e de registro).
+ *   Default '210101' (serviços notariais e de registro). Ajuste conforme
+ *   o item da LC 116 do seu serviço.
  * - cNBS: 9 dígitos do código NBS — derivado do item da LC 116.
  * - cIndOp: 6 dígitos do indicador de operação (ex: 100301 = serviço puro).
  * - codigoMunicipioPrestacao: IBGE 7 dígitos do município onde o serviço foi prestado.

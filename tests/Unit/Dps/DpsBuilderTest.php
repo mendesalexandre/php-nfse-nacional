@@ -20,13 +20,13 @@ use PHPUnit\Framework\TestCase;
 
 final class DpsBuilderTest extends TestCase
 {
-    private function configCartorio(RegimeEspecialTributacao $regime = RegimeEspecialTributacao::Nenhum): Config
+    private function configPadrao(RegimeEspecialTributacao $regime = RegimeEspecialTributacao::Nenhum): Config
     {
         $endereco = new Endereco('Rua', '1', 'Centro', '78550200', '5107909', 'MT');
         $prestador = new Prestador(
             cnpj: '00179028000138',
             inscricaoMunicipal: '11408',
-            razaoSocial: 'CARTORIO XYZ',
+            razaoSocial: 'EMPRESA XYZ',
             endereco: $endereco,
             regimeEspecial: $regime,
         );
@@ -52,7 +52,7 @@ final class DpsBuilderTest extends TestCase
 
     public function test_build_gera_xml_valido_com_namespace(): void
     {
-        $builder = new DpsBuilder($this->configCartorio());
+        $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
             new Identificacao(numeroDps: 100),
             $this->tomadorPf(),
@@ -73,7 +73,7 @@ final class DpsBuilderTest extends TestCase
 
     public function test_dps_id_tem_50_digitos_apos_prefixo(): void
     {
-        $builder = new DpsBuilder($this->configCartorio());
+        $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
             new Identificacao(numeroDps: 1, serie: '1'),
             $this->tomadorPf(),
@@ -92,9 +92,9 @@ final class DpsBuilderTest extends TestCase
 
     public function test_forca_regespTrib_zero_quando_ha_deducao(): void
     {
-        // Cartório com regime 4 (NotarioOuRegistrador) + vDR > 0 → E0438 sem ajuste.
+        // Prestador com regime 4 (NotarioOuRegistrador) + vDR > 0 → E0438 sem ajuste.
         // O builder deve forçar regEspTrib=0 automaticamente.
-        $builder = new DpsBuilder($this->configCartorio(RegimeEspecialTributacao::NotarioOuRegistrador));
+        $builder = new DpsBuilder($this->configPadrao(RegimeEspecialTributacao::NotarioOuRegistrador));
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -112,7 +112,7 @@ final class DpsBuilderTest extends TestCase
 
     public function test_preserva_regespTrib_quando_sem_deducao(): void
     {
-        $builder = new DpsBuilder($this->configCartorio(RegimeEspecialTributacao::NotarioOuRegistrador));
+        $builder = new DpsBuilder($this->configPadrao(RegimeEspecialTributacao::NotarioOuRegistrador));
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -135,7 +135,7 @@ final class DpsBuilderTest extends TestCase
             endereco: new Endereco('Rua', '1', 'Centro', '78550200', '5107909', 'MT'),
         );
 
-        $builder = new DpsBuilder($this->configCartorio());
+        $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $tomadorPj,
@@ -153,7 +153,7 @@ final class DpsBuilderTest extends TestCase
 
     public function test_dhEmi_esta_em_brasilia_e_recuado_60s(): void
     {
-        $builder = new DpsBuilder($this->configCartorio());
+        $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -175,7 +175,7 @@ final class DpsBuilderTest extends TestCase
 
     public function test_inclui_grupo_IBSCBS_obrigatorio(): void
     {
-        $builder = new DpsBuilder($this->configCartorio());
+        $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -188,7 +188,7 @@ final class DpsBuilderTest extends TestCase
 
     public function test_cTribNac_default_eh_210101(): void
     {
-        $builder = new DpsBuilder($this->configCartorio());
+        $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
