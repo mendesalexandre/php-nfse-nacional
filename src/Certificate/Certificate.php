@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Certificate;
+namespace PhpNfseNacional\Certificate;
 
 use DateTimeImmutable;
-use Sinop\NfseNacional\Exceptions\CertificateException;
+use PhpNfseNacional\Exceptions\CertificateException;
 
 /**
  * Certificado digital A1 (.pfx) carregado em memória.

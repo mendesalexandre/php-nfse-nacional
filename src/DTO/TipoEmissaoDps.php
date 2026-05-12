@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\DTO;
+namespace PhpNfseNacional\DTO;
 
 /**
  * Tipo de emissão da DPS.

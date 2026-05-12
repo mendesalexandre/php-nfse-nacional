@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Services;
+namespace PhpNfseNacional\Services;
 
-use Sinop\NfseNacional\Exceptions\ValidationException;
-use Sinop\NfseNacional\Sefin\SefinClient;
-use Sinop\NfseNacional\Sefin\SefinEndpoints;
-use Sinop\NfseNacional\Sefin\SefinResposta;
+use PhpNfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Sefin\SefinClient;
+use PhpNfseNacional\Sefin\SefinEndpoints;
+use PhpNfseNacional\Sefin\SefinResposta;
 
 /**
  * Consultas ao Portal Nacional:

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Services;
+namespace PhpNfseNacional\Services;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sinop\NfseNacional\Certificate\Signer;
-use Sinop\NfseNacional\Config;
-use Sinop\NfseNacional\Dps\DpsBuilder;
-use Sinop\NfseNacional\DTO\Identificacao;
-use Sinop\NfseNacional\DTO\Servico;
-use Sinop\NfseNacional\DTO\Tomador;
-use Sinop\NfseNacional\DTO\Valores;
-use Sinop\NfseNacional\Sefin\SefinClient;
-use Sinop\NfseNacional\Sefin\SefinResposta;
-use Sinop\NfseNacional\Exceptions\SefinException;
+use PhpNfseNacional\Certificate\Signer;
+use PhpNfseNacional\Config;
+use PhpNfseNacional\Dps\DpsBuilder;
+use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\Servico;
+use PhpNfseNacional\DTO\Tomador;
+use PhpNfseNacional\DTO\Valores;
+use PhpNfseNacional\Sefin\SefinClient;
+use PhpNfseNacional\Sefin\SefinResposta;
+use PhpNfseNacional\Exceptions\SefinException;
 
 /**
  * Orquestrador da emissão de NFS-e.

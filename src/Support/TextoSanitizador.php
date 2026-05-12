@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Support;
+namespace PhpNfseNacional\Support;
 
 use Normalizer;
 

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Dps;
+namespace PhpNfseNacional\Dps;
 
 use DateTimeImmutable;
 use DOMDocument;
-use Sinop\NfseNacional\Config;
-use Sinop\NfseNacional\DTO\MotivoCancelamento;
-use Sinop\NfseNacional\Exceptions\ValidationException;
-use Sinop\NfseNacional\Support\TextoSanitizador;
+use PhpNfseNacional\Config;
+use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Support\TextoSanitizador;
 
 /**
  * Constrói o XML do evento e101101 (cancelamento de NFS-e).

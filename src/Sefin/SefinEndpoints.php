@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Sefin;
+namespace PhpNfseNacional\Sefin;
 
-use Sinop\NfseNacional\Enums\Ambiente;
+use PhpNfseNacional\Enums\Ambiente;
 
 /**
  * Endpoints REST do Portal Nacional SEFIN.

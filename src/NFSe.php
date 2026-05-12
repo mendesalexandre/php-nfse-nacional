@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional;
+namespace PhpNfseNacional;
 
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sinop\NfseNacional\Certificate\Certificate;
-use Sinop\NfseNacional\Certificate\Signer;
-use Sinop\NfseNacional\Dps\DpsBuilder;
-use Sinop\NfseNacional\Dps\EventoCancelamentoBuilder;
-use Sinop\NfseNacional\Sefin\SefinClient;
-use Sinop\NfseNacional\Sefin\SefinEndpoints;
-use Sinop\NfseNacional\Services\CancelamentoService;
-use Sinop\NfseNacional\Services\ConsultaService;
-use Sinop\NfseNacional\Services\DownloadService;
-use Sinop\NfseNacional\Services\EmissaoService;
+use PhpNfseNacional\Certificate\Certificate;
+use PhpNfseNacional\Certificate\Signer;
+use PhpNfseNacional\Dps\DpsBuilder;
+use PhpNfseNacional\Dps\EventoCancelamentoBuilder;
+use PhpNfseNacional\Sefin\SefinClient;
+use PhpNfseNacional\Sefin\SefinEndpoints;
+use PhpNfseNacional\Services\CancelamentoService;
+use PhpNfseNacional\Services\ConsultaService;
+use PhpNfseNacional\Services\DownloadService;
+use PhpNfseNacional\Services\EmissaoService;
 
 /**
  * Facade unificado do SDK.

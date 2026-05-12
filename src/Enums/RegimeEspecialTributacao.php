@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Enums;
+namespace PhpNfseNacional\Enums;
 
 /**
  * Regime especial de tributação do prestador.

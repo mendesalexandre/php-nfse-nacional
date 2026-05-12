@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Sefin;
+namespace PhpNfseNacional\Sefin;
 
 /**
  * Resposta normalizada do Portal Nacional após envio do DPS.

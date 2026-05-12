@@ -1,22 +1,20 @@
-# sinop/nfse-nacional
+# mendesalexandre/php-nfse-nacional
 
-SDK PHP para integração com NFS-e Nacional (Padrão Brasileiro SEFIN).
-**Framework-agnostic** — funciona em Laravel, Symfony, projeto vanilla,
-qualquer coisa com PSR-3/PSR-18.
+SDK PHP framework-agnostic para integração com NFS-e Nacional (Padrão
+Brasileiro SEFIN). Funciona em Laravel, Symfony, projeto vanilla — qualquer
+coisa com PHP 8.1+ e suporte a PSR-3/PSR-18.
 
 ## Status
 
-🚧 **Em desenvolvimento.** Não usar em produção ainda.
+🚧 **Em desenvolvimento.** Ciclo de vida da NFS-e completo (emissão, consulta,
+cancelamento, DANFSE NT 008). Falta bateria de testes e validação ponta-a-ponta
+em homologação SEFIN.
 
 ## Por que
 
-Alternativa ao `hadder/nfse-nacional` (TODOs no leiaute, monolito de 1573 linhas,
-tipagem fraca) e ao `nfse-nacional/nfse-php` (em beta, sem suporte à NT 008
-ainda). Pacote interno do cartório de Sinop pra ter controle total:
-
-- Suporte completo ao leiaute SefinNacional 1.6 (sem TODOs)
+- Suporte completo ao leiaute SefinNacional 1.6
 - Suporte à **NT 008/2026** (novo DANFSE válido a partir de 1º/jul/2026)
-- Sem dependência de Laravel
+- Sem dependência de framework — funciona em Laravel, Symfony, projetos vanilla
 - Tipagem forte (PHPStan level 8)
 - Testes desde o dia 1
 
@@ -30,38 +28,27 @@ ainda). Pacote interno do cartório de Sinop pra ter controle total:
 
 ## Instalação
 
-Em `composer.json` do projeto consumidor:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@github.com:mendesalexandre/sinop-nfse-nacional.git"
-        }
-    ],
-    "require": {
-        "sinop/nfse-nacional": "^1.0"
-    }
-}
+```bash
+composer require mendesalexandre/php-nfse-nacional
 ```
 
-## Uso rápido (será expandido)
+## Uso rápido
 
 ```php
-use Sinop\NfseNacional\Config;
-use Sinop\NfseNacional\Certificate\Certificate;
-use Sinop\NfseNacional\DTO\Prestador;
-use Sinop\NfseNacional\DTO\Endereco;
-use Sinop\NfseNacional\Enums\Ambiente;
-use Sinop\NfseNacional\Enums\RegimeEspecialTributacao;
+use PhpNfseNacional\NFSe;
+use PhpNfseNacional\Config;
+use PhpNfseNacional\Certificate\Certificate;
+use PhpNfseNacional\DTO\{Prestador, Tomador, Endereco, Servico, Valores, Identificacao};
+use PhpNfseNacional\Enums\{Ambiente, RegimeEspecialTributacao};
 
+// 1. Carregue o certificado A1
 $cert = Certificate::fromPfxFile('/path/cert.pfx', 'senha-do-pfx');
 
+// 2. Configure o prestador (singleton, uma vez na app)
 $prestador = new Prestador(
     cnpj: '00179028000138',
     inscricaoMunicipal: '11408',
-    razaoSocial: 'CARTÓRIO DE SINOP',
+    razaoSocial: 'CARTÓRIO XYZ',
     endereco: new Endereco(
         logradouro: 'R DAS NOGUEIRAS',
         numero: '1108',
@@ -78,7 +65,37 @@ $config = new Config(
     ambiente: Ambiente::Homologacao,
 );
 
-// Próximos passos: $emissao->emitir($tomador, $servico, $valores);
+// 3. Crie o SDK
+$nfse = NFSe::create($config, $cert);
+
+// 4. Emita uma NFS-e
+$resposta = $nfse->emissao()->emitir(
+    identificacao: new Identificacao(numeroDps: 1, serie: '1'),
+    tomador: new Tomador(
+        documento: '12345678901',
+        nome: 'Cliente Exemplo',
+        endereco: new Endereco(
+            logradouro: 'Rua A',
+            numero: '100',
+            bairro: 'Centro',
+            cep: '78550200',
+            codigoMunicipioIbge: '5107909',
+            uf: 'MT',
+        ),
+    ),
+    servico: new Servico(
+        discriminacao: 'Certidão de matrícula',
+        codigoMunicipioPrestacao: '5107909',
+    ),
+    valores: new Valores(
+        valorServicos: 100.00,
+        deducoesReducoes: 20.00,
+        aliquotaIssqnPercentual: 4.00,
+    ),
+);
+
+echo "Chave: " . $resposta->chaveAcesso;
+echo "Número: " . $resposta->numeroNfse;
 ```
 
 ## Configuração OpenSSL
@@ -111,7 +128,7 @@ environment=OPENSSL_CONF=/etc/ssl/openssl-sha1.cnf
 **Opção 2 (dev/local): runtime**
 
 ```php
-use Sinop\NfseNacional\Certificate\Signer;
+use PhpNfseNacional\Certificate\Signer;
 Signer::habilitarLegacyProviderRuntime();
 ```
 
@@ -119,31 +136,33 @@ Signer::habilitarLegacyProviderRuntime();
 
 ```
 src/
-├── Config.php                     # Config singleton
-├── DTO/                           # Dados imutáveis (readonly)
-├── Enums/                         # Ambiente, RegimeEspecial
-├── Certificate/                   # Carga .pfx + assinatura rsa-sha1
-├── Dps/                           # DpsBuilder, Validator, Renderer (TODO)
-├── Sefin/                         # SefinClient (HTTP via PSR-18) (TODO)
-├── Services/                      # Emissão, Consulta, Cancelamento, Download (TODO)
-├── Danfse/                        # Geração PDF NT 008 (TODO)
+├── NFSe.php                     # Facade unificado (entry point)
+├── Config.php                    # Config imutável
+├── DTO/                          # Dados imutáveis readonly
+├── Enums/                        # Ambiente, RegimeEspecial, etc.
+├── Certificate/                  # Carga .pfx + rsa-sha1
+├── Dps/                          # DpsBuilder + EventoCancelamentoBuilder
+├── Sefin/                        # SefinClient (HTTP), Endpoints, Resposta
+├── Services/                     # Emissão, Consulta, Cancelamento, Download
+├── Danfse/                       # DANFSE NT 008 (parser + layout + generator)
 ├── Exceptions/
-└── Support/
+└── Support/                      # Documento, TextoSanitizador
 ```
 
 ## Roadmap
 
 - [x] Estrutura + composer + DTOs + Config
 - [x] Certificate + Signer rsa-sha1
-- [ ] DpsBuilder (XML completo, sem TODOs do leiaute)
-- [ ] SefinClient + EmissaoService
-- [ ] ConsultaService (status NFS-e, eventos)
-- [ ] CancelamentoService (e101101)
-- [ ] DownloadDanfseService (XML + PDF cancelada)
-- [ ] DANFSE PDF — NT 008/2026
+- [x] DpsBuilder (XML completo)
+- [x] SefinClient + EmissaoService
+- [x] ConsultaService (status NFS-e, eventos)
+- [x] CancelamentoService (e101101)
+- [x] DownloadService (XML + PDF cancelada)
+- [x] DANFSE PDF — NT 008/2026 (TCPDF + QR Code)
 - [ ] Testes unitários (PHPUnit)
 - [ ] CI no GitHub Actions
+- [ ] Validação ponta-a-ponta em homologação SEFIN
 
 ## Licença
 
-Proprietário. Uso interno do Cartório de Sinop.
+MIT

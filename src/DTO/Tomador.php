@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\DTO;
+namespace PhpNfseNacional\DTO;
 
-use Sinop\NfseNacional\Exceptions\ValidationException;
-use Sinop\NfseNacional\Support\Documento;
+use PhpNfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Support\Documento;
 
 /**
  * Tomador do serviço (cliente que recebe a NFS-e).

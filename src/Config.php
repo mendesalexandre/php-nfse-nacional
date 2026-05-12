@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional;
+namespace PhpNfseNacional;
 
-use Sinop\NfseNacional\DTO\Prestador;
-use Sinop\NfseNacional\Enums\Ambiente;
-use Sinop\NfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\DTO\Prestador;
+use PhpNfseNacional\Enums\Ambiente;
+use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
  * Configuração global do SDK.
