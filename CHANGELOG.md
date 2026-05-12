@@ -5,6 +5,35 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-12
+
+### Adicionado
+- **Lookup IBGE de municípios** (`Support/IbgeMunicipios`) — 5.571 municípios
+  brasileiros embarcados em `resources/data/ibge-municipios.json` (240 KB),
+  permite resolver "Município / Sigla UF" a partir do código IBGE de 7 dígitos
+  quando o XML da NFS-e só traz o código (caso comum em DPS).
+- Subclasse `TcpdfSemLink` que neutraliza o link "Powered by TCPDF" injetado
+  pelo TCPDF no rodapé.
+
+### Corrigido
+- **Texto de autenticidade do QR Code invadindo o bloco PRESTADOR** —
+  largura aumentada de 2,2cm pra 4,78cm (toda a coluna 4), o que faz o
+  MultiCell respeitar a quebra de 3 linhas prevista na NT 008 item 2.4.3
+  em vez de quebrar em 9+ linhas estreitas.
+- **Blocos suprimidos (Destinatário/Tomador/Intermediário não identificados)**
+  agora ocupam uma linha única (altura 0,40 cm) com o texto centralizado,
+  no estilo do ADN, em vez de ocupar título + caixa separados (item 2.3.1
+  e 2.3.2 da NT 008).
+- **Tomador/Destinatário/Intermediário** mostravam "-/-" no campo
+  "Município / Sigla UF" quando o XML do DPS só trazia o código IBGE (sem
+  o nome do município) — agora faz lookup automático na base IBGE.
+- "Powered by TCPDF (www.tcpdf.org)" removido do rodapé do DANFSe.
+
+### Refatorado
+- Extraídas constantes `Config::NFSE_NAMESPACE` e `Config::LEIAUTE_VERSAO`
+  pra remover hardcoding de `'http://www.sped.fazenda.gov.br/nfse'` e
+  `'1.01'` em `DpsBuilder`, `EventoBuilder` e `DanfseXmlParser`.
+
 ## [0.3.0] — 2026-05-12
 
 ### Adicionado

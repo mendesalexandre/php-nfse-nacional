@@ -4,7 +4,23 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Danfse;
 
+use PhpNfseNacional\Support\IbgeMunicipios;
 use TCPDF;
+
+/**
+ * Subclasse local do TCPDF que neutraliza o link "Powered by TCPDF"
+ * que o pacote injeta como annotation no rodapé. Tecnicamente legal
+ * sob LGPL (atribuição mantida nos comentários e metadata).
+ *
+ * @internal Não faz parte da API pública do SDK.
+ */
+final class TcpdfSemLink extends TCPDF
+{
+    public function setTcpdfLink(bool $enabled): void
+    {
+        $this->tcpdflink = $enabled;
+    }
+}
 
 /**
  * Gerador do DANFSe (PDF) conforme NT 008/2026 (SE/CGNFS-e v1.0).
@@ -43,7 +59,8 @@ final class DanfseGenerator
 
     public function gerar(DanfseDados $dados): string
     {
-        $this->pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $this->pdf = new TcpdfSemLink('P', 'mm', 'A4', true, 'UTF-8', false);
+        $this->pdf->setTcpdfLink(false);
         $this->pdf->SetCreator('mendesalexandre/php-nfse-nacional');
         $this->pdf->SetAuthor($dados->prestador['nome'] ?? 'Prestador');
         $this->pdf->SetTitle('DANFSE ' . ($dados->numero() ?? '-'));
@@ -55,6 +72,10 @@ final class DanfseGenerator
         $this->pdf->SetAutoPageBreak(false, 0);
         $this->pdf->setPrintHeader(false);
         $this->pdf->setPrintFooter(false);
+        // Remove footer default "Powered by TCPDF" (TCPDF imprime mesmo com
+        // setPrintFooter(false) em algumas versões; só limpar o método).
+        $this->pdf->setFooterData([0, 0, 0], [0, 0, 0]);
+        $this->pdf->setFooterFont(['', '', 0]);
         $this->pdf->AddPage();
 
         // Borda externa da página (1pt, item 2.2.3)
@@ -154,26 +175,30 @@ final class DanfseGenerator
         $this->pdf->SetXY($xDir, $y + 6.5);
         $this->pdf->Cell($larguraDir, 2.5, 'Tipo de Ambiente: ' . $tipoAmb, 0, 0, 'L');
 
-        // QR Code à direita (item 2.4.3 — X=17.48 Y=1.67 mínimo 1.52x1.52cm)
+        // QR Code à direita — coluna 4 (X=15.62 a 20.40 = 4.78cm de largura).
+        // Item 2.4.3 da NT: X=17.48, Y=1.67, mínimo 1.52x1.52cm.
         if ($dados->qrCodeUrl !== null) {
             $this->pdf->write2DBarcode(
                 $dados->qrCodeUrl,
                 'QRCODE,M',
-                $marginX + DanfseLayout::cmToMm(DanfseLayout::QR_X_CM - DanfseLayout::MARGIN_X_CM),
+                DanfseLayout::cmToMm(DanfseLayout::QR_X_CM),
                 DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM),
                 DanfseLayout::cmToMm(DanfseLayout::QR_TAMANHO_CM),
                 DanfseLayout::cmToMm(DanfseLayout::QR_TAMANHO_CM),
                 ['border' => false, 'padding' => 0],
             );
 
-            // Texto de autenticidade abaixo do QR (3 linhas, 6pt)
+            // Texto de autenticidade abaixo do QR — 3 linhas, 6pt, largura
+            // cobrindo toda a coluna direita (15.62cm a 20.40cm = 4.78cm).
+            // Sem isso, o MultiCell com largura estreita quebra em 9+ linhas
+            // e invade o bloco PRESTADOR abaixo.
             $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_DESCRICAO_QR);
             $this->pdf->SetXY(
-                $marginX + DanfseLayout::cmToMm(DanfseLayout::QR_X_CM - DanfseLayout::MARGIN_X_CM - 0.5),
-                DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM + DanfseLayout::QR_TAMANHO_CM + 0.1),
+                DanfseLayout::cmToMm(15.62),
+                DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM + DanfseLayout::QR_TAMANHO_CM + 0.05),
             );
             $this->pdf->MultiCell(
-                DanfseLayout::cmToMm(2.2),
+                DanfseLayout::cmToMm(4.78),
                 2.0,
                 DanfseLayout::TEXTO_AUTENTICIDADE_QR,
                 0,
@@ -261,7 +286,7 @@ final class DanfseGenerator
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
             $p['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
-            ($p['municipio'] ?? '-') . ' / ' . ($p['uf'] ?? '-'));
+            $this->municipioUf($p));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
             ($p['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($p['cep']));
         $this->cursorY += $h;
@@ -288,14 +313,13 @@ final class DanfseGenerator
     private function renderTomador(DanfseDados $dados): void
     {
         $t = $dados->tomador;
-        $this->iniciarBloco('TOMADOR / ADQUIRENTE');
 
         if (($t['documento'] ?? null) === null) {
-            $this->renderCaixaTextoUnico($this->cursorY, 0.63,
-                'TOMADOR/ADQUIRENTE DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e');
-            $this->cursorY += 0.63;
+            $this->renderLinhaSupressao('TOMADOR/ADQUIRENTE DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e');
             return;
         }
+
+        $this->iniciarBloco('TOMADOR / ADQUIRENTE');
 
         $h = 0.63;
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
@@ -309,7 +333,7 @@ final class DanfseGenerator
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
             $t['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
-            ($t['municipio'] ?? '-') . ' / ' . ($t['uf'] ?? '-'));
+            $this->municipioUf($t));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
             ($t['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($t['cep']));
         $this->cursorY += $h;
@@ -325,22 +349,20 @@ final class DanfseGenerator
 
     private function renderDestinatario(DanfseDados $dados): void
     {
-        $this->iniciarBloco('DESTINATÁRIO DA OPERAÇÃO');
-
+        // Bloco suprimido (item 2.3.1/2.3.2 NT 008): substituir título + caixa
+        // por uma única linha contendo o texto explicativo (modelo ADN).
         if ($dados->destinatarioIgualTomador()) {
-            $this->renderCaixaTextoUnico($this->cursorY, 0.63,
-                'O DESTINATÁRIO É O PRÓPRIO TOMADOR/ADQUIRENTE DA OPERAÇÃO');
-            $this->cursorY += 0.63;
+            $this->renderLinhaSupressao('O DESTINATÁRIO É O PRÓPRIO TOMADOR/ADQUIRENTE DA OPERAÇÃO');
             return;
         }
 
         $d = $dados->destinatario;
         if (($d['documento'] ?? null) === null) {
-            $this->renderCaixaTextoUnico($this->cursorY, 0.63,
-                'DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e');
-            $this->cursorY += 0.63;
+            $this->renderLinhaSupressao('DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e');
             return;
         }
+
+        $this->iniciarBloco('DESTINATÁRIO DA OPERAÇÃO');
 
         $h = 0.63;
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
@@ -351,7 +373,7 @@ final class DanfseGenerator
 
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial', $d['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
-            ($d['municipio'] ?? '-') . ' / ' . ($d['uf'] ?? '-'));
+            $this->municipioUf($d));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
             ($d['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($d['cep'] ?? null));
         $this->cursorY += $h;
@@ -367,14 +389,12 @@ final class DanfseGenerator
 
     private function renderIntermediario(DanfseDados $dados): void
     {
-        $this->iniciarBloco('INTERMEDIÁRIO DA OPERAÇÃO');
-
         if ($dados->semIntermediario()) {
-            $this->renderCaixaTextoUnico($this->cursorY, 0.63,
-                'INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e');
-            $this->cursorY += 0.63;
+            $this->renderLinhaSupressao('INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e');
             return;
         }
+
+        $this->iniciarBloco('INTERMEDIÁRIO DA OPERAÇÃO');
 
         $i = $dados->intermediario;
         $h = 0.63;
@@ -388,7 +408,7 @@ final class DanfseGenerator
 
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial', $i['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
-            ($i['codigo_municipio'] ?? '-') . ' / ' . ($i['uf'] ?? '-'));
+            $this->municipioUf($i));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
             ($i['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($i['cep'] ?? null));
         $this->cursorY += $h;
@@ -449,9 +469,13 @@ final class DanfseGenerator
         // Linha 1 — Tipo Tributação ISSQN | Município/UF/País de Incidência
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Tipo de Tributação do ISSQN',
             $this->labelTipoTributacaoIssqn($this->ns($t['tipo_tributacao_codigo'])));
+        $municipioIncidencia = $dados->identificacao['local_incidencia']
+            ?? IbgeMunicipios::buscar($dados->identificacao['cod_municipio_incidencia'] ?? null)['nome']
+            ?? null;
+        $ufIncidencia = IbgeMunicipios::buscar($dados->identificacao['cod_municipio_incidencia'] ?? null)['uf']
+            ?? ($dados->prestador['uf'] ?? null);
         $this->renderCelula(5.41, $this->cursorY, 15.29, $h, 'Município / Sigla UF / País de Incidência do ISSQN',
-            ($dados->identificacao['local_incidencia'] ?? '-') . ' / '
-            . ($dados->prestador['uf'] ?? '-') . ' / BR');
+            ($municipioIncidencia ?? '-') . ' / ' . ($ufIncidencia ?? '-') . ' / BR');
         $this->cursorY += $h;
 
         // Linha 2 — Regime Especial | Imunidade | Suspensão | Nº Processo
@@ -768,6 +792,33 @@ final class DanfseGenerator
     }
 
     /**
+     * Linha única de supressão de bloco (modelo ADN):
+     * uma faixa de altura mínima (~0,40cm) contendo apenas o texto
+     * "NÃO IDENTIFICADO NA NFS-e" / "O DESTINATÁRIO É O PRÓPRIO TOMADOR" /
+     * "OPERAÇÃO NÃO SUJEITA AO ISSQN". Mantém a sequência visual dos blocos
+     * sem ocupar uma caixa de 4 linhas + título.
+     */
+    private function renderLinhaSupressao(string $texto): void
+    {
+        $alturaCm = self::ALTURA_TITULO_BLOCO_CM;
+        $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $y = DanfseLayout::cmToMm($this->cursorY);
+        $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
+        $altura = DanfseLayout::cmToMm($alturaCm);
+
+        $this->pdf->SetLineWidth(self::ESPESSURA_LINHA_MM);
+        $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
+        $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
+
+        $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
+        $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
+        $this->pdf->SetXY($marginX, $y + 0.4);
+        $this->pdf->Cell($largura, $altura - 0.8, $texto, 0, 0, 'C');
+
+        $this->cursorY += $alturaCm;
+    }
+
+    /**
      * Caixa com texto único centralizado — pra blocos suprimidos
      * (item 2.3 da NT 008).
      */
@@ -843,6 +894,30 @@ final class DanfseGenerator
             return null;
         }
         return is_scalar($v) ? (string) $v : null;
+    }
+
+    /**
+     * Resolve "Município / UF" a partir do que o XML oferece. Se vier o
+     * nome do município no XML, usa direto. Senão, faz lookup pelo código
+     * IBGE (resources/data/ibge-municipios.json).
+     *
+     * @param array<string, string|null> $endereco
+     */
+    private function municipioUf(array $endereco): string
+    {
+        $municipio = $endereco['municipio'] ?? null;
+        $uf = $endereco['uf'] ?? null;
+        if ($municipio === null || $uf === null) {
+            $info = IbgeMunicipios::buscar($endereco['codigo_municipio'] ?? null);
+            if ($info !== null) {
+                $municipio ??= $info['nome'];
+                $uf ??= $info['uf'];
+            }
+        }
+        if ($municipio === null && $uf === null) {
+            return '-';
+        }
+        return ($municipio ?? '-') . ' / ' . ($uf ?? '-');
     }
 
     /**

@@ -20,6 +20,19 @@ use PhpNfseNacional\Exceptions\ValidationException;
 final class Config
 {
     /**
+     * Namespace XML usado em todos os documentos do leiaute SEFIN Nacional
+     * (DPS, NFSe, pedRegEvento, etc.). Definido pela SE/CGNFS-e e válido
+     * pra toda a versão 1.x do leiaute.
+     */
+    public const NFSE_NAMESPACE = 'http://www.sped.fazenda.gov.br/nfse';
+
+    /**
+     * Versão atual do leiaute SefinNacional (atributo `versao` no root dos
+     * XMLs). Atualizado conforme a SE/CGNFS-e publica novas versões.
+     */
+    public const LEIAUTE_VERSAO = '1.01';
+
+    /**
      * Timezone usado pra gerar dhEmi/dhEvento no DPS.
      *
      * O servidor SEFIN registra dhProc em -03:00 (Brasília). Mesmo o

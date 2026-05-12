@@ -54,8 +54,8 @@ final class EventoBuilder
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = false;
 
-        $pedReg = $dom->createElementNS('http://www.sped.fazenda.gov.br/nfse', 'pedRegEvento');
-        $pedReg->setAttribute('versao', '1.01');
+        $pedReg = $dom->createElementNS(Config::NFSE_NAMESPACE, 'pedRegEvento');
+        $pedReg->setAttribute('versao', Config::LEIAUTE_VERSAO);
         $dom->appendChild($pedReg);
 
         $infPedReg = $this->el($dom, 'infPedReg');

@@ -67,8 +67,8 @@ final class DpsBuilder
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = false;
 
-        $dps = $dom->createElementNS('http://www.sped.fazenda.gov.br/nfse', 'DPS');
-        $dps->setAttribute('versao', '1.01');
+        $dps = $dom->createElementNS(Config::NFSE_NAMESPACE, 'DPS');
+        $dps->setAttribute('versao', Config::LEIAUTE_VERSAO);
         $dom->appendChild($dps);
 
         $infDPS = $this->el($dom, 'infDPS');
