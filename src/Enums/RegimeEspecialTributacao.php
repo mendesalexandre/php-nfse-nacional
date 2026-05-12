@@ -8,9 +8,9 @@ namespace PhpNfseNacional\Enums;
  * Regime especial de tributação do prestador.
  *
  * IMPORTANTE: SEFIN Nacional rejeita combinação `regEspTrib != Nenhum` + vDedRed
- * na mesma DPS (erro E0438). Pra cartório (Notario=4) com dedução, o SDK força
- * automaticamente Nenhum=0 antes do envio. Caso contrário, o portal recusa
- * antes mesmo de processar.
+ * na mesma DPS (erro E0438). Quando há dedução, o SDK força automaticamente
+ * Nenhum=0 antes do envio. Caso contrário, o portal recusa antes mesmo de
+ * processar.
  */
 enum RegimeEspecialTributacao: int
 {

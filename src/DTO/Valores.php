@@ -11,14 +11,13 @@ use PhpNfseNacional\Exceptions\ValidationException;
  *
  * Convenção SEFIN ("ISSQN por dentro"):
  *   - valorServicos = valor cobrado do tomador (inclui ISSQN dentro)
- *   - deducoesReducoes = soma das taxas (FUNAMP, Fundo Judiciário, etc.) + ISSQN
+ *   - deducoesReducoes = soma das deduções não-tributáveis + o próprio ISSQN
  *   - SEFIN computa: vBC = vServ − vDR  →  ISSQN = vBC × alíquota
  *
- * Pra que a BC do SEFIN bata com a do cartório (emolumentos − taxas),
- * o ISSQN PRECISA estar incluído em deducoesReducoes. Não é intuitivo
- * mas é a regra do leiaute SEFIN Nacional 1.6.
- *
- * Ver `docs/CALCULO-VDR.md` (no SDK) e a doc interna do projeto que usa.
+ * Pra que a BC computada pelo SEFIN bata com a base real (valor cobrado
+ * menos deduções), o ISSQN PRECISA estar incluído em deducoesReducoes.
+ * Equivalente: vDR = vServ − BC. Não é intuitivo mas é a regra do
+ * leiaute SEFIN Nacional 1.6.
  */
 final class Valores
 {

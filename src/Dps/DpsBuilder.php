@@ -21,8 +21,8 @@ use PhpNfseNacional\Support\TextoSanitizador;
  * SefinNacional 1.6 (XSD em vendor/.../tiposComplexos_v1.01.xsd).
  *
  * Implementa TODOS os grupos obrigatórios do leiaute — sem TODOs deixados
- * pra trás. Grupos opcionais que cartório não usa (lsadppu, explRod, etc.)
- * não são gerados (são omitidos legalmente via minOccurs=0).
+ * pra trás. Grupos opcionais (lsadppu, explRod, etc.) não são gerados
+ * (são omitidos legalmente via minOccurs=0).
  *
  * Diferenças propositais em relação ao hadder/nfse-nacional:
  *
@@ -33,7 +33,7 @@ use PhpNfseNacional\Support\TextoSanitizador;
  *      — falha rápida com mensagem clara
  *   5. dhEmi forçado em America/Sao_Paulo (-03:00) pra alinhar com dhProc
  *      registrado pelo SEFIN (evita diff de 1h na DANFSE)
- *   6. cTribNac validado: cartório SEMPRE usa '210101' (item 21.01 LC 116)
+ *   6. cTribNac validado pelo formato (6 dígitos do item da LC 116)
  *
  * Saída: XML cru SEM assinatura. Quem assina é o `Signer` (passa o XML
  * pelo openssl_sign rsa-sha1 e injeta <Signature>).
@@ -208,7 +208,7 @@ final class DpsBuilder
             }
         }
 
-        // Endereço (sempre nacional pra cartório — endNac)
+        // Endereço (endNac = nacional, único suportado nesse SDK)
         $end = $this->el($doc, 'end');
         $endNac = $this->el($doc, 'endNac');
         $endNac->appendChild($this->el($doc, 'cMun', $tomador->endereco->codigoMunicipioIbge));
@@ -245,8 +245,9 @@ final class DpsBuilder
 
         $serv = $this->el($doc, 'serv');
 
-        // locPrest é xs:choice — cartório sempre cLocPrestacao (não enviar
-        // junto com cPaisPrestacao que causa E1235).
+        // locPrest é xs:choice — sempre cLocPrestacao (não enviar junto
+        // com cPaisPrestacao, que causa E1235). Pra serviço no exterior
+        // use uma extensão futura desse SDK.
         $locPrest = $this->el($doc, 'locPrest');
         $locPrest->appendChild($this->el($doc, 'cLocPrestacao', $servico->codigoMunicipioPrestacao));
         $serv->appendChild($locPrest);
@@ -322,8 +323,8 @@ final class DpsBuilder
 
     /**
      * Grupo IBSCBS — obrigatório no leiaute SefinNacional 1.6+ (Reforma
-     * Tributária). Pra cartório (serviço puro, sem retenção), preenchemos
-     * com valores default que indicam "fora do escopo de IBS/CBS".
+     * Tributária). Pra prestadores de serviço puro sem retenção, default
+     * com valores que indicam "fora do escopo de IBS/CBS".
      */
     private function appendIBSCBS(DOMElement $infDPS, Servico $servico, Valores $valores): void
     {

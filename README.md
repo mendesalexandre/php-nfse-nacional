@@ -48,7 +48,7 @@ $cert = Certificate::fromPfxFile('/path/cert.pfx', 'senha-do-pfx');
 $prestador = new Prestador(
     cnpj: '00179028000138',
     inscricaoMunicipal: '11408',
-    razaoSocial: 'CARTÓRIO XYZ',
+    razaoSocial: 'EMPRESA XYZ',
     endereco: new Endereco(
         logradouro: 'R DAS NOGUEIRAS',
         numero: '1108',
@@ -96,6 +96,41 @@ $resposta = $nfse->emissao()->emitir(
 
 echo "Chave: " . $resposta->chaveAcesso;
 echo "Número: " . $resposta->numeroNfse;
+```
+
+### Cancelamento
+
+```php
+use PhpNfseNacional\DTO\MotivoCancelamento;
+
+$resposta = $nfse->cancelamento()->cancelar(
+    chaveAcesso: '51079092200179...',
+    motivo: MotivoCancelamento::ErroEmissao,
+    justificativa: 'Valor da NFS-e divergente do recibo',
+);
+```
+
+### Eventos customizados
+
+Pra outros tipos de evento que aparecerem no leiaute, implemente a interface
+`EventoNfse` e use o `EventoBuilder` diretamente — sem alterar o SDK:
+
+```php
+use PhpNfseNacional\Dps\EventoNfse;
+use PhpNfseNacional\Dps\EventoBuilder;
+
+final class MeuEventoCustomizado implements EventoNfse
+{
+    public function chaveAcesso(): string { return '...'; }
+    public function codigoTipoEvento(): string { return '101102'; } // ex: substituição
+    public function nSequencial(): int { return 1; }
+    public function descricao(): string { return 'Substituição de NFS-e'; }
+    public function camposGrupo(): array { return ['campoX' => 'valor']; }
+}
+
+$xml = (new EventoBuilder($config))->build(new MeuEventoCustomizado());
+$xmlAssinado = $signer->sign($xml, 'infPedReg');
+$resposta = $client->postXml($endpoints->cancelarNfse($chave), $xmlAssinado);
 ```
 
 ## Configuração OpenSSL

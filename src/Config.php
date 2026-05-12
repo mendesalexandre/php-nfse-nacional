@@ -23,8 +23,9 @@ final class Config
      * Timezone usado pra gerar dhEmi/dhEvento no DPS.
      *
      * O servidor SEFIN registra dhProc em -03:00 (Brasília). Mesmo o
-     * cartório estando em UF -04:00 (MT), forçamos -03:00 nos timestamps
-     * do DPS pra alinhar com o portal e evitar diferença de 1h na DANFSE.
+     * prestador estando em UF de timezone diferente, forçamos -03:00 nos
+     * timestamps do DPS pra alinhar com o portal e evitar diferença de
+     * 1h na DANFSE.
      */
     public const TIMEZONE_DPS = 'America/Sao_Paulo';
 
@@ -33,7 +34,7 @@ final class Config
         public readonly Ambiente $ambiente = Ambiente::Homologacao,
         public readonly int $timeoutSegundos = 30,
         public readonly int $maxTentativas = 3,
-        public readonly string $versaoAplicacao = 'sinop-nfse-1.0',
+        public readonly string $versaoAplicacao = 'php-nfse-1.0',
         public readonly bool $debugLogPayload = false,
     ) {
         $errors = [];
