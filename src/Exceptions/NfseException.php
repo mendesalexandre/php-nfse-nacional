@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Exceptions;
+namespace PhpNfseNacional\Exceptions;
 
 use RuntimeException;
 

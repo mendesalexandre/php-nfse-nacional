@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\DTO;
+namespace PhpNfseNacional\DTO;
 
 /**
  * Códigos de motivo aceitos pelo SEFIN no evento e101101 (cancelamento).

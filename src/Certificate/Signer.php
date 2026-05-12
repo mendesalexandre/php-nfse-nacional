@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Certificate;
+namespace PhpNfseNacional\Certificate;
 
 use DOMDocument;
 use DOMElement;
 use DOMNode;
-use Sinop\NfseNacional\Exceptions\CertificateException;
+use PhpNfseNacional\Exceptions\CertificateException;
 
 /**
  * Assinatura XML do DPS usando rsa-sha1 (exigência do leiaute SEFIN Nacional).

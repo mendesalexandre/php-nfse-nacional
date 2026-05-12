@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Dps;
+namespace PhpNfseNacional\Dps;
 
 use DateTimeImmutable;
 use DOMDocument;
 use DOMElement;
-use Sinop\NfseNacional\Config;
-use Sinop\NfseNacional\DTO\Identificacao;
-use Sinop\NfseNacional\DTO\Servico;
-use Sinop\NfseNacional\DTO\Tomador;
-use Sinop\NfseNacional\DTO\Valores;
-use Sinop\NfseNacional\Enums\RegimeEspecialTributacao;
-use Sinop\NfseNacional\Exceptions\ValidationException;
-use Sinop\NfseNacional\Support\TextoSanitizador;
+use PhpNfseNacional\Config;
+use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\Servico;
+use PhpNfseNacional\DTO\Tomador;
+use PhpNfseNacional\DTO\Valores;
+use PhpNfseNacional\Enums\RegimeEspecialTributacao;
+use PhpNfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Support\TextoSanitizador;
 
 /**
  * Monta o XML do DPS (Documento de Prestação de Serviço) conforme leiaute

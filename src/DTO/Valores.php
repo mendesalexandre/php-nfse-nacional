@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\DTO;
+namespace PhpNfseNacional\DTO;
 
-use Sinop\NfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
  * Valores monetários da NFS-e.

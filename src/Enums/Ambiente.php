@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Enums;
+namespace PhpNfseNacional\Enums;
 
 /**
  * Ambiente do Portal Nacional SEFIN.

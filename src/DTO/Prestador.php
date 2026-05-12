@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\DTO;
+namespace PhpNfseNacional\DTO;
 
-use Sinop\NfseNacional\Enums\RegimeEspecialTributacao;
-use Sinop\NfseNacional\Exceptions\ValidationException;
-use Sinop\NfseNacional\Support\Documento;
+use PhpNfseNacional\Enums\RegimeEspecialTributacao;
+use PhpNfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Support\Documento;
 
 /**
  * Prestador do serviço (emissor da NFS-e).

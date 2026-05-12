@@ -1,13 +1,13 @@
 {
-    "name": "sinop/nfse-nacional",
-    "description": "SDK PHP para NFS-e Nacional (Padrão Brasileiro) — emissão DPS, consulta, cancelamento e DANFSE (NT 008/2026). Framework-agnostic, PHP 8.1+, PSRs.",
-    "keywords": ["nfse", "nfse-nacional", "sefin", "danfse", "cartorio", "sinop"],
-    "license": "proprietary",
+    "name": "mendesalexandre/php-nfse-nacional",
+    "description": "SDK PHP framework-agnostic pra NFS-e Nacional (Padrão Brasileiro SEFIN) — emissão DPS, consulta, cancelamento e DANFSE (NT 008/2026). PHP 8.1+, PSR-3/PSR-18.",
+    "keywords": ["nfse", "nfse-nacional", "sefin", "danfse", "fiscal", "brasil"],
+    "license": "MIT",
     "type": "library",
     "authors": [
         {
-            "name": "Cartório SINOP",
-            "email": "contato@1oficiosinop.com.br"
+            "name": "Alexandre Teixeira Mendes",
+            "email": "alexandre.teixeira.mendes@hotmail.com"
         }
     ],
     "require": {
@@ -31,12 +31,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Sinop\\NfseNacional\\": "src/"
+            "PhpNfseNacional\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Sinop\\NfseNacional\\Tests\\": "tests/"
+            "PhpNfseNacional\\Tests\\": "tests/"
         }
     },
     "scripts": {

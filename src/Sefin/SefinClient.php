@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Sefin;
+namespace PhpNfseNacional\Sefin;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sinop\NfseNacional\Certificate\Certificate;
-use Sinop\NfseNacional\Config;
-use Sinop\NfseNacional\Exceptions\SefinException;
+use PhpNfseNacional\Certificate\Certificate;
+use PhpNfseNacional\Config;
+use PhpNfseNacional\Exceptions\SefinException;
 
 /**
  * Cliente HTTP pro Portal Nacional SEFIN.

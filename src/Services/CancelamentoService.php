@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\Services;
+namespace PhpNfseNacional\Services;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sinop\NfseNacional\Certificate\Signer;
-use Sinop\NfseNacional\Config;
-use Sinop\NfseNacional\Dps\EventoCancelamentoBuilder;
-use Sinop\NfseNacional\DTO\MotivoCancelamento;
-use Sinop\NfseNacional\Exceptions\SefinException;
-use Sinop\NfseNacional\Sefin\SefinClient;
-use Sinop\NfseNacional\Sefin\SefinEndpoints;
-use Sinop\NfseNacional\Sefin\SefinResposta;
+use PhpNfseNacional\Certificate\Signer;
+use PhpNfseNacional\Config;
+use PhpNfseNacional\Dps\EventoCancelamentoBuilder;
+use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\Exceptions\SefinException;
+use PhpNfseNacional\Sefin\SefinClient;
+use PhpNfseNacional\Sefin\SefinEndpoints;
+use PhpNfseNacional\Sefin\SefinResposta;
 
 /**
  * Cancelamento de NFS-e via evento e101101.

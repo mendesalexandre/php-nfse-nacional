@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Sinop\NfseNacional\DTO;
+namespace PhpNfseNacional\DTO;
 
 use DateTimeImmutable;
-use Sinop\NfseNacional\Exceptions\ValidationException;
+use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
  * Identificação do DPS — número sequencial, série, data de competência.
