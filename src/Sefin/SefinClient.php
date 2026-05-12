@@ -39,7 +39,13 @@ final class SefinClient
 
     /**
      * Envia o XML do DPS (já assinado) ao SEFIN.
-     * Retorna a resposta normalizada.
+     *
+     * Wire format do Portal Nacional:
+     *   - Content-Type: application/json
+     *   - Body: { "dpsXmlGZipB64": "<XML gzipped + base64>" }
+     *
+     * O SEFIN responde com JSON contendo `nfseXmlGZipB64` (sucesso) ou
+     * `mensagens` (erro) — descompressão é feita em parsearResposta().
      */
     public function enviarDps(string $xmlAssinado): SefinResposta
     {
@@ -52,34 +58,11 @@ final class SefinClient
             $this->logger->debug('[SefinClient] XML enviado', ['xml' => $xmlAssinado]);
         }
 
-        $response = $this->http->request('POST', $this->endpoints->enviarDps(), [
-            'headers' => [
-                'Content-Type' => 'application/xml',
-                'Accept' => 'application/xml',
-            ],
-            'body' => $xmlAssinado,
-            'timeout' => $this->config->timeoutSegundos,
-            'http_errors' => false, // não joga exceção em 4xx/5xx — tratamos manualmente
-        ]);
-
-        $body = (string) $response->getBody();
-        $statusHttp = $response->getStatusCode();
-
-        $this->logger->info('[SefinClient] Resposta recebida', [
-            'status_http' => $statusHttp,
-            'tamanho_resp' => strlen($body),
-        ]);
-
-        if ($statusHttp >= 500) {
-            throw new SefinException(
-                cStat: null,
-                xMotivo: null,
-                message: "SEFIN retornou erro HTTP {$statusHttp} — tente novamente em alguns minutos",
-                rawResponse: $body,
-            );
-        }
-
-        return $this->parsearResposta($body);
+        return $this->postJsonGzipB64(
+            $this->endpoints->enviarDps(),
+            'dpsXmlGZipB64',
+            $xmlAssinado,
+        );
     }
 
     /**
@@ -95,16 +78,41 @@ final class SefinClient
     }
 
     /**
-     * Faz POST de XML em endpoint arbitrário (usado pra eventos como cancelamento).
+     * Faz POST de evento (cancelamento, etc.) ao endpoint de eventos.
+     * Wire format igual ao DPS mas com campo `pedidoRegistroEventoXmlGZipB64`.
      */
-    public function postXml(string $url, string $xmlBody): SefinResposta
+    public function postEvento(string $url, string $xmlAssinado): SefinResposta
     {
+        return $this->postJsonGzipB64(
+            $url,
+            'pedidoRegistroEventoXmlGZipB64',
+            $xmlAssinado,
+        );
+    }
+
+    /**
+     * Helper interno — POST com payload JSON contendo um único campo cujo
+     * valor é gzip+base64 do XML assinado. Padrão do SEFIN Nacional pra
+     * envio de DPS e eventos.
+     */
+    private function postJsonGzipB64(string $url, string $fieldName, string $xmlAssinado): SefinResposta
+    {
+        // O DOMDocument::saveXML já inclui o prolog XML. Não duplicar.
+        $gz = gzencode($xmlAssinado);
+        if ($gz === false) {
+            throw new SefinException(null, null, 'Falha ao comprimir XML pra envio');
+        }
+        $payload = json_encode([$fieldName => base64_encode($gz)]);
+        if ($payload === false) {
+            throw new SefinException(null, null, 'Falha ao serializar payload JSON');
+        }
+
         $response = $this->http->request('POST', $url, [
             'headers' => [
-                'Content-Type' => 'application/xml',
-                'Accept' => 'application/xml',
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
             ],
-            'body' => $xmlBody,
+            'body' => $payload,
             'timeout' => $this->config->timeoutSegundos,
             'http_errors' => false,
         ]);
@@ -112,11 +120,16 @@ final class SefinClient
         $body = (string) $response->getBody();
         $statusHttp = $response->getStatusCode();
 
+        $this->logger->info('[SefinClient] Resposta recebida', [
+            'status_http' => $statusHttp,
+            'tamanho_resp' => strlen($body),
+        ]);
+
         if ($statusHttp >= 500) {
             throw new SefinException(
                 cStat: null,
                 xMotivo: null,
-                message: "SEFIN retornou erro HTTP {$statusHttp}",
+                message: "SEFIN retornou erro HTTP {$statusHttp} — tente novamente em alguns minutos",
                 rawResponse: $body,
             );
         }
@@ -162,6 +175,30 @@ final class SefinClient
      */
     private function parsearResposta(string $body): SefinResposta
     {
+        // Caso 1: erro estruturado em JSON (formato SEFIN)
+        // { "erros": [ { "Codigo": "E1235", "Descricao": "...", "Complemento": "..." } ] }
+        $json = @json_decode($body, true);
+        if (is_array($json) && isset($json['erros']) && is_array($json['erros']) && !empty($json['erros'])) {
+            $primeiro = $json['erros'][0];
+            $codigo = $primeiro['Codigo'] ?? null;
+            $descricao = $primeiro['Descricao'] ?? null;
+            $complemento = $primeiro['Complemento'] ?? null;
+            $cStat = is_string($codigo) && preg_match('/(\d+)/', $codigo, $m) ? (int) $m[1] : null;
+            $xMotivo = trim(($descricao ?? '') . ($complemento !== null ? ' — ' . mb_substr($complemento, 0, 200) : ''));
+            return new SefinResposta(
+                chaveAcesso: null,
+                cStat: $cStat,
+                xMotivo: $xMotivo !== '' ? $xMotivo : null,
+                protocolo: null,
+                numeroNfse: null,
+                codigoVerificacao: null,
+                dataProcessamento: $json['dataHoraProcessamento'] ?? null,
+                xmlRetorno: null,
+                rawResponse: $body,
+            );
+        }
+
+        // Caso 2: resposta XML (sucesso ou erro empacotado em GZipB64)
         $xmlRetorno = $this->descomprimirSeNecessario($body);
 
         $chave = $this->extrairTag($xmlRetorno, 'chNFSe')

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpNfseNacional\DTO;
 
 use PhpNfseNacional\Enums\RegimeEspecialTributacao;
+use PhpNfseNacional\Enums\SituacaoSimplesNacional;
 use PhpNfseNacional\Exceptions\ValidationException;
 use PhpNfseNacional\Support\Documento;
 
@@ -24,7 +25,7 @@ final class Prestador
         public readonly string $razaoSocial,
         public readonly Endereco $endereco,
         public readonly RegimeEspecialTributacao $regimeEspecial = RegimeEspecialTributacao::Nenhum,
-        public readonly bool $optanteSimplesNacional = false,
+        public readonly SituacaoSimplesNacional $simplesNacional = SituacaoSimplesNacional::NaoOptante,
         public readonly bool $incentivadorCultural = false,
         public readonly ?string $email = null,
         public readonly ?string $telefone = null,

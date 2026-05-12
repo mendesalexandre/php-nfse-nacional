@@ -61,11 +61,24 @@ final class Signer
             throw new CertificateException("<{$elementName}> sem atributo {$idAttribute}");
         }
 
-        $c14n = $alvo->C14N(false, false);
+        $c14n = $alvo->C14N(true, false);
         $digest = base64_encode(hash('sha1', $c14n, true));
 
+        // 1) Calcula digest com o nó ainda sem <Signature> dentro do DOM.
+        // 2) Cria <Signature> + anexa ao DOM (irmão de <infDPS>) ANTES do
+        //    C14N do <SignedInfo> — isso garante que a canonicalização use
+        //    o contexto completo de namespaces do documento (compatível com
+        //    a verificação SEFIN).
         $sigInfo = $this->buildSignedInfo($dom, $id, $digest);
-        $sigInfoC14n = $sigInfo->C14N(false, false);
+        $signatureNode = $dom->createElementNS(
+            'http://www.w3.org/2000/09/xmldsig#',
+            'Signature',
+        );
+        $signatureNode->appendChild($sigInfo);
+        $alvo->parentNode?->appendChild($signatureNode);
+
+        // Agora canonicaliza SignedInfo já dentro do DOM final
+        $sigInfoC14n = $sigInfo->C14N(true, false);
 
         $assinatura = '';
         if (!openssl_sign(
@@ -80,15 +93,17 @@ final class Signer
             );
         }
 
-        $signatureNode = $this->buildSignatureNode(
-            $dom,
-            $sigInfo,
-            base64_encode($assinatura),
-            $this->certPemToBase64(),
+        // Adiciona SignatureValue + KeyInfo ao Signature já posicionado
+        $signatureNode->appendChild(
+            $dom->createElement('SignatureValue', base64_encode($assinatura))
         );
-
-        // Append <Signature> como irmão de <infDPS> dentro do pai
-        $alvo->parentNode?->appendChild($signatureNode);
+        $keyInfo = $dom->createElement('KeyInfo');
+        $x509Data = $dom->createElement('X509Data');
+        $x509Data->appendChild(
+            $dom->createElement('X509Certificate', $this->certPemToBase64())
+        );
+        $keyInfo->appendChild($x509Data);
+        $signatureNode->appendChild($keyInfo);
 
         $output = $dom->saveXML();
         if ($output === false) {
@@ -99,35 +114,37 @@ final class Signer
 
     private function buildSignedInfo(DOMDocument $dom, string $referenciaId, string $digest): DOMElement
     {
-        $ns = 'http://www.w3.org/2000/09/xmldsig#';
+        // Apenas o <Signature> raiz tem namespace via createElementNS. Filhos
+        // usam createElement (herdam namespace do pai). Padrão xmldsig + alinhado
+        // com a referência NFePHP/SEFIN — usar createElementNS em filhos gera
+        // declarações xmlns redundantes que invalidam a verificação.
+        $signedInfo = $dom->createElement('SignedInfo');
 
-        $signedInfo = $dom->createElementNS($ns, 'SignedInfo');
-
-        $canon = $dom->createElementNS($ns, 'CanonicalizationMethod');
+        $canon = $dom->createElement('CanonicalizationMethod');
         $canon->setAttribute('Algorithm', 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315');
         $signedInfo->appendChild($canon);
 
-        $sigMethod = $dom->createElementNS($ns, 'SignatureMethod');
+        $sigMethod = $dom->createElement('SignatureMethod');
         $sigMethod->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#rsa-sha1');
         $signedInfo->appendChild($sigMethod);
 
-        $reference = $dom->createElementNS($ns, 'Reference');
+        $reference = $dom->createElement('Reference');
         $reference->setAttribute('URI', '#' . $referenciaId);
 
-        $transforms = $dom->createElementNS($ns, 'Transforms');
-        $t1 = $dom->createElementNS($ns, 'Transform');
+        $transforms = $dom->createElement('Transforms');
+        $t1 = $dom->createElement('Transform');
         $t1->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#enveloped-signature');
         $transforms->appendChild($t1);
-        $t2 = $dom->createElementNS($ns, 'Transform');
+        $t2 = $dom->createElement('Transform');
         $t2->setAttribute('Algorithm', 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315');
         $transforms->appendChild($t2);
         $reference->appendChild($transforms);
 
-        $digMethod = $dom->createElementNS($ns, 'DigestMethod');
+        $digMethod = $dom->createElement('DigestMethod');
         $digMethod->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
         $reference->appendChild($digMethod);
 
-        $digValue = $dom->createElementNS($ns, 'DigestValue', $digest);
+        $digValue = $dom->createElement('DigestValue', $digest);
         $reference->appendChild($digValue);
 
         $signedInfo->appendChild($reference);
@@ -142,15 +159,16 @@ final class Signer
     ): DOMElement {
         $ns = 'http://www.w3.org/2000/09/xmldsig#';
 
+        // Só o nó raiz <Signature> declara namespace — filhos herdam.
         $signature = $dom->createElementNS($ns, 'Signature');
         $signature->appendChild($signedInfo);
 
-        $sigValueNode = $dom->createElementNS($ns, 'SignatureValue', $signatureValue);
+        $sigValueNode = $dom->createElement('SignatureValue', $signatureValue);
         $signature->appendChild($sigValueNode);
 
-        $keyInfo = $dom->createElementNS($ns, 'KeyInfo');
-        $x509Data = $dom->createElementNS($ns, 'X509Data');
-        $x509Cert = $dom->createElementNS($ns, 'X509Certificate', $certBase64);
+        $keyInfo = $dom->createElement('KeyInfo');
+        $x509Data = $dom->createElement('X509Data');
+        $x509Cert = $dom->createElement('X509Certificate', $certBase64);
         $x509Data->appendChild($x509Cert);
         $keyInfo->appendChild($x509Data);
         $signature->appendChild($keyInfo);

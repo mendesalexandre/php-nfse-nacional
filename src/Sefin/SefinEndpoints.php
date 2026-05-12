@@ -11,11 +11,14 @@ use PhpNfseNacional\Enums\Ambiente;
  *
  * URLs oficiais publicadas pela SE/CGNFS-e. Caso o portal mude as URLs,
  * basta atualizar essas constantes (não precisa mexer em SefinClient).
+ *
+ * Atenção: o path do ambiente difere (`/SefinNacional` em homologação,
+ * `/sefinnacional` minúsculo em produção).
  */
 final class SefinEndpoints
 {
-    private const URL_PRODUCAO = 'https://sefin.nfse.gov.br';
-    private const URL_HOMOLOGACAO = 'https://sefin.producaorestrita.nfse.gov.br';
+    private const URL_PRODUCAO = 'https://sefin.nfse.gov.br/sefinnacional';
+    private const URL_HOMOLOGACAO = 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
 
     public function __construct(
         public readonly Ambiente $ambiente,
@@ -31,22 +34,22 @@ final class SefinEndpoints
 
     public function enviarDps(): string
     {
-        return $this->baseUrl() . '/SefinNacional/dps';
+        return $this->baseUrl() . '/nfse';
     }
 
     public function consultarNfsePorChave(string $chave): string
     {
-        return $this->baseUrl() . '/SefinNacional/nfse/' . $chave;
+        return $this->baseUrl() . '/nfse/' . $chave;
     }
 
     public function consultarDpsPorChave(string $chave): string
     {
-        return $this->baseUrl() . '/SefinNacional/dps/' . $chave;
+        return $this->baseUrl() . '/dps/' . $chave;
     }
 
     public function consultarEventos(string $chave, ?string $tipoEvento = null, ?int $nSequencial = null): string
     {
-        $url = $this->baseUrl() . '/SefinNacional/nfse/' . $chave . '/eventos';
+        $url = $this->baseUrl() . '/nfse/' . $chave . '/eventos';
         if ($tipoEvento !== null) {
             $url .= '/' . $tipoEvento;
             if ($nSequencial !== null) {
@@ -58,11 +61,11 @@ final class SefinEndpoints
 
     public function cancelarNfse(string $chave): string
     {
-        return $this->baseUrl() . '/SefinNacional/nfse/' . $chave . '/eventos/cancelamento';
+        return $this->baseUrl() . '/nfse/' . $chave . '/eventos';
     }
 
     public function downloadDanfse(string $chave): string
     {
-        return $this->baseUrl() . '/SefinNacional/nfse/' . $chave . '/danfse';
+        return $this->baseUrl() . '/danfse/' . $chave;
     }
 }

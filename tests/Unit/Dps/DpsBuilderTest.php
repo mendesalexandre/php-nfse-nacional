@@ -86,8 +86,8 @@ final class DpsBuilderTest extends TestCase
         self::assertNotNull($infDPS);
         $id = $infDPS->attributes?->getNamedItem('Id')?->nodeValue ?? '';
         self::assertStringStartsWith('DPS', $id);
-        // 3 (DPS) + 7 (cMun) + 14 (CNPJ) + 5 (serie) + 15 (nDPS) = 44
-        self::assertSame(44, strlen($id));
+        // 3 (DPS) + 7 (cMun) + 1 (tipoInsc) + 14 (CNPJ) + 5 (serie) + 15 (nDPS) = 45
+        self::assertSame(45, strlen($id));
     }
 
     public function test_forca_regespTrib_zero_quando_ha_deducao(): void
@@ -183,7 +183,7 @@ final class DpsBuilderTest extends TestCase
             new Valores(100.00, 20.00, 4.00),
         );
         self::assertStringContainsString('<IBSCBS>', $xml);
-        self::assertStringContainsString('<CSTIBSCBS>410</CSTIBSCBS>', $xml);
+        self::assertStringContainsString('<CST>000</CST>', $xml);
     }
 
     public function test_cTribNac_default_eh_210101(): void
