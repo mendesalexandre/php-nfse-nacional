@@ -111,7 +111,7 @@ final class DpsBuilder
      * TipoInscricaoFederal: **2 = CNPJ, 1 = CPF** (atenção: a documentação
      * é ambígua, mas a implementação real do SEFIN usa essa convenção).
      *
-     * Ex: DPS5107909200179028000138000010000000000000001 (45 chars)
+     * Ex: DPS3550308212345678000195000010000000000000001 (45 chars)
      */
     private function gerarDpsId(Identificacao $id): string
     {

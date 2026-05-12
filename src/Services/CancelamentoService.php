@@ -68,7 +68,13 @@ final class CancelamentoService
         $url = $this->endpoints->cancelarNfse($evento->chaveAcesso);
         $resposta = $this->client->postEvento($url, $xmlAssinado);
 
-        if (!$resposta->cancelada()) {
+        // Aceito como sucesso:
+        //   - cStat ∈ {100, 135, 155}  → evento aceito pelo SEFIN
+        //   - cStat == 840 (E0840)     → cancelamento já existia previamente
+        //                                (idempotente — não levanta exceção)
+        $aceito = in_array($resposta->cStat, [100, 135, 155, 840], true);
+
+        if (!$aceito) {
             $this->logger->error('[CancelamentoService] SEFIN rejeitou cancelamento', [
                 'chave' => $evento->chaveAcesso,
                 'cStat' => $resposta->cStat,
@@ -84,6 +90,7 @@ final class CancelamentoService
         $this->logger->info('[CancelamentoService] Cancelamento confirmado', [
             'chave' => $evento->chaveAcesso,
             'cStat' => $resposta->cStat,
+            'ja_existia' => $resposta->cStat === 840,
         ]);
         return $resposta;
     }

@@ -104,7 +104,7 @@ final class DanfseLayout
     }
 
     /**
-     * Formata CEP: 78550200 → "78550-200"
+     * Formata CEP: 01310100 → "01310-100"
      */
     public static function formatarCep(?string $valor): string
     {

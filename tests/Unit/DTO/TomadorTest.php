@@ -17,30 +17,30 @@ final class TomadorTest extends TestCase
             logradouro: 'Rua A',
             numero: '100',
             bairro: 'Centro',
-            cep: '78550200',
-            codigoMunicipioIbge: '5107909',
+            cep: '01310100',
+            codigoMunicipioIbge: '3550308',
             uf: 'MT',
         );
     }
 
     public function test_aceita_cpf_valido(): void
     {
-        $tomador = new Tomador('44208855134', 'João da Silva', $this->endereco());
-        self::assertSame('44208855134', $tomador->documento);
+        $tomador = new Tomador('12345678909', 'João da Silva', $this->endereco());
+        self::assertSame('12345678909', $tomador->documento);
         self::assertTrue($tomador->ehPessoaFisica());
     }
 
     public function test_aceita_cnpj_valido(): void
     {
-        $tomador = new Tomador('00179028000138', 'Empresa LTDA', $this->endereco());
-        self::assertSame('00179028000138', $tomador->documento);
+        $tomador = new Tomador('12345678000195', 'Empresa LTDA', $this->endereco());
+        self::assertSame('12345678000195', $tomador->documento);
         self::assertFalse($tomador->ehPessoaFisica());
     }
 
     public function test_normaliza_documento_com_mascara(): void
     {
-        $tomador = new Tomador('00.179.028/0001-38', 'Empresa', $this->endereco());
-        self::assertSame('00179028000138', $tomador->documento);
+        $tomador = new Tomador('12.345.678/0001-95', 'Empresa', $this->endereco());
+        self::assertSame('12345678000195', $tomador->documento);
     }
 
     public function test_rejeita_documento_invalido(): void
@@ -54,7 +54,7 @@ final class TomadorTest extends TestCase
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Nome do tomador vazio');
-        new Tomador('44208855134', '   ', $this->endereco());
+        new Tomador('12345678909', '   ', $this->endereco());
     }
 
     public function test_rejeita_email_invalido(): void
@@ -62,7 +62,7 @@ final class TomadorTest extends TestCase
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Email do tomador inválido');
         new Tomador(
-            documento: '44208855134',
+            documento: '12345678909',
             nome: 'João',
             endereco: $this->endereco(),
             email: 'nao-eh-email',
@@ -72,7 +72,7 @@ final class TomadorTest extends TestCase
     public function test_aceita_email_vazio_como_omissao(): void
     {
         $tomador = new Tomador(
-            documento: '44208855134',
+            documento: '12345678909',
             nome: 'João',
             endereco: $this->endereco(),
             email: null,

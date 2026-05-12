@@ -175,31 +175,71 @@ final class SefinClient
      */
     private function parsearResposta(string $body): SefinResposta
     {
-        // Caso 1: erro estruturado em JSON (formato SEFIN)
-        // { "erros": [ { "Codigo": "E1235", "Descricao": "...", "Complemento": "..." } ] }
+        // Caso 1: erro estruturado em JSON (formato SEFIN). O SEFIN devolve com
+        // várias variações de chave/case: `erros`/`erro` (a emissão e o evento de
+        // cancelamento usam o singular `erro`). Os subcampos também alternam entre
+        // `Codigo/Descricao/Complemento` (maiúsculas) e `codigo/descricao/complemento`.
         $json = @json_decode($body, true);
-        if (is_array($json) && isset($json['erros']) && is_array($json['erros']) && !empty($json['erros'])) {
-            $primeiro = $json['erros'][0];
-            $codigo = $primeiro['Codigo'] ?? null;
-            $descricao = $primeiro['Descricao'] ?? null;
-            $complemento = $primeiro['Complemento'] ?? null;
-            $cStat = is_string($codigo) && preg_match('/(\d+)/', $codigo, $m) ? (int) $m[1] : null;
-            $xMotivo = trim(($descricao ?? '') . ($complemento !== null ? ' — ' . mb_substr($complemento, 0, 200) : ''));
+        if (is_array($json)) {
+            $listaErros = null;
+            foreach (['erros', 'erro'] as $chave) {
+                if (isset($json[$chave]) && is_array($json[$chave]) && !empty($json[$chave])) {
+                    $listaErros = $json[$chave];
+                    break;
+                }
+            }
+            if ($listaErros !== null) {
+                $primeiro = $listaErros[0];
+                $codigo = $primeiro['Codigo'] ?? $primeiro['codigo'] ?? null;
+                $descricao = $primeiro['Descricao'] ?? $primeiro['descricao'] ?? null;
+                $complemento = $primeiro['Complemento'] ?? $primeiro['complemento'] ?? null;
+                $cStat = is_string($codigo) && preg_match('/(\d+)/', $codigo, $m) ? (int) $m[1] : null;
+                $xMotivo = trim(($descricao ?? '') . ($complemento !== null ? ' — ' . mb_substr($complemento, 0, 200) : ''));
+                return new SefinResposta(
+                    chaveAcesso: null,
+                    cStat: $cStat,
+                    xMotivo: $xMotivo !== '' ? $xMotivo : null,
+                    protocolo: null,
+                    numeroNfse: null,
+                    codigoVerificacao: null,
+                    dataProcessamento: $json['dataHoraProcessamento'] ?? null,
+                    xmlRetorno: null,
+                    rawResponse: $body,
+                );
+            }
+        }
+
+        // Caso 2: sucesso em JSON com XML gzip+base64 (emissão, consulta, eventos).
+        // Estrutura: { chaveAcesso, dataHoraProcessamento, <algoXmlGZipB64> }
+        // Cobre `nfseXmlGZipB64`, `dpsXmlGZipB64`, `eventoNfseXmlGZipB64`, etc.
+        $temCampoGZipB64 = is_array($json) && (function (array $j): bool {
+            foreach ($j as $k => $_) {
+                if (is_string($k) && str_ends_with($k, 'XmlGZipB64')) {
+                    return true;
+                }
+            }
+            return false;
+        })($json);
+        if ($temCampoGZipB64) {
+            $xmlRetorno = $this->extrairXmlDoEnvelope($body);
+            // cStat 100 implícito no caso de sucesso (não vem no payload de consulta)
+            $chaveJson = is_string($json['chaveAcesso'] ?? null) ? $json['chaveAcesso'] : null;
+            $chaveFinal = $chaveJson ?? $this->extrairTag($xmlRetorno, 'chNFSe');
             return new SefinResposta(
-                chaveAcesso: null,
-                cStat: $cStat,
-                xMotivo: $xMotivo !== '' ? $xMotivo : null,
-                protocolo: null,
-                numeroNfse: null,
-                codigoVerificacao: null,
-                dataProcessamento: $json['dataHoraProcessamento'] ?? null,
-                xmlRetorno: null,
+                chaveAcesso: $chaveFinal,
+                cStat: 100,
+                xMotivo: null,
+                protocolo: $this->extrairTag($xmlRetorno, 'nDFSe') ?? $this->extrairTag($xmlRetorno, 'nProt'),
+                numeroNfse: $this->extrairTag($xmlRetorno, 'nNFSe'),
+                codigoVerificacao: $this->extrairTag($xmlRetorno, 'cVerif'),
+                dataProcessamento: $json['dataHoraProcessamento'] ?? $this->extrairTag($xmlRetorno, 'dhProc'),
+                xmlRetorno: $xmlRetorno,
                 rawResponse: $body,
             );
         }
 
-        // Caso 2: resposta XML (sucesso ou erro empacotado em GZipB64)
-        $xmlRetorno = $this->descomprimirSeNecessario($body);
+        // Caso 3: resposta XML direta (raro, mas mantido por retrocompat)
+        $xmlRetorno = $this->extrairXmlDoEnvelope($body);
 
         $chave = $this->extrairTag($xmlRetorno, 'chNFSe')
             ?? $this->extrairAtributo($xmlRetorno, 'Id', 'NFS')
@@ -226,22 +266,36 @@ final class SefinClient
     }
 
     /**
-     * Algumas respostas do SEFIN vêm wrapped em JSON com campos *GZipB64.
-     * Descomprime quando detectado, senão retorna o body como está.
+     * Extrai o XML cru do envelope JSON usado pelo SEFIN Nacional.
+     *
+     * O portal devolve respostas no formato:
+     *   { "<nome>XmlGZipB64": "<base64(gzip(xml))>", ... }
+     *
+     * Onde `<nome>` varia conforme a operação (`nfse`, `dps`, `eventoNfse`, ...).
+     * Faz base64_decode + gzdecode do primeiro campo `*XmlGZipB64` encontrado.
+     * Se o body não for um envelope JSON com esse campo, retorna o body original
+     * (assume que já é XML).
      */
-    private function descomprimirSeNecessario(string $body): string
+    private function extrairXmlDoEnvelope(string $body): string
     {
-        if (str_contains($body, 'GZipB64')) {
-            // Tenta extrair o campo *GZipB64 do JSON
-            if (preg_match('/"([a-zA-Z]+GZipB64)":"([^"]+)"/', $body, $m)) {
-                $base64 = $m[2];
-                $decoded = base64_decode($base64, true);
-                if ($decoded !== false) {
-                    $gz = @gzdecode($decoded);
-                    if ($gz !== false) {
-                        return $gz;
-                    }
-                }
+        if (!str_contains($body, 'GZipB64')) {
+            return $body;
+        }
+        $json = @json_decode($body, true);
+        if (!is_array($json)) {
+            return $body;
+        }
+        foreach ($json as $chave => $valor) {
+            if (!is_string($chave) || !is_string($valor) || !str_ends_with($chave, 'GZipB64')) {
+                continue;
+            }
+            $decoded = base64_decode($valor, true);
+            if ($decoded === false) {
+                continue;
+            }
+            $gz = @gzdecode($decoded);
+            if ($gz !== false) {
+                return $gz;
             }
         }
         return $body;

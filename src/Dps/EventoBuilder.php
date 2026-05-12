@@ -17,7 +17,7 @@ use PhpNfseNacional\Support\TextoSanitizador;
  * Estrutura conforme leiaute SefinNacional 1.6:
  *
  *   <pedRegEvento versao="1.01">
- *     <infPedReg Id="EVT{chave:50}{tipoEvento:6}{seq:2}">
+ *     <infPedReg Id="PRE{chave:50}{tipoEvento:6}">
  *       <chNFSe>...</chNFSe>
  *       <CNPJAutor>...</CNPJAutor>
  *       <dhEvento>datetime</dhEvento>
@@ -62,11 +62,13 @@ final class EventoBuilder
         $infPedReg->setAttribute('Id', $this->gerarEventoId($evento));
         $pedReg->appendChild($infPedReg);
 
-        $infPedReg->appendChild($this->el($dom, 'chNFSe', $evento->chaveAcesso()));
-        $infPedReg->appendChild($this->el($dom, 'CNPJAutor', $this->config->prestador->cnpj));
-        $infPedReg->appendChild($this->el($dom, 'dhEvento', $this->gerarDhEvento()));
+        // Ordem exigida pelo schema TSinfPedReg do SefinNacional 1.6:
+        //   tpAmb → verAplic → dhEvento → CNPJAutor (ou CPFAutor) → chNFSe → grupo do evento
         $infPedReg->appendChild($this->el($dom, 'tpAmb', (string) $this->config->ambiente->value));
         $infPedReg->appendChild($this->el($dom, 'verAplic', $this->config->versaoAplicacao));
+        $infPedReg->appendChild($this->el($dom, 'dhEvento', $this->gerarDhEvento()));
+        $infPedReg->appendChild($this->el($dom, 'CNPJAutor', $this->config->prestador->cnpj));
+        $infPedReg->appendChild($this->el($dom, 'chNFSe', $evento->chaveAcesso()));
 
         // Grupo específico do evento. Nome do nó = 'e' + tipoEvento (ex: 'e101101').
         $grupoNome = 'e' . $evento->codigoTipoEvento();
@@ -93,16 +95,19 @@ final class EventoBuilder
     }
 
     /**
-     * Atributo Id do evento conforme leiaute:
-     *   EVT{chave:50}{tipoEvento:6}{nSequencial:2}
+     * Atributo Id do <infPedReg> conforme leiaute SefinNacional (TSIdPedRegEvt):
+     *   PRE{chave:50}{tipoEvento:6}  (total 59 chars)
+     *
+     * O `nSequencial` do evento NÃO entra no Id — só na URL do endpoint e em
+     * consultas. Confirmado contra implementação de referência (hadder/nfse-nacional)
+     * e SEFIN Nacional 1.6.
      */
     private function gerarEventoId(EventoNfse $evento): string
     {
         return sprintf(
-            'EVT%s%s%s',
+            'PRE%s%s',
             $evento->chaveAcesso(),
             $evento->codigoTipoEvento(),
-            str_pad((string) $evento->nSequencial(), 2, '0', STR_PAD_LEFT),
         );
     }
 

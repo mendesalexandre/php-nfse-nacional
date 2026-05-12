@@ -15,6 +15,7 @@ use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
 use PhpNfseNacional\Services\CancelamentoService;
 use PhpNfseNacional\Services\ConsultaService;
+use PhpNfseNacional\Services\DanfseService;
 use PhpNfseNacional\Services\DownloadService;
 use PhpNfseNacional\Services\EmissaoService;
 
@@ -41,6 +42,7 @@ final class NFSe
         public readonly ConsultaService $consulta,
         public readonly CancelamentoService $cancelamento,
         public readonly DownloadService $download,
+        public readonly DanfseService $danfse,
     ) {}
 
     /**
@@ -74,6 +76,7 @@ final class NFSe
                 $logger,
             ),
             download: new DownloadService($client, $endpoints),
+            danfse: new DanfseService(),
         );
     }
 
@@ -95,5 +98,10 @@ final class NFSe
     public function download(): DownloadService
     {
         return $this->download;
+    }
+
+    public function danfse(): DanfseService
+    {
+        return $this->danfse;
     }
 }

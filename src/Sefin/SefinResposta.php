@@ -35,6 +35,10 @@ final class SefinResposta
         return $this->cStat === 100 && $this->chaveAcesso !== null;
     }
 
+    /**
+     * NFS-e cancelada (estado final no SEFIN). Use após consultar a NFS-e
+     * (não após enviar o evento — esse caso é tratado em CancelamentoService).
+     */
     public function cancelada(): bool
     {
         return in_array($this->cStat, [101, 102, 135, 155], true);
