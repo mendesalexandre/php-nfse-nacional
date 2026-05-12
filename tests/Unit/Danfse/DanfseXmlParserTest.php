@@ -38,7 +38,8 @@ final class DanfseXmlParserTest extends TestCase
     {
         $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
 
-        self::assertSame('12345678000195', $dados->prestador['cnpj']);
+        self::assertSame('12345678000195', $dados->prestador['documento']);
+        self::assertSame('CNPJ', $dados->prestador['tipo_documento']);
         self::assertSame('12345', $dados->prestador['inscricao_municipal']);
         self::assertSame('01310100', $dados->prestador['cep']);
         self::assertSame('SP', $dados->prestador['uf']);
@@ -58,20 +59,28 @@ final class DanfseXmlParserTest extends TestCase
 
         // 21.01.01 — serviços de registros públicos (item da lista LC 116/2003)
         self::assertSame('210101', $dados->servico['codigo_tributacao_nacional']);
-        self::assertNotEmpty($dados->servico['descricao']);
+        self::assertNotEmpty($dados->servico['descricao_servico']);
     }
 
-    public function test_valores_principais_extraidos_corretamente(): void
+    public function test_valor_total_extraido_corretamente(): void
     {
         $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
 
         // Valores do fixture: vBC=23,08, ISSQN=0,92, vServ=32,97, vDR=9,89, aliq=4%
         // (cenário "ISSQN por dentro" — vDR inclui o ISSQN na dedução redutora)
-        self::assertSame(32.97, $dados->valores['valor_servicos']);
-        self::assertSame(9.89, $dados->valores['valor_deducoes']);
-        self::assertSame(23.08, $dados->valores['base_calculo_issqn']);
-        self::assertSame(0.92, $dados->valores['valor_issqn']);
-        self::assertSame(4.0, $dados->valores['aliquota_aplicada']);
+        self::assertSame(32.97, $dados->valorTotal['valor_servicos']);
+        self::assertSame(32.97, $dados->valorTotal['valor_liquido']);
+        self::assertSame(0.92, $dados->valorTotal['issqn_apurado']);
+    }
+
+    public function test_tributacao_municipal_extraida(): void
+    {
+        $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
+
+        self::assertSame(23.08, $dados->tributacaoMunicipal['base_calculo_issqn']);
+        self::assertSame(0.92, $dados->tributacaoMunicipal['issqn_apurado']);
+        self::assertSame(4.0, $dados->tributacaoMunicipal['aliquota_aplicada']);
+        self::assertSame(9.89, $dados->tributacaoMunicipal['total_deducoes_reducoes']);
     }
 
     public function test_cancelada_false_quando_cStat_100(): void
