@@ -105,15 +105,21 @@ final class DpsBuilder
     }
 
     /**
-     * Gera o atributo Id do DPS no padrão SEFIN:
-     *   DPS{cMun:7}{CNPJ:14}{serie:5}{nDPS:15}
-     * Ex: DPS510790900179028000138000010000000000026000142
+     * Gera o atributo Id do DPS no padrão SEFIN (TSIdDPS, 45 chars):
+     *   "DPS" + cMun(7) + TipoInscricaoFederal(1) + Inscricao(14) + serie(5) + nDPS(15)
+     *
+     * TipoInscricaoFederal: **2 = CNPJ, 1 = CPF** (atenção: a documentação
+     * é ambígua, mas a implementação real do SEFIN usa essa convenção).
+     *
+     * Ex: DPS5107909200179028000138000010000000000000001 (45 chars)
      */
     private function gerarDpsId(Identificacao $id): string
     {
+        $tipoInscricao = '2'; // 2 = CNPJ (suporte só pra prestador PJ por enquanto)
         return sprintf(
-            'DPS%s%s%s%s',
+            'DPS%s%s%s%s%s',
             $this->config->prestador->endereco->codigoMunicipioIbge,
+            $tipoInscricao,
             $this->config->prestador->cnpj,
             str_pad($id->serie, 5, '0', STR_PAD_LEFT),
             str_pad((string) $id->numeroDps, 15, '0', STR_PAD_LEFT),
@@ -163,7 +169,7 @@ final class DpsBuilder
 
         $regTrib = $this->el($doc, 'regTrib');
         $regTrib->appendChild($this->el($doc, 'opSimpNac',
-            (string) ($prestador->optanteSimplesNacional ? 1 : 0),
+            (string) $prestador->simplesNacional->value,
         ));
 
         // E0438: regEspTrib != 0 + vDedRed na mesma DPS é rejeitado.
@@ -342,8 +348,11 @@ final class DpsBuilder
         // valores > trib > gIBSCBS (estrutura mínima)
         $valNode = $this->el($doc, 'valores');
         $trib = $this->el($doc, 'trib');
+        // CST 000 + cClassTrib 000001 = Tributação Regular (combinação válida
+        // do leiaute). Pra outros cenários (imune, isento, suspenso, etc.)
+        // refinar com base na tabela CST × cClassTrib do leiaute.
         $gIBSCBS = $this->el($doc, 'gIBSCBS');
-        $gIBSCBS->appendChild($this->el($doc, 'CSTIBSCBS', '410'));  // 410 = não tributado
+        $gIBSCBS->appendChild($this->el($doc, 'CST', '000'));
         $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', '000001'));
         $trib->appendChild($gIBSCBS);
         $valNode->appendChild($trib);

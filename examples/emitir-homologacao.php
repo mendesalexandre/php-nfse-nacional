@@ -92,7 +92,7 @@ $prestador = new Prestador(
         uf: getEnvOrDie('PRESTADOR_UF'),
     ),
     regimeEspecial: RegimeEspecialTributacao::Nenhum,
-    optanteSimplesNacional: false,
+    simplesNacional: \PhpNfseNacional\Enums\SituacaoSimplesNacional::NaoOptante,
 );
 
 $config = new Config(

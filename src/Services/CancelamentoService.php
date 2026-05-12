@@ -64,9 +64,9 @@ final class CancelamentoService
         // 2. Assina (rsa-sha1 sobre <infPedReg>)
         $xmlAssinado = $this->signer->sign($xmlCru, 'infPedReg');
 
-        // 3. POST no endpoint de eventos
+        // 3. POST no endpoint de eventos (JSON c/ pedidoRegistroEventoXmlGZipB64)
         $url = $this->endpoints->cancelarNfse($evento->chaveAcesso);
-        $resposta = $this->client->postXml($url, $xmlAssinado);
+        $resposta = $this->client->postEvento($url, $xmlAssinado);
 
         if (!$resposta->cancelada()) {
             $this->logger->error('[CancelamentoService] SEFIN rejeitou cancelamento', [
