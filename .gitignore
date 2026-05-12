@@ -1,0 +1,14 @@
+/vendor/
+composer.lock
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+.php-cs-fixer.cache
+/build/
+.idea/
+.vscode/
+*.log
+
+# Certificados de teste (NUNCA commitar)
+tests/Fixtures/certs/*.pfx
+tests/Fixtures/certs/*.pem
