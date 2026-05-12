@@ -63,6 +63,9 @@ final class DanfseServiceTest extends TestCase
             self::markTestSkipped('pdftotext não disponível no ambiente');
         }
 
+        // Blocos sempre presentes (com ou sem dados). Os blocos opcionais
+        // (Destinatário/Intermediário) podem ser suprimidos com linha única —
+        // testados em test_pdf_suprime_blocos_opcionais.
         $blocosObrigatorios = [
             'DANFSe v2.0',
             'Documento Auxiliar da NFS-e',
@@ -71,8 +74,6 @@ final class DanfseServiceTest extends TestCase
             'COMPETÊNCIA DA NFS-E',
             'PRESTADOR / FORNECEDOR',
             'TOMADOR / ADQUIRENTE',
-            'DESTINATÁRIO DA OPERAÇÃO',
-            'INTERMEDIÁRIO DA OPERAÇÃO',
             'SERVIÇO PRESTADO',
             'TRIBUTAÇÃO MUNICIPAL (ISSQN)',
             'TRIBUTAÇÃO FEDERAL (EXCETO CBS)',
@@ -89,6 +90,25 @@ final class DanfseServiceTest extends TestCase
                 "Bloco obrigatório NT 008 ausente: '{$bloco}'",
             );
         }
+    }
+
+    public function test_pdf_suprime_blocos_opcionais_com_texto_unico(): void
+    {
+        // Fixture tem CPF do tomador = destinatário, sem intermediário.
+        // NT 008 item 2.3.1/2.3.2 — blocos suprimidos viram linha única.
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        self::assertStringContainsString('O DESTINATÁRIO É O PRÓPRIO TOMADOR/ADQUIRENTE', $texto);
+        self::assertStringContainsString('INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e', $texto);
     }
 
     public function test_pdf_homologacao_inclui_tarja_sem_validade(): void

@@ -6,6 +6,7 @@ namespace PhpNfseNacional\Danfse;
 
 use DOMDocument;
 use DOMXPath;
+use PhpNfseNacional\Config;
 use PhpNfseNacional\Exceptions\NfseException;
 
 /**
@@ -34,8 +35,6 @@ use PhpNfseNacional\Exceptions\NfseException;
  */
 final class DanfseXmlParser
 {
-    private const NFSE_NS = 'http://www.sped.fazenda.gov.br/nfse';
-
     public function parse(string $xml): DanfseDados
     {
         $dom = new DOMDocument('1.0', 'UTF-8');
@@ -45,7 +44,7 @@ final class DanfseXmlParser
         }
 
         $xpath = new DOMXPath($dom);
-        $xpath->registerNamespace('n', self::NFSE_NS);
+        $xpath->registerNamespace('n', Config::NFSE_NAMESPACE);
 
         $identificacao = $this->extrairIdentificacao($xpath);
         $prestador = $this->extrairPrestador($xpath);
