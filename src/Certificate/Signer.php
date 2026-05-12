@@ -6,7 +6,6 @@ namespace PhpNfseNacional\Certificate;
 
 use DOMDocument;
 use DOMElement;
-use DOMNode;
 use PhpNfseNacional\Exceptions\CertificateException;
 
 /**
@@ -149,31 +148,6 @@ final class Signer
 
         $signedInfo->appendChild($reference);
         return $signedInfo;
-    }
-
-    private function buildSignatureNode(
-        DOMDocument $dom,
-        DOMNode $signedInfo,
-        string $signatureValue,
-        string $certBase64,
-    ): DOMElement {
-        $ns = 'http://www.w3.org/2000/09/xmldsig#';
-
-        // Só o nó raiz <Signature> declara namespace — filhos herdam.
-        $signature = $dom->createElementNS($ns, 'Signature');
-        $signature->appendChild($signedInfo);
-
-        $sigValueNode = $dom->createElement('SignatureValue', $signatureValue);
-        $signature->appendChild($sigValueNode);
-
-        $keyInfo = $dom->createElement('KeyInfo');
-        $x509Data = $dom->createElement('X509Data');
-        $x509Cert = $dom->createElement('X509Certificate', $certBase64);
-        $x509Data->appendChild($x509Cert);
-        $keyInfo->appendChild($x509Data);
-        $signature->appendChild($keyInfo);
-
-        return $signature;
     }
 
     private function certPemToBase64(): string

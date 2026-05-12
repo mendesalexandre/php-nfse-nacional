@@ -46,15 +46,15 @@ $cert = Certificate::fromPfxFile('/path/cert.pfx', 'senha-do-pfx');
 
 // 2. Configure o prestador (singleton, uma vez na app)
 $prestador = new Prestador(
-    cnpj: '00179028000138',
+    cnpj: '12345678000195',
     inscricaoMunicipal: '11408',
     razaoSocial: 'EMPRESA XYZ',
     endereco: new Endereco(
         logradouro: 'R DAS NOGUEIRAS',
         numero: '1108',
         bairro: 'SETOR COMERCIAL',
-        cep: '78550200',
-        codigoMunicipioIbge: '5107909',
+        cep: '01310100',
+        codigoMunicipioIbge: '3550308',
         uf: 'MT',
     ),
     regimeEspecial: RegimeEspecialTributacao::NotarioOuRegistrador,
@@ -78,14 +78,14 @@ $resposta = $nfse->emissao()->emitir(
             logradouro: 'Rua A',
             numero: '100',
             bairro: 'Centro',
-            cep: '78550200',
-            codigoMunicipioIbge: '5107909',
+            cep: '01310100',
+            codigoMunicipioIbge: '3550308',
             uf: 'MT',
         ),
     ),
     servico: new Servico(
         discriminacao: 'Certidão de matrícula',
-        codigoMunicipioPrestacao: '5107909',
+        codigoMunicipioPrestacao: '3550308',
     ),
     valores: new Valores(
         valorServicos: 100.00,
@@ -104,7 +104,7 @@ echo "Número: " . $resposta->numeroNfse;
 use PhpNfseNacional\DTO\MotivoCancelamento;
 
 $resposta = $nfse->cancelamento()->cancelar(
-    chaveAcesso: '51079092200179...',
+    chaveAcesso: '35012345200001234567890123456789012345678123456789',
     motivo: MotivoCancelamento::ErroEmissao,
     justificativa: 'Valor da NFS-e divergente do recibo',
 );

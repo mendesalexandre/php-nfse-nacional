@@ -22,11 +22,11 @@ final class DpsBuilderTest extends TestCase
 {
     private function configPadrao(RegimeEspecialTributacao $regime = RegimeEspecialTributacao::Nenhum): Config
     {
-        $endereco = new Endereco('Rua', '1', 'Centro', '78550200', '5107909', 'MT');
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
         $prestador = new Prestador(
-            cnpj: '00179028000138',
-            inscricaoMunicipal: '11408',
-            razaoSocial: 'EMPRESA XYZ',
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
             endereco: $endereco,
             regimeEspecial: $regime,
         );
@@ -36,9 +36,9 @@ final class DpsBuilderTest extends TestCase
     private function tomadorPf(): Tomador
     {
         return new Tomador(
-            documento: '44208855134',
+            documento: '12345678909',
             nome: 'João da Silva',
-            endereco: new Endereco('Rua T', '10', 'Centro', '78550200', '5107909', 'MT'),
+            endereco: new Endereco('Rua T', '10', 'Centro', '01310100', '3550308', 'SP'),
         );
     }
 
@@ -46,7 +46,7 @@ final class DpsBuilderTest extends TestCase
     {
         return new Servico(
             discriminacao: 'Certidão de matrícula nº 12345',
-            codigoMunicipioPrestacao: '5107909',
+            codigoMunicipioPrestacao: '3550308',
         );
     }
 
@@ -130,9 +130,9 @@ final class DpsBuilderTest extends TestCase
     public function test_tomador_pj_usa_cnpj_em_vez_de_cpf(): void
     {
         $tomadorPj = new Tomador(
-            documento: '00179028000138',
+            documento: '12345678000195',
             nome: 'EMPRESA LTDA',
-            endereco: new Endereco('Rua', '1', 'Centro', '78550200', '5107909', 'MT'),
+            endereco: new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP'),
         );
 
         $builder = new DpsBuilder($this->configPadrao());
@@ -147,7 +147,7 @@ final class DpsBuilderTest extends TestCase
         $dom->loadXML($xml);
         $xpath = new DOMXPath($dom);
         $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
-        self::assertSame('00179028000138', $xpath->query('//n:toma/n:CNPJ')->item(0)?->nodeValue);
+        self::assertSame('12345678000195', $xpath->query('//n:toma/n:CNPJ')->item(0)?->nodeValue);
         self::assertSame(0, $xpath->query('//n:toma/n:CPF')->length);
     }
 
