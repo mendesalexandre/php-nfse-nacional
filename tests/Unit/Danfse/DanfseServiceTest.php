@@ -46,4 +46,66 @@ final class DanfseServiceTest extends TestCase
         $dados = $service->parser()->parse($this->xmlAutorizado());
         self::assertSame('123', $dados->numero());
     }
+
+    public function test_pdf_contem_blocos_obrigatorios_NT008(): void
+    {
+        // Extrai texto do PDF e valida que os 13 blocos do Anexo I estão lá.
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+
+        // Salva em temp e roda pdftotext (disponível em CI Linux/macOS)
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível no ambiente');
+        }
+
+        $blocosObrigatorios = [
+            'DANFSe v2.0',
+            'Documento Auxiliar da NFS-e',
+            'CHAVE DE ACESSO DA NFS-E',
+            'NÚMERO DA NFS-E',
+            'COMPETÊNCIA DA NFS-E',
+            'PRESTADOR / FORNECEDOR',
+            'TOMADOR / ADQUIRENTE',
+            'DESTINATÁRIO DA OPERAÇÃO',
+            'INTERMEDIÁRIO DA OPERAÇÃO',
+            'SERVIÇO PRESTADO',
+            'TRIBUTAÇÃO MUNICIPAL (ISSQN)',
+            'TRIBUTAÇÃO FEDERAL (EXCETO CBS)',
+            'TRIBUTAÇÃO IBS / CBS',
+            'VALOR TOTAL DA NFS-E',
+            'INFORMAÇÕES COMPLEMENTARES',
+            'Totais Aproximados dos Tributos',
+        ];
+
+        foreach ($blocosObrigatorios as $bloco) {
+            self::assertStringContainsString(
+                $bloco,
+                $texto,
+                "Bloco obrigatório NT 008 ausente: '{$bloco}'",
+            );
+        }
+    }
+
+    public function test_pdf_homologacao_inclui_tarja_sem_validade(): void
+    {
+        // Fixture tem ambGer=2 (homologação) → deve exibir "NFS-e SEM VALIDADE JURÍDICA"
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível no ambiente');
+        }
+
+        self::assertStringContainsString('NFS-e SEM VALIDADE JURÍDICA', $texto);
+    }
 }
