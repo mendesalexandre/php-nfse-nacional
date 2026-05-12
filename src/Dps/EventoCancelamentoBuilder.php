@@ -6,6 +6,7 @@ namespace PhpNfseNacional\Dps;
 
 use DateTimeImmutable;
 use DOMDocument;
+use DOMElement;
 use PhpNfseNacional\Config;
 use PhpNfseNacional\DTO\MotivoCancelamento;
 use PhpNfseNacional\Exceptions\ValidationException;
@@ -69,23 +70,20 @@ final class EventoCancelamentoBuilder
         $pedReg->setAttribute('versao', '1.01');
         $dom->appendChild($pedReg);
 
-        $infPedReg = $dom->createElement('infPedReg');
+        $infPedReg = $this->el($dom, 'infPedReg');
         $infPedReg->setAttribute('Id', $this->gerarEventoId($chaveLimpa));
         $pedReg->appendChild($infPedReg);
 
-        $infPedReg->appendChild($dom->createElement('chNFSe', $chaveLimpa));
-        $infPedReg->appendChild($dom->createElement('CNPJAutor', $this->config->prestador->cnpj));
-        $infPedReg->appendChild($dom->createElement('dhEvento', $this->gerarDhEvento()));
-        $infPedReg->appendChild($dom->createElement('tpAmb', (string) $this->config->ambiente->value));
-        $infPedReg->appendChild($dom->createElement('verAplic', $this->config->versaoAplicacao));
+        $infPedReg->appendChild($this->el($dom, 'chNFSe', $chaveLimpa));
+        $infPedReg->appendChild($this->el($dom, 'CNPJAutor', $this->config->prestador->cnpj));
+        $infPedReg->appendChild($this->el($dom, 'dhEvento', $this->gerarDhEvento()));
+        $infPedReg->appendChild($this->el($dom, 'tpAmb', (string) $this->config->ambiente->value));
+        $infPedReg->appendChild($this->el($dom, 'verAplic', $this->config->versaoAplicacao));
 
-        $e101101 = $dom->createElement('e101101');
-        $e101101->appendChild($dom->createElement('xDesc', 'Cancelamento de NFS-e'));
-        $e101101->appendChild($dom->createElement('cMotivo', (string) $motivo->value));
-        $e101101->appendChild($dom->createElement(
-            'xMotivo',
-            TextoSanitizador::paraNFSe($just, 200),
-        ));
+        $e101101 = $this->el($dom, 'e101101');
+        $e101101->appendChild($this->el($dom, 'xDesc', 'Cancelamento de NFS-e'));
+        $e101101->appendChild($this->el($dom, 'cMotivo', (string) $motivo->value));
+        $e101101->appendChild($this->el($dom, 'xMotivo', TextoSanitizador::paraNFSe($just, 200)));
         $infPedReg->appendChild($e101101);
 
         $xml = $dom->saveXML();
@@ -93,6 +91,15 @@ final class EventoCancelamentoBuilder
             throw new ValidationException(['Falha ao serializar XML do evento']);
         }
         return $xml;
+    }
+
+    private function el(DOMDocument $doc, string $name, ?string $value = null): DOMElement
+    {
+        $el = $value !== null ? $doc->createElement($name, $value) : $doc->createElement($name);
+        if ($el === false) {
+            throw new ValidationException(["Falha ao criar elemento DOM <{$name}>"]);
+        }
+        return $el;
     }
 
     private function gerarEventoId(string $chave): string

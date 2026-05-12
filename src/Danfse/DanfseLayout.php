@@ -65,25 +65,26 @@ final class DanfseLayout
     }
 
     /**
-     * Formata um valor monetário pra exibição: 1234.56 → "1.234,56"
+     * Formata um valor monetário pra exibição: 1234.56 → "1.234,56".
+     * Aceita float, int ou string numérica vinda do parser XML.
      */
-    public static function formatarMoeda(?float $valor): string
+    public static function formatarMoeda(mixed $valor): string
     {
-        if ($valor === null) {
+        if ($valor === null || $valor === '' || !is_numeric($valor)) {
             return '—';
         }
-        return number_format($valor, 2, ',', '.');
+        return number_format((float) $valor, 2, ',', '.');
     }
 
     /**
      * Formata percentual: 4.00 → "4,00 %"
      */
-    public static function formatarPercentual(?float $valor): string
+    public static function formatarPercentual(mixed $valor): string
     {
-        if ($valor === null) {
+        if ($valor === null || $valor === '' || !is_numeric($valor)) {
             return '—';
         }
-        return number_format($valor, 2, ',', '.') . ' %';
+        return number_format((float) $valor, 2, ',', '.') . ' %';
     }
 
     /**

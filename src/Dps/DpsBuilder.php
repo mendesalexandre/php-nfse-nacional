@@ -71,7 +71,7 @@ final class DpsBuilder
         $dps->setAttribute('versao', '1.01');
         $dom->appendChild($dps);
 
-        $infDPS = $dom->createElement('infDPS');
+        $infDPS = $this->el($dom, 'infDPS');
         $infDPS->setAttribute('Id', $this->gerarDpsId($identificacao));
         $dps->appendChild($infDPS);
 
@@ -88,6 +88,20 @@ final class DpsBuilder
             throw new ValidationException(['Falha ao serializar XML do DPS']);
         }
         return $xml;
+    }
+
+    /**
+     * Helper pra criar elemento DOM com checagem de falha.
+     * DOMDocument::createElement retorna DOMElement|false; o false só ocorre
+     * em condições anômalas (out-of-memory). Tratamos como NfseException.
+     */
+    private function el(DOMDocument $doc, string $name, ?string $value = null): DOMElement
+    {
+        $el = $value !== null ? $doc->createElement($name, $value) : $doc->createElement($name);
+        if ($el === false) {
+            throw new ValidationException(["Falha ao criar elemento DOM <{$name}>"]);
+        }
+        return $el;
     }
 
     /**
@@ -113,14 +127,14 @@ final class DpsBuilder
             return;
         }
 
-        $infDPS->appendChild($doc->createElement('tpAmb', (string) $this->config->ambiente->value));
-        $infDPS->appendChild($doc->createElement('dhEmi', $this->gerarDhEmi()));
-        $infDPS->appendChild($doc->createElement('verAplic', $this->config->versaoAplicacao));
-        $infDPS->appendChild($doc->createElement('serie', $id->serie));
-        $infDPS->appendChild($doc->createElement('nDPS', (string) $id->numeroDps));
-        $infDPS->appendChild($doc->createElement('dCompet', $id->dataCompetenciaResolvida()->format('Y-m-d')));
-        $infDPS->appendChild($doc->createElement('tpEmit', (string) $id->tipoEmissao->value));
-        $infDPS->appendChild($doc->createElement('cLocEmi', $this->config->prestador->endereco->codigoMunicipioIbge));
+        $infDPS->appendChild($this->el($doc, 'tpAmb', (string) $this->config->ambiente->value));
+        $infDPS->appendChild($this->el($doc, 'dhEmi', $this->gerarDhEmi()));
+        $infDPS->appendChild($this->el($doc, 'verAplic', $this->config->versaoAplicacao));
+        $infDPS->appendChild($this->el($doc, 'serie', $id->serie));
+        $infDPS->appendChild($this->el($doc, 'nDPS', (string) $id->numeroDps));
+        $infDPS->appendChild($this->el($doc, 'dCompet', $id->dataCompetenciaResolvida()->format('Y-m-d')));
+        $infDPS->appendChild($this->el($doc, 'tpEmit', (string) $id->tipoEmissao->value));
+        $infDPS->appendChild($this->el($doc, 'cLocEmi', $this->config->prestador->endereco->codigoMunicipioIbge));
     }
 
     /**
@@ -138,18 +152,17 @@ final class DpsBuilder
     private function appendPrestador(DOMElement $infDPS, Valores $valores): void
     {
         $doc = $infDPS->ownerDocument;
-        $prest = $doc?->createElement('prest');
-        if ($prest === null || $doc === null) {
+        if ($doc === null) {
             return;
         }
+        $prest = $this->el($doc, 'prest');
 
         $prestador = $this->config->prestador;
-        $prest->appendChild($doc->createElement('CNPJ', $prestador->cnpj));
-        $prest->appendChild($doc->createElement('IM', $prestador->inscricaoMunicipal));
+        $prest->appendChild($this->el($doc, 'CNPJ', $prestador->cnpj));
+        $prest->appendChild($this->el($doc, 'IM', $prestador->inscricaoMunicipal));
 
-        $regTrib = $doc->createElement('regTrib');
-        $regTrib->appendChild($doc->createElement(
-            'opSimpNac',
+        $regTrib = $this->el($doc, 'regTrib');
+        $regTrib->appendChild($this->el($doc, 'opSimpNac',
             (string) ($prestador->optanteSimplesNacional ? 1 : 0),
         ));
 
@@ -159,7 +172,7 @@ final class DpsBuilder
         if ($valores->deducoesReducoes > 0 && $regimeFinal !== RegimeEspecialTributacao::Nenhum) {
             $regimeFinal = RegimeEspecialTributacao::Nenhum;
         }
-        $regTrib->appendChild($doc->createElement('regEspTrib', (string) $regimeFinal->value));
+        $regTrib->appendChild($this->el($doc, 'regEspTrib', (string) $regimeFinal->value));
 
         $prest->appendChild($regTrib);
         $infDPS->appendChild($prest);
@@ -172,56 +185,50 @@ final class DpsBuilder
             return;
         }
 
-        $toma = $doc->createElement('toma');
+        $toma = $this->el($doc, 'toma');
 
         // CPF ou CNPJ (xs:choice)
         if ($tomador->ehPessoaFisica()) {
-            $toma->appendChild($doc->createElement('CPF', $tomador->documento));
+            $toma->appendChild($this->el($doc, 'CPF', $tomador->documento));
         } else {
-            $toma->appendChild($doc->createElement('CNPJ', $tomador->documento));
+            $toma->appendChild($this->el($doc, 'CNPJ', $tomador->documento));
         }
 
-        $toma->appendChild($doc->createElement(
-            'xNome',
+        $toma->appendChild($this->el($doc, 'xNome',
             TextoSanitizador::paraNFSe($tomador->nome, 300),
         ));
 
         if ($tomador->email !== null && $tomador->email !== '') {
-            $toma->appendChild($doc->createElement('email', $tomador->email));
+            $toma->appendChild($this->el($doc, 'email', $tomador->email));
         }
         if ($tomador->telefone !== null && $tomador->telefone !== '') {
             $foneDigitos = preg_replace('/\D/', '', $tomador->telefone) ?? '';
             if ($foneDigitos !== '') {
-                $toma->appendChild($doc->createElement('fone', $foneDigitos));
+                $toma->appendChild($this->el($doc, 'fone', $foneDigitos));
             }
         }
 
         // Endereço (sempre nacional pra cartório — endNac)
-        $end = $doc->createElement('end');
-        $endNac = $doc->createElement('endNac');
-        $endNac->appendChild($doc->createElement('cMun', $tomador->endereco->codigoMunicipioIbge));
-        $endNac->appendChild($doc->createElement(
-            'CEP',
+        $end = $this->el($doc, 'end');
+        $endNac = $this->el($doc, 'endNac');
+        $endNac->appendChild($this->el($doc, 'cMun', $tomador->endereco->codigoMunicipioIbge));
+        $endNac->appendChild($this->el($doc, 'CEP',
             preg_replace('/\D/', '', $tomador->endereco->cep) ?? '',
         ));
         $end->appendChild($endNac);
 
-        $end->appendChild($doc->createElement(
-            'xLgr',
+        $end->appendChild($this->el($doc, 'xLgr',
             TextoSanitizador::paraNFSe($tomador->endereco->logradouro, 200),
         ));
-        $end->appendChild($doc->createElement(
-            'nro',
+        $end->appendChild($this->el($doc, 'nro',
             TextoSanitizador::paraNFSe($tomador->endereco->numero, 30) ?: 'S/N',
         ));
         if ($tomador->endereco->complemento !== null && $tomador->endereco->complemento !== '') {
-            $end->appendChild($doc->createElement(
-                'xCpl',
+            $end->appendChild($this->el($doc, 'xCpl',
                 TextoSanitizador::paraNFSe($tomador->endereco->complemento, 60),
             ));
         }
-        $end->appendChild($doc->createElement(
-            'xBairro',
+        $end->appendChild($this->el($doc, 'xBairro',
             TextoSanitizador::paraNFSe($tomador->endereco->bairro, 60),
         ));
 
@@ -236,21 +243,20 @@ final class DpsBuilder
             return;
         }
 
-        $serv = $doc->createElement('serv');
+        $serv = $this->el($doc, 'serv');
 
         // locPrest é xs:choice — cartório sempre cLocPrestacao (não enviar
         // junto com cPaisPrestacao que causa E1235).
-        $locPrest = $doc->createElement('locPrest');
-        $locPrest->appendChild($doc->createElement('cLocPrestacao', $servico->codigoMunicipioPrestacao));
+        $locPrest = $this->el($doc, 'locPrest');
+        $locPrest->appendChild($this->el($doc, 'cLocPrestacao', $servico->codigoMunicipioPrestacao));
         $serv->appendChild($locPrest);
 
-        $cServ = $doc->createElement('cServ');
-        $cServ->appendChild($doc->createElement('cTribNac', $servico->cTribNac));
-        $cServ->appendChild($doc->createElement(
-            'xDescServ',
+        $cServ = $this->el($doc, 'cServ');
+        $cServ->appendChild($this->el($doc, 'cTribNac', $servico->cTribNac));
+        $cServ->appendChild($this->el($doc, 'xDescServ',
             TextoSanitizador::paraNFSe($servico->discriminacao, 2000),
         ));
-        $cServ->appendChild($doc->createElement('cNBS', $servico->cNBS));
+        $cServ->appendChild($this->el($doc, 'cNBS', $servico->cNBS));
         $serv->appendChild($cServ);
 
         $infDPS->appendChild($serv);
@@ -263,21 +269,19 @@ final class DpsBuilder
             return;
         }
 
-        $valNode = $doc->createElement('valores');
+        $valNode = $this->el($doc, 'valores');
 
         // vServPrest > vServ (obrigatório)
-        $vServPrest = $doc->createElement('vServPrest');
-        $vServPrest->appendChild($doc->createElement(
-            'vServ',
+        $vServPrest = $this->el($doc, 'vServPrest');
+        $vServPrest->appendChild($this->el($doc, 'vServ',
             number_format($valores->valorServicos, 2, '.', ''),
         ));
         $valNode->appendChild($vServPrest);
 
         // vDescCondIncond (opcional)
         if ($valores->descontoIncondicionado > 0) {
-            $vDesc = $doc->createElement('vDescCondIncond');
-            $vDesc->appendChild($doc->createElement(
-                'vDescIncond',
+            $vDesc = $this->el($doc, 'vDescCondIncond');
+            $vDesc->appendChild($this->el($doc, 'vDescIncond',
                 number_format($valores->descontoIncondicionado, 2, '.', ''),
             ));
             $valNode->appendChild($vDesc);
@@ -285,31 +289,28 @@ final class DpsBuilder
 
         // vDedRed (opcional) — escolha de pDR|vDR|documentos. Usamos vDR.
         if ($valores->deducoesReducoes > 0) {
-            $vDedRed = $doc->createElement('vDedRed');
-            $vDedRed->appendChild($doc->createElement(
-                'vDR',
+            $vDedRed = $this->el($doc, 'vDedRed');
+            $vDedRed->appendChild($this->el($doc, 'vDR',
                 number_format($valores->deducoesReducoes, 2, '.', ''),
             ));
             $valNode->appendChild($vDedRed);
         }
 
         // trib > tribMun (obrigatório)
-        $trib = $doc->createElement('trib');
-        $tribMun = $doc->createElement('tribMun');
-        $tribMun->appendChild($doc->createElement('tribISSQN', '1')); // 1 = Operação Tributável
-        $tribMun->appendChild($doc->createElement(
-            'tpRetISSQN',
+        $trib = $this->el($doc, 'trib');
+        $tribMun = $this->el($doc, 'tribMun');
+        $tribMun->appendChild($this->el($doc, 'tribISSQN', '1')); // 1 = Operação Tributável
+        $tribMun->appendChild($this->el($doc, 'tpRetISSQN',
             (string) ($valores->issqnRetido ? 2 : 1),
         ));
         $trib->appendChild($tribMun);
 
         // totTrib > pTotTrib (obrigatório a partir da SefinNacional 1.6)
-        $totTrib = $doc->createElement('totTrib');
-        $pTot = $doc->createElement('pTotTrib');
-        $pTot->appendChild($doc->createElement('pTotTribFed', '0.00'));
-        $pTot->appendChild($doc->createElement('pTotTribEst', '0.00'));
-        $pTot->appendChild($doc->createElement(
-            'pTotTribMun',
+        $totTrib = $this->el($doc, 'totTrib');
+        $pTot = $this->el($doc, 'pTotTrib');
+        $pTot->appendChild($this->el($doc, 'pTotTribFed', '0.00'));
+        $pTot->appendChild($this->el($doc, 'pTotTribEst', '0.00'));
+        $pTot->appendChild($this->el($doc, 'pTotTribMun',
             number_format($valores->aliquotaIssqnPercentual, 2, '.', ''),
         ));
         $totTrib->appendChild($pTot);
@@ -331,18 +332,18 @@ final class DpsBuilder
             return;
         }
 
-        $ibscbs = $doc->createElement('IBSCBS');
-        $ibscbs->appendChild($doc->createElement('finNFSe', '0'));   // 0 = Normal
-        $ibscbs->appendChild($doc->createElement('indFinal', '1'));   // 1 = Consumidor final
-        $ibscbs->appendChild($doc->createElement('cIndOp', $servico->cIndOp));
-        $ibscbs->appendChild($doc->createElement('indDest', '0'));   // 0 = Operação interna
+        $ibscbs = $this->el($doc, 'IBSCBS');
+        $ibscbs->appendChild($this->el($doc, 'finNFSe', '0'));   // 0 = Normal
+        $ibscbs->appendChild($this->el($doc, 'indFinal', '1'));   // 1 = Consumidor final
+        $ibscbs->appendChild($this->el($doc, 'cIndOp', $servico->cIndOp));
+        $ibscbs->appendChild($this->el($doc, 'indDest', '0'));   // 0 = Operação interna
 
         // valores > trib > gIBSCBS (estrutura mínima)
-        $valNode = $doc->createElement('valores');
-        $trib = $doc->createElement('trib');
-        $gIBSCBS = $doc->createElement('gIBSCBS');
-        $gIBSCBS->appendChild($doc->createElement('CSTIBSCBS', '410'));  // 410 = não tributado
-        $gIBSCBS->appendChild($doc->createElement('cClassTrib', '000001'));
+        $valNode = $this->el($doc, 'valores');
+        $trib = $this->el($doc, 'trib');
+        $gIBSCBS = $this->el($doc, 'gIBSCBS');
+        $gIBSCBS->appendChild($this->el($doc, 'CSTIBSCBS', '410'));  // 410 = não tributado
+        $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', '000001'));
         $trib->appendChild($gIBSCBS);
         $valNode->appendChild($trib);
         $ibscbs->appendChild($valNode);
