@@ -5,6 +5,30 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-05-13
+
+### Documentado
+- **Achado importante: `pTotTribMun` é declaratório, não tributário.**
+  Validado empiricamente em homologação SEFIN: enviando alíquotas 3.51,
+  3.56 pro cartório de Sinop (LC 116 item 21.01), SEFIN ignorou o valor
+  enviado e usou `pAliqAplic=4.00` (alíquota oficial cadastrada pela
+  prefeitura) pra calcular o ISSQN. Ou seja: o `pTotTribMun` no DPS é
+  apenas a "alíquota aproximada de tributos municipais" pra Lei
+  12.741/2012 (Transparência Fiscal) — NÃO define a alíquota efetiva
+  do ISSQN. A alíquota real vem do cadastro tributário do município
+  e aparece no `<pAliqAplic>` da resposta autorizada.
+- **Tabela de comportamento de arredondamento** validada empiricamente
+  em PHP 8.4 (NFS-es #61 e #62 emitidas em homologação) — input vs
+  output no DPS vs `pAliqAplic` na resposta SEFIN.
+- **Caveat float-point esclarecido:** PHP 8+ corrigiu o caso clássico
+  (`round(0.115, 2)` agora retorna `0.12` corretamente em PHP 8.1+).
+  Como o SDK requer PHP 8.1+, esse pega não atinge mais.
+- **Tabela de `cTribNac` por segmento** adicionada ao `MANUAL.md` —
+  cobre cartório, advocacia, medicina, engenharia, contabilidade,
+  educação, informática, construção civil, transporte. Cada segmento
+  tem seus códigos LC 116/NBS específicos; SDK aceita qualquer um via
+  parâmetros do `Servico`.
+
 ## [0.3.5] — 2026-05-13
 
 ### Adicionado
