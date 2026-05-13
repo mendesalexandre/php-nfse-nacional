@@ -5,11 +5,31 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.7] — 2026-05-13
+
+### Adicionado
+- **`Identificacao::$dataEmissao`** opcional — override de `dhEmi`
+  pra cenários "tipo contingência" (DPS gerada offline e enviada
+  retroativa). Default null = `DpsBuilder` gera com `now()` SP -60s
+  como sempre. Quando preenchido, usa o valor exato (sem margem de
+  60s), convertido pra `America/Sao_Paulo`.
+- **PHP 8.5 na matriz CI** — workflow agora roda em PHP 8.1, 8.2,
+  8.3, 8.4, 8.5.
+- **Seção "Emissão retroativa (~contingência)" no `MANUAL.md`** com
+  tabela de limites empíricos, erros comuns, e exemplos de uso. Validado
+  emitindo 6 NFS-es (#64–#66) em homologação SEFIN com `dhEmi` recuado
+  -1d, -7d, -30d, -45d, -60d, -61d, -62d, -63d (todas ✅) e `-64d` em
+  diante (rejeitadas por motivos diferentes — ver tabela na doc).
+- Tabela de arredondamento ampliada no `MANUAL.md` com casos "acima de
+  5 na 3ª casa" validados empiricamente em PHP 8.4 + homologação SEFIN:
+  - `3.5995` → `pTotTribMun=3.60` (transborda unidade), `pAliqAplic=4.00`
+    (NFS-e #63)
+
 ### Modificado (breaking — pré-1.0)
 - **`TipoEmissaoDps` corrigido** — enum estava conceitualmente errado,
   copiado do mundo NF-e (que tem Normal/Contingencia/ContingenciaOffline).
   No SefinNacional 1.6 o `tpEmit` identifica QUEM emite, não o modo
-  online/offline. Cases corretos:
+  online/offline. Cases corretos (alinhado com Anexo IV do leiaute oficial):
   - `Prestador` (1) — antes `Normal` — emissão pelo prestador (default)
   - `Tomador` (2) — antes `Contingencia` — leiaute aceita mas SEFIN
     rejeita com cStat=9996 ("não permitida nesta versão da aplicação")
@@ -18,18 +38,24 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   e `tpEmit=3`.
 - **Não existe "contingência" como flag dedicada na SefinNacional 1.6**
   (diferente da NF-e). Cenários offline são tratados via `dhEmi`
-  retroativo + tpEmit=1 (Prestador). Documentado no docblock do enum.
+  retroativo + tpEmit=1 (Prestador). Ver seção dedicada no MANUAL.
 
-### Adicionado
-- **PHP 8.5 na matriz CI** — workflow agora roda em PHP 8.1, 8.2, 8.3, 8.4, 8.5.
-- Tabela de arredondamento ampliada no `MANUAL.md` com casos "acima de 5
-  na 3ª casa" validados empiricamente em PHP 8.4 + homologação SEFIN:
-  - `3.5995` → `pTotTribMun=3.60` (transborda unidade), `pAliqAplic=4.00`
-    (NFS-e #63)
+### Achados documentados
 - Achado reforçado: independente do `pTotTribMun` enviado (3.51, 3.56,
   3.60, 4.00, …), SEFIN sempre aplica `pAliqAplic=4.00` pra cartório
   de Sinop — confirmando que o campo é puramente declaratório (Lei
   12.741/2012).
+- **Limite de retroatividade do convênio:** SEFIN aceita `dhEmi`
+  retroativo sem limite fixo de dias. O que limita é (a) **vigência do
+  convênio do município** (cStat=38 quando convênio inativo na data) e
+  (b) **parametrização tributária histórica** (cStat=440 quando regra de
+  dedução/regime mudou). Pra Sinop especificamente: convênio ativo
+  desde 11/mar/2026 (=63 dias atrás na data do teste).
+
+### Suite
+- 110 testes verdes (+1 novo:
+  `test_dhEmi_aceita_override_via_Identificacao_dataEmissao`).
+- PHPStan level 8 limpo.
 
 ## [0.3.6] — 2026-05-13
 

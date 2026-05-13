@@ -21,6 +21,21 @@ final class Identificacao
         public readonly string $serie = '1',
         public readonly ?DateTimeImmutable $dataCompetencia = null,
         public readonly TipoEmissaoDps $tipoEmissao = TipoEmissaoDps::Prestador,
+        /**
+         * Override de `dhEmi` (data/hora de emissão da DPS).
+         *
+         * Default null = `DpsBuilder` gera com `now()` em América/Sao_Paulo
+         * recuado 60s. Passar valor explícito é útil pra:
+         *   - Cenários tipo "contingência" (DPS gerada offline e enviada
+         *     quando a rede voltou) — SefinNacional 1.6 não tem flag dedicada
+         *     pra isso, então use `dhEmi` retroativa.
+         *   - Testes / replays de emissões antigas.
+         *
+         * Atenção: SEFIN tem regras de aceitação de retroatividade (ex:
+         * pode rejeitar dhEmi mais antigos que N dias). Os limites variam
+         * por município e versão do SefinNacional — teste empiricamente.
+         */
+        public readonly ?DateTimeImmutable $dataEmissao = null,
     ) {
         $errors = [];
 
