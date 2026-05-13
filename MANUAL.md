@@ -33,7 +33,8 @@ Para histórico de versões, ver [CHANGELOG.md](CHANGELOG.md).
 6. [Enums](#enums)
 7. [Exceções](#exceções)
 8. [Eventos customizados](#eventos-customizados) — extensibilidade
-9. [Apêndice — OpenSSL legacy provider](#apêndice--openssl-legacy-provider)
+9. [Emissão retroativa (~contingência)](#emissão-retroativa-contingência)
+10. [Apêndice — OpenSSL legacy provider](#apêndice--openssl-legacy-provider)
 
 ---
 
@@ -599,6 +600,8 @@ enum MotivoCancelamento: int {
 }
 ```
 
+> **`tpEmit` é "quem emitiu", não "modo contingência".** Diferente da NF-e (que usa tpEmit pra distinguir online/offline). Pra emissão tipo contingência no SefinNacional, ver a seção [Emissão retroativa (~contingência)](#emissão-retroativa-contingência) abaixo.
+
 ---
 
 ## Exceções
@@ -683,6 +686,59 @@ $resp   = $sefinClient->postEvento(
     $xmlAss,
 );
 ```
+
+---
+
+## Emissão retroativa (~contingência)
+
+O SefinNacional 1.6 **não tem flag dedicada de contingência** (diferente da NF-e). Cenários offline são resolvidos enviando o `dhEmi` no passado, com `dCompet` acompanhando.
+
+### Como usar
+
+Passe `dataEmissao` no `Identificacao` (e `dataCompetencia` igual ou anterior — NÃO pode ser posterior, senão E0015):
+
+```php
+use PhpNfseNacional\DTO\Identificacao;
+
+$tz = new DateTimeZone('America/Sao_Paulo');
+$ontem = new DateTimeImmutable('yesterday 14:30', $tz);
+
+$identificacao = new Identificacao(
+    numeroDps: 12345,
+    dataCompetencia: $ontem,
+    dataEmissao: $ontem,
+);
+$resp = $nfse->emissao()->emitir($identificacao, $tomador, $servico, $valores);
+```
+
+Sem `dataEmissao`, o SDK gera `dhEmi` em `now()` SP recuado 60s (default).
+
+### Limites empíricos
+
+Não há limite "fixo" de dias. O SEFIN aceita `dhEmi` retroativo **até onde o convênio do município E a parametrização tributária estavam vigentes naquela data**. Validado em homologação 13/05/2026 pro cartório de Sinop:
+
+| `dhEmi` | Resultado | cStat | Causa |
+|---|---|---|---|
+| Hoje a -63d | ✅ EMITIDA | 100 | convênio + parametrização atuais (Sinop conveniou em 11/mar/2026) |
+| -64d (dedução) | ❌ rejeitada | 440 | `tipo de dedução não permitida pelo município de incidência` — parametrização daquela data não permitia `vDR` |
+| -65d em diante | ❌ rejeitada | 38 | `convênio do município emissor não estava ATIVO` |
+| -365d (1 ano) | ❌ rejeitada | 38 | idem |
+
+### Erros comuns ao emitir retroativo
+
+| cStat | Mensagem | Como resolver |
+|---|---|---|
+| `15` | "data de competência informada na DPS não pode ser posterior à data de emissão" | Passe `dataCompetencia` igual ou anterior a `dataEmissao` |
+| `38` | "situação do convênio do município emissor … deve ser ATIVO" | Município ainda não estava conveniado naquela data — não dá pra emitir |
+| `440` | "tipo de dedução/redução … não é permitida pelo município de incidência" | Parametrização tributária histórica não permitia o `vDR`/regime usado — verifique o cadastro vigente daquela data |
+
+### Quando usar
+
+- DPS gerada em sistema offline e enviada quando a rede voltou
+- Replay de NFS-e que falhou em outro provedor
+- Backfill de período que ficou sem emissão (até o limite do convênio)
+
+> **Atenção:** mesmo com retroativo, o `dhProc` (data de processamento na resposta) é a hora real do servidor SEFIN. Não dá pra "antedatar" a NFS-e oficialmente — só registrar quando a operação aconteceu (`dhEmi`/`dCompet`).
 
 ---
 

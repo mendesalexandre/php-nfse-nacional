@@ -151,6 +151,34 @@ final class DpsBuilderTest extends TestCase
         self::assertSame(0, $xpath->query('//n:toma/n:CPF')->length);
     }
 
+    public function test_dhEmi_aceita_override_via_Identificacao_dataEmissao(): void
+    {
+        // Cenário "contingência": DPS gerada offline com dhEmi de ontem,
+        // enviada quando rede voltou. SDK deve usar o override em vez de now().
+        $tz = new \DateTimeZone('America/Sao_Paulo');
+        $ontemMeiaTarde = new \DateTimeImmutable('2026-05-12 14:30:00', $tz);
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(
+                numeroDps: 1,
+                dataCompetencia: $ontemMeiaTarde,
+                dataEmissao: $ontemMeiaTarde,
+            ),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+        $dhEmi = $xpath->query('//n:dhEmi')->item(0)?->nodeValue ?? '';
+
+        // Override exato (sem margem de 60s) e em SP -03:00
+        self::assertSame('2026-05-12T14:30:00-03:00', $dhEmi);
+    }
+
     public function test_dhEmi_esta_em_brasilia_e_recuado_60s(): void
     {
         $builder = new DpsBuilder($this->configPadrao());

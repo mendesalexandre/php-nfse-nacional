@@ -136,7 +136,7 @@ final class DpsBuilder
         }
 
         $infDPS->appendChild($this->el($doc, 'tpAmb', (string) $this->config->ambiente->value));
-        $infDPS->appendChild($this->el($doc, 'dhEmi', $this->gerarDhEmi()));
+        $infDPS->appendChild($this->el($doc, 'dhEmi', $this->gerarDhEmi($id->dataEmissao)));
         $infDPS->appendChild($this->el($doc, 'verAplic', $this->config->versaoAplicacao));
         $infDPS->appendChild($this->el($doc, 'serie', $id->serie));
         $infDPS->appendChild($this->el($doc, 'nDPS', (string) $id->numeroDps));
@@ -157,12 +157,22 @@ final class DpsBuilder
     }
 
     /**
-     * Timestamp do DPS em America/Sao_Paulo (-03:00) com margem de 60s
-     * pra cobrir drift de clock — alinha com dhProc do SEFIN.
+     * Timestamp do DPS em America/Sao_Paulo (-03:00).
+     *
+     * Comportamento:
+     *   - Sem override: pega `now()` em SP recuado 60s (margem de drift de
+     *     clock — alinha com dhProc do SEFIN).
+     *   - Com override (`Identificacao::$dataEmissao` preenchido): usa o
+     *     valor passado, convertido pra SP, sem aplicar margem. Útil pra
+     *     emissão "tipo contingência" (DPS gerada offline e enviada
+     *     depois) ou pra replays/testes.
      */
-    private function gerarDhEmi(): string
+    private function gerarDhEmi(?DateTimeImmutable $override = null): string
     {
         $tz = new \DateTimeZone(Config::TIMEZONE_DPS);
+        if ($override !== null) {
+            return $override->setTimezone($tz)->format('Y-m-d\TH:i:sP');
+        }
         $now = (new DateTimeImmutable('now', $tz))
             ->modify('-' . self::DH_EMI_MARGEM_SEGUNDOS . ' seconds');
         return $now->format('Y-m-d\TH:i:sP');
