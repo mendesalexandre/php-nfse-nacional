@@ -45,15 +45,41 @@ final class PrestadorTest extends TestCase
         );
     }
 
-    public function test_inscricao_municipal_vazia_eh_rejeitada(): void
+    public function test_inscricao_municipal_vazia_eh_normalizada_para_null(): void
     {
-        $this->expectException(ValidationException::class);
-        new Prestador(
+        $p = new Prestador(
             cnpj: '00179028000138',
             inscricaoMunicipal: '',
             razaoSocial: 'CARTORIO',
             endereco: $this->endereco(),
         );
+
+        self::assertNull($p->inscricaoMunicipal);
+    }
+
+    public function test_inscricao_municipal_null_eh_aceita(): void
+    {
+        $p = new Prestador(
+            cnpj: '00179028000138',
+            inscricaoMunicipal: null,
+            razaoSocial: 'MEI ALEXANDRE TEIXEIRA',
+            endereco: $this->endereco(),
+            simplesNacional: SituacaoSimplesNacional::MEI,
+        );
+
+        self::assertNull($p->inscricaoMunicipal);
+    }
+
+    public function test_inscricao_municipal_com_espacos_eh_trimada(): void
+    {
+        $p = new Prestador(
+            cnpj: '00179028000138',
+            inscricaoMunicipal: '  11408  ',
+            razaoSocial: 'CARTORIO',
+            endereco: $this->endereco(),
+        );
+
+        self::assertSame('11408', $p->inscricaoMunicipal);
     }
 
     public function test_razao_social_vazia_eh_rejeitada(): void

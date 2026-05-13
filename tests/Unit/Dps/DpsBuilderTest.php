@@ -353,4 +353,40 @@ final class DpsBuilderTest extends TestCase
         );
         self::assertStringContainsString('<cTribNac>210101</cTribNac>', $xml);
     }
+
+    public function test_prestador_IM_omitida_quando_null(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: null,
+            razaoSocial: 'MEI ALEXANDRE TEIXEIRA',
+            endereco: $endereco,
+            simplesNacional: \PhpNfseNacional\Enums\SituacaoSimplesNacional::MEI,
+        );
+        $builder = new DpsBuilder(new Config($prestador, Ambiente::Homologacao));
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $prestBlock = substr($xml, strpos($xml, '<prest>'), strpos($xml, '</prest>') - strpos($xml, '<prest>'));
+        self::assertStringNotContainsString('<IM>', $prestBlock);
+    }
+
+    public function test_prestador_IM_emitida_quando_preenchida(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+
+        $prestBlock = substr($xml, strpos($xml, '<prest>'), strpos($xml, '</prest>') - strpos($xml, '<prest>'));
+        self::assertStringContainsString('<IM>12345</IM>', $prestBlock);
+    }
 }
