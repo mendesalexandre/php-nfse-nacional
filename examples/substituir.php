@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Cancela uma NFS-e por substituição (evento e101102).
+ * Cancela uma NFS-e por substituição (evento e105102).
  *
  * Pré-requisito: a NFS-e substituidora já deve ter sido emitida normalmente
  * via `php examples/emitir-homologacao.php`. Esse script só registra o
@@ -15,17 +15,22 @@ declare(strict_types=1);
  *   MOTIVO=1 \
  *   JUSTIFICATIVA='Reemissão por divergência de valor' \
  *   php examples/substituir.php
+ *
+ * MOTIVO (TSCodJustSubst):
+ *   1 = Desenquadramento Simples Nacional, 2 = Enquadramento SN,
+ *   3 = Inclusão Imunidade, 4 = Exclusão Imunidade,
+ *   5 = Rejeição Tomador, 99 = Outros (exige JUSTIFICATIVA)
  */
 
 /** @var \PhpNfseNacional\NFSe $nfse */
 $nfse = require __DIR__ . '/_bootstrap.php';
 
-use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\DTO\MotivoSubstituicao;
 use PhpNfseNacional\Exceptions\SefinException;
 
 $original = envOrDie('CHAVE_ORIGINAL');
 $substituta = envOrDie('CHAVE_SUBSTITUTA');
-$motivo = MotivoCancelamento::from((int) envOrDie('MOTIVO'));
+$motivo = MotivoSubstituicao::from((int) envOrDie('MOTIVO'));
 $justificativa = envOrDie('JUSTIFICATIVA');
 
 echo "Substituindo NFS-e\n";

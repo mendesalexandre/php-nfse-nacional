@@ -16,6 +16,7 @@ use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\DTO\Identificacao;
 use PhpNfseNacional\DTO\MotivoCancelamento;
 use PhpNfseNacional\DTO\MotivoRejeicao;
+use PhpNfseNacional\DTO\MotivoSubstituicao;
 use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
@@ -135,8 +136,8 @@ final class NFSe
     public function substituir(
         string $chaveOriginal,
         string $chaveSubstituta,
-        MotivoCancelamento $motivo,
-        string $justificativa,
+        MotivoSubstituicao $motivo,
+        string $justificativa = '',
     ): SefinResposta {
         return $this->substituicaoService->substituir(
             $chaveOriginal,

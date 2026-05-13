@@ -13,7 +13,7 @@ use PhpNfseNacional\Certificate\Signer;
 use PhpNfseNacional\Config;
 use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\DTO\Endereco;
-use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\DTO\MotivoSubstituicao;
 use PhpNfseNacional\DTO\Prestador;
 use PhpNfseNacional\Enums\Ambiente;
 use PhpNfseNacional\Exceptions\SefinException;
@@ -34,7 +34,7 @@ final class SubstituicaoServiceTest extends TestCase
         $resp = $service->substituir(
             self::CHAVE_ORIG,
             self::CHAVE_SUBST,
-            MotivoCancelamento::ErroEmissao,
+            MotivoSubstituicao::DesenquadramentoSimples,
             'Reemissão por divergência de valor',
         );
 
@@ -49,7 +49,7 @@ final class SubstituicaoServiceTest extends TestCase
         $resp = $service->substituir(
             self::CHAVE_ORIG,
             self::CHAVE_SUBST,
-            MotivoCancelamento::ErroEmissao,
+            MotivoSubstituicao::DesenquadramentoSimples,
             'Reemissão por divergência de valor',
         );
 
@@ -64,7 +64,7 @@ final class SubstituicaoServiceTest extends TestCase
         $service->substituir(
             self::CHAVE_ORIG,
             self::CHAVE_SUBST,
-            MotivoCancelamento::ErroEmissao,
+            MotivoSubstituicao::DesenquadramentoSimples,
             'Reemissão por divergência de valor',
         );
     }

@@ -194,7 +194,7 @@ final class NFSe
 
     // Cancelamento / Substituição
     public function cancelar(string $chave, MotivoCancelamento, string $just): SefinResposta;
-    public function substituir(string $orig, string $subst, MotivoCancelamento, string $just): SefinResposta;
+    public function substituir(string $orig, string $subst, MotivoSubstituicao, string $just = ''): SefinResposta;
 
     // Manifestação
     public function confirmar(string $chave, AutorManifestacao): SefinResposta;
@@ -401,8 +401,8 @@ $resp = $nfse->anularRejeicao(
 $nfse->substituir(
     string              $chaveOriginal,    // NFS-e a cancelar (50 dígitos)
     string              $chaveSubstituta,  // NFS-e nova já emitida (50 dígitos)
-    MotivoCancelamento  $motivo,
-    string              $justificativa,    // 15..200 chars
+    MotivoSubstituicao  $motivo,            // ⚠ enum DIFERENTE de MotivoCancelamento
+    string              $justificativa = '', // obrigatório só se motivo=Outros (15..200)
 ): SefinResposta
 ```
 
@@ -410,16 +410,19 @@ Evento e105102 — cancela `chaveOriginal` e registra o vínculo com `chaveSubst
 
 > **Pré-requisito:** `chaveSubstituta` já tem que ter sido emitida normalmente via `$nfse->emitir()`. Esse método **não** emite a substituidora — apenas registra o vínculo + cancelamento.
 
-**Validações:** ambas as chaves 50 dígitos, distintas entre si, justificativa 15–200 chars, sequencial 1–99.
+> **⚠ `MotivoSubstituicao` é DIFERENTE de `MotivoCancelamento`** — o leiaute SefinNacional usa `TSCodJustSubst` (códigos 01-05/99) pra substituição, não `TSCodJustCanc` (1/2/9). Cases: `DesenquadramentoSimples` (01), `EnquadramentoSimples` (02), `InclusaoImunidade` (03), `ExclusaoImunidade` (04), `RejeicaoTomador` (05), `Outros` (99 — exige `xMotivo`).
+
+**Validações:** ambas as chaves 50 dígitos, distintas entre si; quando `motivo=Outros`, justificativa obrigatória 15–200 chars; sequencial 1–99.
 
 Mesma regra de aceitação de cStat do cancelamento ({100, 135, 155} → ok; 840 → idempotente; demais → `SefinException`).
 
 ```php
+use PhpNfseNacional\DTO\MotivoSubstituicao;
+
 $resp = $nfse->substituir(
     chaveOriginal:   $chaveOriginal,
     chaveSubstituta: $resp->chaveAcesso,  // veio da emissão da nova
-    motivo:          MotivoCancelamento::ErroEmissao,
-    justificativa:   'Reemissão por divergência de valor',
+    motivo:          MotivoSubstituicao::DesenquadramentoSimples,
 );
 ```
 

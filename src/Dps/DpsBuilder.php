@@ -216,6 +216,11 @@ final class DpsBuilder
 
         $toma = $this->el($doc, 'toma');
 
+        // ORDEM EXIGIDA pelo schema TSDestinaDps (leiaute SefinNacional 1.6,
+        // Anexo I B-34..B-46): CPF/CNPJ → IM → xNome → end → fone → email.
+        // Trocar a ordem (ex: email antes de end) resulta em E1235 ("invalid
+        // child element").
+
         // CPF ou CNPJ (xs:choice)
         if ($tomador->ehPessoaFisica()) {
             $toma->appendChild($this->el($doc, 'CPF', $tomador->documento));
@@ -232,16 +237,6 @@ final class DpsBuilder
         $toma->appendChild($this->el($doc, 'xNome',
             TextoSanitizador::paraNFSe($tomador->nome, 300),
         ));
-
-        if ($tomador->email !== null && $tomador->email !== '') {
-            $toma->appendChild($this->el($doc, 'email', $tomador->email));
-        }
-        if ($tomador->telefone !== null && $tomador->telefone !== '') {
-            $foneDigitos = preg_replace('/\D/', '', $tomador->telefone) ?? '';
-            if ($foneDigitos !== '') {
-                $toma->appendChild($this->el($doc, 'fone', $foneDigitos));
-            }
-        }
 
         // Endereço (endNac = nacional, único suportado nesse SDK)
         $end = $this->el($doc, 'end');
@@ -268,6 +263,18 @@ final class DpsBuilder
         ));
 
         $toma->appendChild($end);
+
+        // fone e email vão APÓS o end (ordem TSDestinaDps B-45/B-46).
+        if ($tomador->telefone !== null && $tomador->telefone !== '') {
+            $foneDigitos = preg_replace('/\D/', '', $tomador->telefone) ?? '';
+            if ($foneDigitos !== '') {
+                $toma->appendChild($this->el($doc, 'fone', $foneDigitos));
+            }
+        }
+        if ($tomador->email !== null && $tomador->email !== '') {
+            $toma->appendChild($this->el($doc, 'email', $tomador->email));
+        }
+
         $infDPS->appendChild($toma);
     }
 
