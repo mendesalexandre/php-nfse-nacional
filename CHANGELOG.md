@@ -5,6 +5,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Alterado (BC-break leve)
+- **`Prestador::$inscricaoMunicipal` agora é `?string` (nullable).** Passe
+  `null` ou string vazia quando o prestador não deve declarar IM. Quando
+  null/vazio, o SDK omite o nó `<IM>` do prestador no DPS. Resolve o
+  caso **MEI emitindo em município sem cadastro no CNC NFS-e**, que era
+  rejeitado pelo SEFIN com **cStat=120** ("IM do prestador não deve ser
+  informada, pois não existem informações complementares registradas no
+  CNC NFS-e do município emissor"). Descoberto em homologação SEFIN
+  (CNPJ MEI 61.535.348/0001-78 emitindo em Sinop/MT).
+- O check `Inscrição municipal vazia` foi removido da validação do
+  `Prestador`. String vazia / com espaços agora normaliza para `null`
+  em vez de lançar `ValidationException`. Quem sempre passou IM
+  preenchida continua funcionando sem mudança.
+
 ## [0.5.2] — 2026-05-13
 
 ### Adicionado

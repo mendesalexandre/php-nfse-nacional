@@ -100,11 +100,12 @@ namespace PhpNfseNacional\DTO;
 
 final class Prestador
 {
-    public readonly string $cnpj;            // limpo, só dígitos
+    public readonly string $cnpj;                // limpo, só dígitos
+    public readonly ?string $inscricaoMunicipal; // trim aplicado; '' → null
 
     public function __construct(
         string $cnpj,
-        public readonly string $inscricaoMunicipal,
+        ?string $inscricaoMunicipal,
         public readonly string $razaoSocial,
         public readonly Endereco $endereco,
         public readonly RegimeEspecialTributacao $regimeEspecial = RegimeEspecialTributacao::Nenhum,
@@ -118,7 +119,9 @@ final class Prestador
 
 Singleton dentro da app — instancie uma vez no bootstrap e reuse.
 
-**Validações:** CNPJ ≥ 14 dígitos, IM não-vazia, razão social não-vazia. Lança `ValidationException` em caso de erro.
+**Validações:** CNPJ ≥ 14 dígitos, razão social não-vazia. Lança `ValidationException` em caso de erro.
+
+> **`inscricaoMunicipal` é opcional.** Passe `null` ou string vazia quando o prestador não tem (ou não deve declarar) IM. Caso de uso típico: **MEI emitindo em município sem informações complementares cadastradas no CNC NFS-e** — SEFIN devolve cStat **120** ("IM não deve ser informada, pois não existem informações complementares registradas no CNC NFS-e do município emissor"). Quando `null`/vazio, o SDK omite o nó `<IM>` do prestador no DPS.
 
 > **Atenção `regimeEspecial`:** SEFIN rejeita combinação `regEspTrib != Nenhum` + dedução (`vDR > 0`) com erro **E0438**. Quando há dedução, o SDK força automaticamente `Nenhum` antes de assinar. Se você sempre tem dedução (ex.: cartórios usam ISSQN "por dentro"), pode deixar `Nenhum` direto.
 
