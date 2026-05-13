@@ -14,20 +14,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   caso **MEI emitindo em município sem cadastro no CNC NFS-e**, que era
   rejeitado pelo SEFIN com **cStat=120** ("IM do prestador não deve ser
   informada, pois não existem informações complementares registradas no
-  CNC NFS-e do município emissor"). Descoberto em homologação SEFIN
-  (CNPJ MEI 61.535.348/0001-78 emitindo em Sinop/MT).
+  CNC NFS-e do município emissor").
 - O check `Inscrição municipal vazia` foi removido da validação do
   `Prestador`. String vazia / com espaços agora normaliza para `null`
   em vez de lançar `ValidationException`. Quem sempre passou IM
   preenchida continua funcionando sem mudança.
 
 ### Validação empírica
-Confirmado em homologação SEFIN (PFX cartório 00179028000138 com IM 11408
-registrada no CNC de Sinop): DPS construído com `inscricaoMunicipal: null`
-resulta em XML SEM `<IM>` dentro do `<prest>` — SEFIN devolve `cStat=116`
-"A IM deve ser informada". Inverso simétrico do `cStat=120` (caso MEI sem
-CNC), provando que o mecanismo do SDK está correto: o caller decide se a
-IM é enviada, com base no que o CNC do município espera para o prestador.
+Confirmado em homologação SEFIN com PFX de prestador que TEM informações
+complementares registradas no CNC NFS-e do município: DPS construído com
+`inscricaoMunicipal: null` resulta em XML SEM `<IM>` dentro do `<prest>`
+— SEFIN devolve `cStat=116` "A IM deve ser informada". Inverso simétrico
+do `cStat=120` (caso de prestador sem CNC), provando que o mecanismo do
+SDK está correto: o caller decide se a IM é enviada, com base no que o
+CNC do município espera para o prestador.
 
 ## [0.5.2] — 2026-05-13
 
