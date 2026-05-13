@@ -5,6 +5,54 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-05-13
+
+### Corrigido (3 bugs descobertos por agent durante smoke do nfse-monorepo)
+
+- **Ordem dos elementos `<toma>` no DPS** — schema `TSDestinaDps` exige
+  CPF/CNPJ → IM → xNome → **end** → **fone** → **email**. Anterior tinha
+  fone/email ANTES do end → cStat=1235 ("invalid child element"). Cenários
+  PF/PJ com email/telefone falhavam. Validado em homologação SEFIN.
+
+- **`xDesc` da Substituição (e105102)** — texto exato exigido pela
+  enumeração `TS_xDesc` é `"Cancelamento de NFS-e por Substituição"`.
+  SDK estava enviando `"Cancelamento por substituição"` → cStat=1235
+  ("Enumeration constraint failed"). Mesmo padrão dos eventos de
+  Manifestação que já tinham sido corrigidos.
+
+### Modificado (BREAKING — pré-1.0)
+
+- **`EventoSubstituicao` agora usa `MotivoSubstituicao`, não
+  `MotivoCancelamento`.** O leiaute SefinNacional 1.6 define dois enums
+  distintos pra justificativa de evento:
+  - `TSCodJustCanc` (cancelamento simples e101101): 1, 2, 9
+  - `TSCodJustSubst` (substituição e105102): 01, 02, 03, 04, 05, 99
+
+  Confundir os dois → cStat=1235. Novo enum `MotivoSubstituicao` com cases:
+  - `DesenquadramentoSimples` (01)
+  - `EnquadramentoSimples` (02)
+  - `InclusaoImunidade` (03)
+  - `ExclusaoImunidade` (04)
+  - `RejeicaoTomador` (05)
+  - `Outros` (99 — exige `xMotivo`)
+
+- **Assinatura de `$nfse->substituir()` mudou:**
+  - Antes: `(string $orig, string $subst, MotivoCancelamento, string $just)`
+  - Agora: `(string $orig, string $subst, MotivoSubstituicao, string $just = '')`
+  - `xMotivo` agora opcional (só obrigatório se `motivo=Outros`)
+
+  Mesma mudança em `SubstituicaoService::substituir()` e
+  `EventoSubstituicao::__construct()`.
+
+### Notas
+
+- Suite continua com 152 testes verdes (testes do EventoSubstituicao /
+  SubstituicaoService atualizados pra usar `MotivoSubstituicao`).
+- PHPStan level 8 limpo.
+- Esses bugs nunca foram pegos antes porque não tínhamos testado
+  substituição real em homologação SEFIN (só via mock). Smoke do agent
+  no `nfse-monorepo` revelou ambos.
+
 ## [0.5.0] — 2026-05-13
 
 ### Modificado (BREAKING — pré-1.0)

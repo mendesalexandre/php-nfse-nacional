@@ -9,7 +9,7 @@ use Psr\Log\NullLogger;
 use PhpNfseNacional\Certificate\Signer;
 use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\Dps\EventoSubstituicao;
-use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\DTO\MotivoSubstituicao;
 use PhpNfseNacional\Enums\CStat;
 use PhpNfseNacional\Exceptions\SefinException;
 use PhpNfseNacional\Sefin\SefinClient;
@@ -50,8 +50,8 @@ final class SubstituicaoService
     public function substituir(
         string $chaveOriginal,
         string $chaveSubstituta,
-        MotivoCancelamento $motivo,
-        string $justificativa,
+        MotivoSubstituicao $motivo,
+        string $justificativa = '',
     ): SefinResposta {
         $evento = new EventoSubstituicao(
             chaveAcesso: $chaveOriginal,

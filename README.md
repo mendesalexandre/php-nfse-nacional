@@ -131,11 +131,12 @@ A substituidora precisa ter sido emitida antes via `$nfse->emitir(...)`.
 ```php
 use PhpNfseNacional\DTO\MotivoCancelamento;
 
+use PhpNfseNacional\DTO\MotivoSubstituicao;
+
 $resposta = $nfse->substituir(
     chaveOriginal:   '51079092200179028000138000000000005726057774456203',
     chaveSubstituta: '51079092200179028000138000000000005826057774456204',
-    motivo:          MotivoCancelamento::ErroEmissao,
-    justificativa:   'Reemissão por divergência de valor',
+    motivo:          MotivoSubstituicao::DesenquadramentoSimples,
 );
 ```
 
