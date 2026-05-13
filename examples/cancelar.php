@@ -32,7 +32,7 @@ echo "  → Motivo: {$motivo->label()}\n";
 echo "  → Justificativa: {$justificativa}\n\n";
 
 try {
-    $resp = $nfse->cancelamento()->cancelar($chave, $motivo, $justificativa);
+    $resp = $nfse->cancelar($chave, $motivo, $justificativa);
 
     echo "✓ CANCELADA\n";
     echo "  → cStat: {$resp->cStat}\n";

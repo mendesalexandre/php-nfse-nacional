@@ -154,7 +154,7 @@ echo "  → ISSQN: " . number_format($valores->valorIssqn(), 2) . "\n";
 echo "\n";
 
 try {
-    $resposta = $nfse->emissao()->emitir(
+    $resposta = $nfse->emitir(
         identificacao: $identificacao,
         tomador: $tomador,
         servico: $servico,

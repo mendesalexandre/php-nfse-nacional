@@ -9,10 +9,20 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use PhpNfseNacional\Certificate\Certificate;
 use PhpNfseNacional\Certificate\Signer;
+use PhpNfseNacional\Danfse\DanfseCustomizacao;
+use PhpNfseNacional\Danfse\DanfseDados;
 use PhpNfseNacional\Dps\DpsBuilder;
 use PhpNfseNacional\Dps\EventoBuilder;
+use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\DTO\MotivoRejeicao;
+use PhpNfseNacional\DTO\Servico;
+use PhpNfseNacional\DTO\Tomador;
+use PhpNfseNacional\DTO\Valores;
+use PhpNfseNacional\Enums\AutorManifestacao;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
+use PhpNfseNacional\Sefin\SefinResposta;
 use PhpNfseNacional\Services\CancelamentoService;
 use PhpNfseNacional\Services\ConsultaService;
 use PhpNfseNacional\Services\DanfseService;
@@ -22,35 +32,34 @@ use PhpNfseNacional\Services\ManifestacaoService;
 use PhpNfseNacional\Services\SubstituicaoService;
 
 /**
- * Facade unificado do SDK.
+ * Facade unificado do SDK — API achatada (sem `->servico()->acao()`).
  *
- * Entry point amigável que monta a árvore de dependências internamente.
- * Use uma das duas formas:
+ * Uso típico:
  *
- *   // 1. Helper que monta tudo:
  *   $nfse = NFSe::create($config, $cert);
- *   $resposta = $nfse->emissao()->emitir(...);
+ *   $resp = $nfse->emitir($identificacao, $tomador, $servico, $valores);
+ *   $resp = $nfse->cancelar($chave, MotivoCancelamento::ErroEmissao, '...');
+ *   $resp = $nfse->consultar($chave);
+ *   $pdf  = $nfse->danfseLocal($xml);
  *
- *   // 2. Manualmente (pra DI containers Symfony/Laravel/etc.):
- *   $signer = new Signer($cert);
- *   $endpoints = new SefinEndpoints($config->ambiente);
- *   $client = new SefinClient($config, $cert, $endpoints, $http, $logger);
- *   // ... wire services individualmente
+ * Os Services internos (EmissaoService, CancelamentoService, etc.) continuam
+ * disponíveis como classes públicas — quem usa DI granular pode instanciá-los
+ * diretamente, sem passar pela facade. Eles ficam em `PhpNfseNacional\Services\`.
  */
 final class NFSe
 {
     private function __construct(
-        public readonly EmissaoService $emissao,
-        public readonly ConsultaService $consulta,
-        public readonly CancelamentoService $cancelamento,
-        public readonly SubstituicaoService $substituicao,
-        public readonly ManifestacaoService $manifestacao,
-        public readonly DownloadService $download,
-        public readonly DanfseService $danfse,
+        private readonly EmissaoService $emissaoService,
+        private readonly ConsultaService $consultaService,
+        private readonly CancelamentoService $cancelamentoService,
+        private readonly SubstituicaoService $substituicaoService,
+        private readonly ManifestacaoService $manifestacaoService,
+        private readonly DownloadService $downloadService,
+        private readonly DanfseService $danfseService,
     ) {}
 
     /**
-     * Cria o NFSe com todas as dependências internas resolvidas.
+     * Cria a facade com toda a árvore de dependências resolvida.
      *
      * @param ClientInterface|null $http   Cliente PSR-18 (default: Guzzle com mTLS)
      * @param LoggerInterface|null $logger Logger PSR-3 (default: NullLogger)
@@ -70,66 +79,126 @@ final class NFSe
         $eventoBuilder = new EventoBuilder($config);
 
         return new self(
-            emissao: new EmissaoService($config, $dpsBuilder, $signer, $client, $logger),
-            consulta: new ConsultaService($client, $endpoints),
-            cancelamento: new CancelamentoService(
-                $eventoBuilder,
-                $signer,
-                $client,
-                $endpoints,
-                $logger,
-            ),
-            substituicao: new SubstituicaoService(
-                $eventoBuilder,
-                $signer,
-                $client,
-                $endpoints,
-                $logger,
-            ),
-            manifestacao: new ManifestacaoService(
-                $eventoBuilder,
-                $signer,
-                $client,
-                $endpoints,
-                $logger,
-            ),
-            download: new DownloadService($client, $endpoints),
-            danfse: new DanfseService(),
+            emissaoService: new EmissaoService($config, $dpsBuilder, $signer, $client, $logger),
+            consultaService: new ConsultaService($client, $endpoints),
+            cancelamentoService: new CancelamentoService($eventoBuilder, $signer, $client, $endpoints, $logger),
+            substituicaoService: new SubstituicaoService($eventoBuilder, $signer, $client, $endpoints, $logger),
+            manifestacaoService: new ManifestacaoService($eventoBuilder, $signer, $client, $endpoints, $logger),
+            downloadService: new DownloadService($client, $endpoints),
+            danfseService: new DanfseService(),
         );
     }
 
-    public function emissao(): EmissaoService
-    {
-        return $this->emissao;
+    // ───────── Emissão ─────────
+
+    public function emitir(
+        Identificacao $identificacao,
+        Tomador $tomador,
+        Servico $servico,
+        Valores $valores,
+    ): SefinResposta {
+        return $this->emissaoService->emitir($identificacao, $tomador, $servico, $valores);
     }
 
-    public function consulta(): ConsultaService
+    // ───────── Consulta ─────────
+
+    public function consultar(string $chaveAcesso): SefinResposta
     {
-        return $this->consulta;
+        return $this->consultaService->consultarNfse($chaveAcesso);
     }
 
-    public function cancelamento(): CancelamentoService
+    public function consultarDps(string $chaveAcesso): SefinResposta
     {
-        return $this->cancelamento;
+        return $this->consultaService->consultarDps($chaveAcesso);
     }
 
-    public function substituicao(): SubstituicaoService
-    {
-        return $this->substituicao;
+    public function consultarEventos(
+        string $chaveAcesso,
+        ?string $tipoEvento = null,
+        ?int $nSequencial = null,
+    ): SefinResposta {
+        return $this->consultaService->consultarEventos($chaveAcesso, $tipoEvento, $nSequencial);
     }
 
-    public function manifestacao(): ManifestacaoService
-    {
-        return $this->manifestacao;
+    // ───────── Cancelamento ─────────
+
+    public function cancelar(
+        string $chaveAcesso,
+        MotivoCancelamento $motivo,
+        string $justificativa,
+    ): SefinResposta {
+        return $this->cancelamentoService->cancelar($chaveAcesso, $motivo, $justificativa);
     }
 
-    public function download(): DownloadService
-    {
-        return $this->download;
+    // ───────── Substituição ─────────
+
+    public function substituir(
+        string $chaveOriginal,
+        string $chaveSubstituta,
+        MotivoCancelamento $motivo,
+        string $justificativa,
+    ): SefinResposta {
+        return $this->substituicaoService->substituir(
+            $chaveOriginal,
+            $chaveSubstituta,
+            $motivo,
+            $justificativa,
+        );
     }
 
-    public function danfse(): DanfseService
+    // ───────── Manifestação ─────────
+
+    public function confirmar(
+        string $chaveAcesso,
+        AutorManifestacao $autor,
+    ): SefinResposta {
+        return $this->manifestacaoService->confirmar($chaveAcesso, $autor);
+    }
+
+    public function rejeitar(
+        string $chaveAcesso,
+        AutorManifestacao $autor,
+        MotivoRejeicao $motivo,
+        string $xMotivo = '',
+    ): SefinResposta {
+        return $this->manifestacaoService->rejeitar($chaveAcesso, $autor, $motivo, $xMotivo);
+    }
+
+    public function anularRejeicao(
+        string $chaveAcesso,
+        string $cpfAgente,
+        string $idEvManifRej,
+        string $xMotivo,
+    ): SefinResposta {
+        return $this->manifestacaoService->anularRejeicao(
+            $chaveAcesso,
+            $cpfAgente,
+            $idEvManifRej,
+            $xMotivo,
+        );
+    }
+
+    // ───────── Download ─────────
+
+    public function baixarXml(string $chaveAcesso): string
     {
-        return $this->danfse;
+        return $this->downloadService->xmlNfse($chaveAcesso);
+    }
+
+    public function baixarPdf(string $chaveAcesso): string
+    {
+        return $this->downloadService->pdfDanfse($chaveAcesso);
+    }
+
+    // ───────── DANFSe local ─────────
+
+    public function danfseLocal(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
+    {
+        return $this->danfseService->gerarDoXml($xmlNfse, $custom);
+    }
+
+    public function danfseLocalDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
+    {
+        return $this->danfseService->gerarDeDados($dados, $custom);
     }
 }

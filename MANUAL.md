@@ -17,13 +17,13 @@ Para histórico de versões, ver [CHANGELOG.md](CHANGELOG.md).
    - [`Config`](#config)
    - [`NFSe::create()`](#nfsecreate) — facade
 3. [Operações](#operações)
-   - [Emissão](#emissão) — `$nfse->emissao()->emitir()`
+   - [Emissão](#emissão) — `$nfse->emitir()`
    - [Consulta](#consulta) — `consultarNfse / consultarDps / consultarEventos`
-   - [Cancelamento](#cancelamento) — `$nfse->cancelamento()->cancelar()`
+   - [Cancelamento](#cancelamento) — `$nfse->cancelar()`
    - [Manifestação de NFS-e](#manifestação-de-nfs-e) — `confirmar / rejeitar / anularRejeicao`
-   - [Substituição](#substituição) — `$nfse->substituicao()->substituir()`
+   - [Substituição](#substituição) — `$nfse->substituir()`
    - [Download](#download) — `xmlNfse / pdfDanfse`
-   - [DANFSe local](#danfse-local) — `$nfse->danfse()->gerarDoXml()`
+   - [DANFSe local](#danfse-local) — `$nfse->danfseLocal()`
 4. [Tipos de retorno](#tipos-de-retorno)
    - [`SefinResposta`](#sefinresposta)
 5. [DTOs de entrada](#dtos-de-entrada)
@@ -184,14 +184,32 @@ final class NFSe
         ?\Psr\Log\LoggerInterface $logger = null,
     ): self;
 
-    public function emissao(): EmissaoService;
-    public function consulta(): ConsultaService;
-    public function cancelamento(): CancelamentoService;
-    public function substituicao(): SubstituicaoService;
-    public function download(): DownloadService;
-    public function danfse(): DanfseService;
+    // Emissão
+    public function emitir(Identificacao, Tomador, Servico, Valores): SefinResposta;
+
+    // Consulta
+    public function consultar(string $chave): SefinResposta;
+    public function consultarDps(string $chave): SefinResposta;
+    public function consultarEventos(string $chave, ?string $tipo = null, ?int $seq = null): SefinResposta;
+
+    // Cancelamento / Substituição
+    public function cancelar(string $chave, MotivoCancelamento, string $just): SefinResposta;
+    public function substituir(string $orig, string $subst, MotivoCancelamento, string $just): SefinResposta;
+
+    // Manifestação
+    public function confirmar(string $chave, AutorManifestacao): SefinResposta;
+    public function rejeitar(string $chave, AutorManifestacao, MotivoRejeicao, string $xMotivo = ''): SefinResposta;
+    public function anularRejeicao(string $chave, string $cpf, string $idRej, string $xMotivo): SefinResposta;
+
+    // Download / DANFSe local
+    public function baixarXml(string $chave): string;
+    public function baixarPdf(string $chave): string;
+    public function danfseLocal(string $xml, ?DanfseCustomizacao = null): string;
+    public function danfseLocalDeDados(DanfseDados, ?DanfseCustomizacao = null): string;
 }
 ```
+
+> **API achatada (v0.5.0+)** — antes era `$nfse->emissao()->emitir(...)`, agora é só `$nfse->emitir(...)`. Os Service classes (`EmissaoService`, `CancelamentoService`, etc.) continuam públicos em `PhpNfseNacional\Services\` — quem usa DI granular pode instanciá-los diretamente.
 
 Facade unificado — entry point recomendado. Resolve toda a árvore de dependências (builders, signer, client) internamente.
 
@@ -214,7 +232,7 @@ Para DI containers (Symfony/Laravel/etc.) que precisam wirear cada serviço manu
 ### Emissão
 
 ```php
-$nfse->emissao()->emitir(
+$nfse->emitir(
     Identificacao $identificacao,
     Tomador       $tomador,
     Servico       $servico,
@@ -237,7 +255,7 @@ Ajustes feitos automaticamente pelo SDK na hora de montar o DPS:
 - `<locPrest>` sempre `cLocPrestacao` (nunca junto com `cPaisPrestacao` — evita E1235)
 
 ```php
-$resp = $nfse->emissao()->emitir(
+$resp = $nfse->emitir(
     identificacao: new Identificacao(numeroDps: 1745, serie: '1'),
     tomador:       new Tomador('12345678901', 'Cliente Exemplo', $endereco),
     servico:       new Servico('Certidão de matrícula', codigoMunicipioPrestacao: '5107909'),
@@ -252,9 +270,9 @@ echo $resp->cStat;        // 100 (emitida)
 ### Consulta
 
 ```php
-$nfse->consulta()->consultarNfse(string $chaveAcesso): SefinResposta
-$nfse->consulta()->consultarDps(string $chaveAcesso): SefinResposta
-$nfse->consulta()->consultarEventos(
+$nfse->consultar(string $chaveAcesso): SefinResposta
+$nfse->consultarDps(string $chaveAcesso): SefinResposta
+$nfse->consultarEventos(
     string $chaveAcesso,
     ?string $tipoEvento = null,    // ex: '101101' — null devolve todos
     ?int $nSequencial = null,      // null devolve mais recente
@@ -270,7 +288,7 @@ $nfse->consulta()->consultarEventos(
 **Validação:** `ValidationException` se chave de acesso ≠ 50 dígitos.
 
 ```php
-$resp = $nfse->consulta()->consultarNfse('51079092200179028000138000000000005726057774456203');
+$resp = $nfse->consultar('51079092200179028000138000000000005726057774456203');
 
 if ($resp->cancelada()) { /* ... */ }
 echo $resp->numeroNfse;
@@ -279,7 +297,7 @@ echo $resp->numeroNfse;
 ### Cancelamento
 
 ```php
-$nfse->cancelamento()->cancelar(
+$nfse->cancelar(
     string              $chaveAcesso,
     MotivoCancelamento  $motivo,
     string              $justificativa,   // 15..200 chars
@@ -299,7 +317,7 @@ Evento e101101. **Aceitação de cStat:**
 ```php
 use PhpNfseNacional\DTO\MotivoCancelamento;
 
-$resp = $nfse->cancelamento()->cancelar(
+$resp = $nfse->cancelar(
     '51079092200179028000138000000000005726057774456203',
     MotivoCancelamento::ErroEmissao,
     'Valor da NFS-e divergente do recibo',
@@ -315,19 +333,19 @@ if ($resp->cStat === 840) {
 Eventos pelo Prestador, Tomador ou Intermediário pra **confirmar** ou **rejeitar** uma NFS-e emitida. Útil quando o tomador recebe uma nota e quer (a) reconhecer formalmente, (b) recusar (motivo: duplicidade, sem fato gerador, valor errado, etc.) ou (c) anular uma rejeição feita por engano.
 
 ```php
-$nfse->manifestacao()->confirmar(
+$nfse->confirmar(
     string             $chaveAcesso,
     AutorManifestacao  $autor,                // Prestador, Tomador, Intermediario
 ): SefinResposta
 
-$nfse->manifestacao()->rejeitar(
+$nfse->rejeitar(
     string             $chaveAcesso,
     AutorManifestacao  $autor,
     MotivoRejeicao     $motivo,                // Duplicidade, JaEmitidaPeloTomador, ...
     string             $xMotivo = '',          // obrigatório se motivo=Outros (15-200 chars)
 ): SefinResposta
 
-$nfse->manifestacao()->anularRejeicao(
+$nfse->anularRejeicao(
     string $chaveAcesso,
     string $cpfAgente,        // CPF do responsável pela anulação (11 dígitos)
     string $idEvManifRej,     // Id da Rejeição original — aceita "PRE+56dig" OU 59 dígitos puros
@@ -361,7 +379,7 @@ use PhpNfseNacional\DTO\MotivoRejeicao;
 use PhpNfseNacional\Enums\AutorManifestacao;
 
 // Tomador rejeita NFS-e que recebeu por duplicidade
-$resp = $nfse->manifestacao()->rejeitar(
+$resp = $nfse->rejeitar(
     chaveAcesso: '51079...',
     autor: AutorManifestacao::Tomador,
     motivo: MotivoRejeicao::Duplicidade,
@@ -370,7 +388,7 @@ $resp = $nfse->manifestacao()->rejeitar(
 // 1 hora depois, tomador percebe que rejeitou por engano
 $idRejeicaoOriginal = 'PRE51079...203206';   // do `<infPedReg Id="...">` da rejeição
 
-$resp = $nfse->manifestacao()->anularRejeicao(
+$resp = $nfse->anularRejeicao(
     chaveAcesso: '51079...',
     idEvManifRej: $idRejeicaoOriginal,
     xMotivo: 'Rejeição feita por engano — NFS-e está correta',
@@ -380,7 +398,7 @@ $resp = $nfse->manifestacao()->anularRejeicao(
 ### Substituição
 
 ```php
-$nfse->substituicao()->substituir(
+$nfse->substituir(
     string              $chaveOriginal,    // NFS-e a cancelar (50 dígitos)
     string              $chaveSubstituta,  // NFS-e nova já emitida (50 dígitos)
     MotivoCancelamento  $motivo,
@@ -390,14 +408,14 @@ $nfse->substituicao()->substituir(
 
 Evento e105102 — cancela `chaveOriginal` e registra o vínculo com `chaveSubstituta`.
 
-> **Pré-requisito:** `chaveSubstituta` já tem que ter sido emitida normalmente via `$nfse->emissao()->emitir()`. Esse método **não** emite a substituidora — apenas registra o vínculo + cancelamento.
+> **Pré-requisito:** `chaveSubstituta` já tem que ter sido emitida normalmente via `$nfse->emitir()`. Esse método **não** emite a substituidora — apenas registra o vínculo + cancelamento.
 
 **Validações:** ambas as chaves 50 dígitos, distintas entre si, justificativa 15–200 chars, sequencial 1–99.
 
 Mesma regra de aceitação de cStat do cancelamento ({100, 135, 155} → ok; 840 → idempotente; demais → `SefinException`).
 
 ```php
-$resp = $nfse->substituicao()->substituir(
+$resp = $nfse->substituir(
     chaveOriginal:   $chaveOriginal,
     chaveSubstituta: $resp->chaveAcesso,  // veio da emissão da nova
     motivo:          MotivoCancelamento::ErroEmissao,
@@ -408,9 +426,9 @@ $resp = $nfse->substituicao()->substituir(
 ### Download
 
 ```php
-$nfse->download()->xmlNfse(string $chaveAcesso): string         // XML autorizado
-$nfse->download()->pdfDanfse(string $chaveAcesso): string       // bytes do PDF
-$nfse->download()->consultarNfse(string $chaveAcesso): SefinResposta
+$nfse->baixarXml(string $chaveAcesso): string         // XML autorizado
+$nfse->baixarPdf(string $chaveAcesso): string       // bytes do PDF
+$nfse->consultar(string $chaveAcesso): SefinResposta
 ```
 
 | Método | Onde busca | Observação |
@@ -425,18 +443,18 @@ $nfse->download()->consultarNfse(string $chaveAcesso): SefinResposta
 - `SefinException` — HTTP ≠ 200 ou conteúdo não é PDF (`pdfDanfse` valida magic bytes `%PDF`)
 
 ```php
-$xml = $nfse->download()->xmlNfse($chave);
+$xml = $nfse->baixarXml($chave);
 file_put_contents("/var/nfse/{$chave}.xml", $xml);
 
-$pdf = $nfse->download()->pdfDanfse($chave);
+$pdf = $nfse->baixarPdf($chave);
 file_put_contents("/var/nfse/{$chave}.pdf", $pdf);
 ```
 
 ### DANFSe local
 
 ```php
-$nfse->danfse()->gerarDoXml(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
-$nfse->danfse()->gerarDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
+$nfse->danfseLocal(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
+$nfse->danfseLocalDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
 $nfse->danfse()->parser(): DanfseXmlParser
 ```
 
@@ -451,7 +469,7 @@ $custom = new DanfseCustomizacao(
                            'Para autenticidade consulte https://...',  // opcional, max 2000 chars
 );
 
-$pdf = $nfse->danfse()->gerarDoXml($xmlAutorizado, $custom);
+$pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 ```
 
 | Customização | Onde aparece no DANFSe | Limite |
@@ -477,7 +495,7 @@ Marcas d'água automáticas:
 - **SUBSTITUÍDA** diagonal cinza — quando há evento de substituição
 
 ```php
-$pdf = $nfse->danfse()->gerarDoXml($xmlAutorizado);
+$pdf = $nfse->danfseLocal($xmlAutorizado);
 file_put_contents('danfse.pdf', $pdf);
 // → 80-150 KB, layout NT 008
 ```
@@ -756,7 +774,7 @@ Hierarquia:
 
 ```php
 try {
-    $resp = $nfse->emissao()->emitir(...);
+    $resp = $nfse->emitir(...);
 } catch (ValidationException $e) {
     foreach ($e->errors() as $msg) { /* ... */ }
 } catch (CertificateException $e) {
@@ -834,7 +852,7 @@ $identificacao = new Identificacao(
     dataCompetencia: $ontem,
     dataEmissao: $ontem,
 );
-$resp = $nfse->emissao()->emitir($identificacao, $tomador, $servico, $valores);
+$resp = $nfse->emitir($identificacao, $tomador, $servico, $valores);
 ```
 
 Sem `dataEmissao`, o SDK gera `dhEmi` em `now()` SP recuado 60s (default).

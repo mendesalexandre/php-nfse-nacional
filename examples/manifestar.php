@@ -35,7 +35,7 @@ try {
     if ($operacao === 'confirmar') {
         $autor = AutorManifestacao::from((int) envOrDie('AUTOR'));
         echo "Confirmando NFS-e {$chave} como {$autor->label()}\n\n";
-        $resp = $nfse->manifestacao()->confirmar($chave, $autor);
+        $resp = $nfse->confirmar($chave, $autor);
     } elseif ($operacao === 'rejeitar') {
         $autor = AutorManifestacao::from((int) envOrDie('AUTOR'));
         $motivo = MotivoRejeicao::from((int) envOrDie('MOTIVO'));
@@ -46,7 +46,7 @@ try {
             echo "  → xMotivo: {$xMotivo}\n";
         }
         echo "\n";
-        $resp = $nfse->manifestacao()->rejeitar($chave, $autor, $motivo, $xMotivo);
+        $resp = $nfse->rejeitar($chave, $autor, $motivo, $xMotivo);
     } elseif ($operacao === 'anular') {
         $cpfAgente = envOrDie('CPF_AGENTE');
         $idRejeicao = envOrDie('ID_REJEICAO');
@@ -55,7 +55,7 @@ try {
         echo "  → CPFAgTrib: {$cpfAgente}\n";
         echo "  → Id da Rejeição: {$idRejeicao}\n";
         echo "  → xMotivo: {$xMotivo}\n\n";
-        $resp = $nfse->manifestacao()->anularRejeicao($chave, $cpfAgente, $idRejeicao, $xMotivo);
+        $resp = $nfse->anularRejeicao($chave, $cpfAgente, $idRejeicao, $xMotivo);
     } else {
         fwrite(STDERR, "ERRO: OPERACAO deve ser 'confirmar', 'rejeitar' ou 'anular'\n");
         exit(1);
