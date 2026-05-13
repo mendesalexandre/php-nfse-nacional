@@ -10,6 +10,7 @@ use PhpNfseNacional\Certificate\Signer;
 use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\Dps\EventoCancelamento;
 use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\Enums\CStat;
 use PhpNfseNacional\Exceptions\SefinException;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
@@ -72,7 +73,7 @@ final class CancelamentoService
         //   - cStat ∈ {100, 135, 155}  → evento aceito pelo SEFIN
         //   - cStat == 840 (E0840)     → cancelamento já existia previamente
         //                                (idempotente — não levanta exceção)
-        $aceito = in_array($resposta->cStat, [100, 135, 155, 840], true);
+        $aceito = in_array($resposta->cStat, CStat::aceitosEvento(), true);
 
         if (!$aceito) {
             $this->logger->error('[CancelamentoService] SEFIN rejeitou cancelamento', [
@@ -90,7 +91,7 @@ final class CancelamentoService
         $this->logger->info('[CancelamentoService] Cancelamento confirmado', [
             'chave' => $evento->chaveAcesso,
             'cStat' => $resposta->cStat,
-            'ja_existia' => $resposta->cStat === 840,
+            'ja_existia' => $resposta->cStat === CStat::EventoVinculado->value,
         ]);
         return $resposta;
     }

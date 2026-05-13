@@ -10,6 +10,7 @@ use PhpNfseNacional\Certificate\Signer;
 use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\Dps\EventoSubstituicao;
 use PhpNfseNacional\DTO\MotivoCancelamento;
+use PhpNfseNacional\Enums\CStat;
 use PhpNfseNacional\Exceptions\SefinException;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
@@ -71,7 +72,7 @@ final class SubstituicaoService
         $url = $this->endpoints->cancelarNfse($evento->chaveAcesso);
         $resposta = $this->client->postEvento($url, $xmlAssinado);
 
-        $aceito = in_array($resposta->cStat, [100, 135, 155, 840], true);
+        $aceito = in_array($resposta->cStat, CStat::aceitosEvento(), true);
 
         if (!$aceito) {
             $this->logger->error('[SubstituicaoService] SEFIN rejeitou substituição', [
@@ -90,7 +91,7 @@ final class SubstituicaoService
             'chave_original' => $evento->chaveAcesso,
             'chave_substituta' => $evento->chaveSubstituta,
             'cStat' => $resposta->cStat,
-            'ja_existia' => $resposta->cStat === 840,
+            'ja_existia' => $resposta->cStat === CStat::EventoVinculado->value,
         ]);
         return $resposta;
     }

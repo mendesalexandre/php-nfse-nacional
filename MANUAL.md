@@ -416,9 +416,11 @@ final class SefinResposta
         public readonly string  $rawResponse,         // body cru do HTTP (debug)
     );
 
-    public function emitida(): bool;       // cStat=100 + chaveAcesso != null
-    public function cancelada(): bool;     // cStat ∈ {101, 102, 135, 155}
-    public function erro(): bool;          // !emitida && !cancelada
+    public function emitida(): bool;            // cStat=100 + chaveAcesso != null
+    public function cancelada(): bool;          // cStat ∈ {101, 102, 135, 155}
+    public function erro(): bool;               // !emitida && !cancelada
+    public function eventoIdempotente(): bool;  // cStat=840 (já estava vinculado)
+    public function cStatTipado(): ?CStat;      // tryFrom() do enum CStat — null se desconhecido
 }
 ```
 
@@ -598,7 +600,42 @@ enum MotivoCancelamento: int {
     case Outros              = 9;
     public function label(): string;
 }
+
+// Códigos de status retornados pelo SEFIN/ADN — lista NÃO exaustiva (centenas
+// possíveis). Cobre sucessos, erros comuns da emissão, idempotência e os
+// 41 códigos do Anexo IV/CSV ADN (eventos avançados).
+enum CStat: int {
+    // Sucesso
+    case Emitida                   = 100;
+    case Cancelada                 = 101;
+    case CanceladaPorSubstituicao  = 102;
+    case EventoRegistrado          = 135;
+    case CancelamentoHomologado    = 155;
+    case EventoVinculado           = 840;  // idempotente
+
+    // Erros comuns SEFIN
+    case ErroDhEmiPosteriorAoProc  = 8;
+    case ErroCompetPosteriorAoEmi  = 15;
+    case ErroConvenioInativo       = 38;
+    case ErroRegEspTribComDeducao  = 438;
+    case ErroDeducaoNaoPermitida   = 440;
+    case ErroSchemaXml             = 1235;
+    case ErroEmitenteNaoHabilitado = 9996;
+
+    // 41 códigos AdnXXXX = 1800–2032 (eventos avançados ADN)
+
+    public function descricao(): string;       // mensagem oficial
+    public function ehSucesso(): bool;
+    public function ehErroSefin(): bool;       // !sucesso && !ADN
+    public function ehErroAdn(): bool;         // 1800 ≤ value < 3000
+    public function ehErroSchema(): bool;      // === ErroSchemaXml
+
+    public static function aceitosEvento(): array;    // [100, 135, 155, 840]
+    public static function estadosCancelada(): array; // [101, 102, 135, 155]
+}
 ```
+
+> **Como usar:** `SefinResposta::$cStat` continua `?int` (qualquer código possível). Pra comparação tipada use `CStat::tryFrom($resp->cStat)` ou o helper `$resp->cStatTipado()`. Pra checagem rápida de idempotência: `$resp->eventoIdempotente()`.
 
 > **`tpEmit` é "quem emitiu", não "modo contingência".** Diferente da NF-e (que usa tpEmit pra distinguir online/offline). Pra emissão tipo contingência no SefinNacional, ver a seção [Emissão retroativa (~contingência)](#emissão-retroativa-contingência) abaixo.
 

@@ -36,7 +36,7 @@ try {
 
     echo "✓ CANCELADA\n";
     echo "  → cStat: {$resp->cStat}\n";
-    if ($resp->cStat === 840) {
+    if ($resp->eventoIdempotente()) {
         echo "  → (idempotente: já estava cancelada previamente)\n";
     }
     echo "  → xMotivo: {$resp->xMotivo}\n";

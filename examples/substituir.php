@@ -39,7 +39,7 @@ try {
 
     echo "✓ SUBSTITUIÇÃO REGISTRADA\n";
     echo "  → cStat: {$resp->cStat}\n";
-    if ($resp->cStat === 840) {
+    if ($resp->eventoIdempotente()) {
         echo "  → (idempotente: já estava substituída previamente)\n";
     }
 } catch (SefinException $e) {
