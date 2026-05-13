@@ -5,6 +5,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-05-13
+
+### Adicionado
+- **`CStat::AdnSubstNaoAceitaViaEventos = 1861`** — código do SEFIN/ADN
+  que indica que o evento e105102 (Cancelamento por Substituição) não
+  pode ser enviado via `POST /nfse/{chave}/eventos`. Pode requerer
+  endpoint dedicado ou parametrização específica do município.
+  Validado em homologação SEFIN 13/05/2026 (cartório de Sinop —
+  parametrização ainda não habilita esse evento por essa rota).
+
 ## [0.5.1] — 2026-05-13
 
 ### Corrigido (3 bugs descobertos por agent durante smoke do nfse-monorepo)
