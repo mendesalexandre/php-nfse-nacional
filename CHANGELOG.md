@@ -5,7 +5,9 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
-### Alterado (BC-break leve)
+## [0.6.0] — 2026-05-13
+
+### Alterado (BC-break)
 - **`Prestador::$inscricaoMunicipal` agora é `?string` (nullable).** Passe
   `null` ou string vazia quando o prestador não deve declarar IM. Quando
   null/vazio, o SDK omite o nó `<IM>` do prestador no DPS. Resolve o
@@ -18,6 +20,14 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   `Prestador`. String vazia / com espaços agora normaliza para `null`
   em vez de lançar `ValidationException`. Quem sempre passou IM
   preenchida continua funcionando sem mudança.
+
+### Validação empírica
+Confirmado em homologação SEFIN (PFX cartório 00179028000138 com IM 11408
+registrada no CNC de Sinop): DPS construído com `inscricaoMunicipal: null`
+resulta em XML SEM `<IM>` dentro do `<prest>` — SEFIN devolve `cStat=116`
+"A IM deve ser informada". Inverso simétrico do `cStat=120` (caso MEI sem
+CNC), provando que o mecanismo do SDK está correto: o caller decide se a
+IM é enviada, com base no que o CNC do município espera para o prestador.
 
 ## [0.5.2] — 2026-05-13
 
