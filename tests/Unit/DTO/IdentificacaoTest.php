@@ -17,7 +17,7 @@ final class IdentificacaoTest extends TestCase
         $id = new Identificacao(numeroDps: 1);
 
         self::assertSame('1', $id->serie);
-        self::assertSame(TipoEmissaoDps::Normal, $id->tipoEmissao);
+        self::assertSame(TipoEmissaoDps::Prestador, $id->tipoEmissao);
         self::assertNull($id->dataCompetencia);
     }
 

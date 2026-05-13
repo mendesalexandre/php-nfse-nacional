@@ -586,9 +586,9 @@ enum SituacaoSimplesNacional: int {
 namespace PhpNfseNacional\DTO;
 
 enum TipoEmissaoDps: int {
-    case Normal              = 1;
-    case Contingencia        = 2;
-    case ContingenciaOffline = 3;
+    case Prestador     = 1;   // default — emissão pelo próprio prestador
+    case Tomador       = 2;   // ⚠ leiaute aceita, mas SEFIN ainda não habilitou (cStat=9996)
+    case Intermediario = 3;   // ⚠ idem
 }
 
 enum MotivoCancelamento: int {

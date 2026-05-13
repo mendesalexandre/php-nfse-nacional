@@ -5,6 +5,21 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Modificado (breaking — pré-1.0)
+- **`TipoEmissaoDps` corrigido** — enum estava conceitualmente errado,
+  copiado do mundo NF-e (que tem Normal/Contingencia/ContingenciaOffline).
+  No SefinNacional 1.6 o `tpEmit` identifica QUEM emite, não o modo
+  online/offline. Cases corretos:
+  - `Prestador` (1) — antes `Normal` — emissão pelo prestador (default)
+  - `Tomador` (2) — antes `Contingencia` — leiaute aceita mas SEFIN
+    rejeita com cStat=9996 ("não permitida nesta versão da aplicação")
+  - `Intermediario` (3) — antes `ContingenciaOffline` — mesma situação
+  Validado empiricamente em homologação 13/05/2026 tentando `tpEmit=2`
+  e `tpEmit=3`.
+- **Não existe "contingência" como flag dedicada na SefinNacional 1.6**
+  (diferente da NF-e). Cenários offline são tratados via `dhEmi`
+  retroativo + tpEmit=1 (Prestador). Documentado no docblock do enum.
+
 ### Adicionado
 - **PHP 8.5 na matriz CI** — workflow agora roda em PHP 8.1, 8.2, 8.3, 8.4, 8.5.
 - Tabela de arredondamento ampliada no `MANUAL.md` com casos "acima de 5
