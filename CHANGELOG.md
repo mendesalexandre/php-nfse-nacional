@@ -5,6 +5,28 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-05-12
+
+### Adicionado
+- **`MANUAL.md`** — referência completa da API estilo Swagger em Markdown
+  (670 linhas). Cobre toda a superfície pública por operação: bootstrap
+  (Certificate, Prestador, Endereco, Config, NFSe::create), 6 operações
+  com assinatura/parâmetros/retorno/exceções/exemplo (emissão, consulta,
+  cancelamento, substituição, download, DANFSe local), tipo de retorno
+  (SefinResposta), DTOs de entrada, enums, hierarquia de exceções,
+  eventos customizados (extensibilidade), apêndice OpenSSL legacy provider.
+- README aponta pro MANUAL no topo.
+
+### Corrigido
+- **CI: PHPUnit em PHP 8.3** falhava porque o Composer instalado pelo
+  `setup-php@v2` rejeitava o GHS token JWT-formatado e printava ele
+  inteiro na mensagem de erro (vazamento em log público — token já
+  expirado). Mitigações:
+  - `permissions: contents: read` no workflow (limita escopo do GITHUB_TOKEN)
+  - `COMPOSER_AUTH: '{}'` no step Install (deps são todas públicas no
+    Packagist, não precisa autenticar contra GitHub)
+  - `actions/checkout@v4` → `@v5` (Node.js 20 deprecation jun/2026)
+
 ## [0.3.2] — 2026-05-12
 
 ### Adicionado
