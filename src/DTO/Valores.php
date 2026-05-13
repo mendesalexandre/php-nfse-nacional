@@ -28,20 +28,30 @@ use PhpNfseNacional\Exceptions\ValidationException;
  *     homologação SEFIN: enviar `4.0000` causa E1235. O SDK arredonda
  *     automaticamente via `number_format(..., 2)` ao montar o DPS.
  *   - Pra alíquotas reduzidas (ex: 3.5125%), o SDK arredonda HALF_UP
- *     pra 2 casas (→ 3.51). Se precisar preservar a alíquota fracionada
- *     no leiaute futuro (NT que ampliar pra 4 casas), basta mudar a
- *     formatação no `DpsBuilder::appendValores`.
+ *     pra 2 casas (→ 3.51).
+ *
+ * IMPORTANTE — `aliquotaIssqnPercentual` é DECLARATÓRIA, não tributária:
+ *   O valor que você passa aqui vai pro `<pTotTribMun>` do DPS, que é a
+ *   "alíquota aproximada total dos tributos municipais" (Lei 12.741/2012,
+ *   Transparência Fiscal). NÃO define a alíquota efetiva do ISSQN.
+ *
+ *   A alíquota real é determinada pelo cadastro tributário do município
+ *   no SEFIN (cruzando `cTribNac` × `cClassTrib`) e vem na resposta como
+ *   `<pAliqAplic>`. Validado empiricamente: enviando `pTotTribMun=3.56`
+ *   pro cartório de Sinop, SEFIN devolveu `pAliqAplic=4.00` (alíquota
+ *   oficial cadastrada) e calculou o ISSQN sobre 4%.
+ *
+ *   Em outras palavras: passe uma estimativa razoável da carga total.
+ *   Em cartório de RI de Sinop fica `4.00`. Pra outros municípios/segmentos,
+ *   consulte a alíquota cadastrada pela prefeitura.
  *
  * Arredondamento:
  *   - Padrão: PHP `round()` modo `HALF_UP` (5 arredonda pra cima):
  *     - 0.125 → 0.13   |   0.124 → 0.12   |   0.005 → 0.01
- *   - **Caveat float-point:** valores que terminam em 5 na 3ª casa
- *     decimal podem não bater com a aritmética intuitiva por causa da
- *     representação binária. Ex: `round(0.115, 2)` retorna `0.11` (não
- *     `0.12`), porque `0.115` é armazenado como `0.114999…`. Pega gente
- *     em valores como ISSQN apurado `0.115`, `0.225`, `0.335`. Pra
- *     precisão crítica, calcule em centavos (int) e divida por 100, ou
- *     use BCMath/strings.
+ *   - PHP 8+ resolveu o caveat float-point clássico — `round(0.115, 2)`
+ *     retorna `0.12` corretamente em PHP 8.1+. Em PHP 7 retornava `0.11`
+ *     porque `0.115` em binário é `0.114999…`. Como o SDK requer PHP 8.1+,
+ *     esse pega não atinge mais.
  */
 final class Valores
 {

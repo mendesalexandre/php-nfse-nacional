@@ -475,14 +475,34 @@ final class Servico
     public function __construct(
         public readonly string $discriminacao,             // 10..2000 chars
         public readonly string $codigoMunicipioPrestacao,  // IBGE 7 dígitos
-        public readonly string $cTribNac = '210101',        // LC 116 — default = serviços notariais
+        public readonly string $cTribNac = '210101',       // LC 116 — default = serviços notariais
         public readonly string $cNBS = '113040000',
         public readonly string $cIndOp = '100301',
     );
 }
 ```
 
-> **`cTribNac` para cartório:** sempre `'210101'` (LC 116/2003, item 21.01). NUNCA `'140101'` (lubrificação/limpeza — bug histórico já corrigido).
+#### Códigos de tributação por segmento
+
+Os defaults do `Servico` são pra **cartório de registro de imóveis/notarial**. Pra outros segmentos, sobrescreva os 3 campos no construtor:
+
+| Segmento | `cTribNac` | LC 116/2003 | Observação |
+|---|---|---|---|
+| Cartório (notarial/registro) | `210101` | item 21.01 | default do SDK |
+| Advocacia | `170101` | item 17.13 | "Advocacia" |
+| Medicina/saúde | `040101` | item 4.01 | "Medicina e biomedicina" |
+| Engenharia/arquitetura | `070301` | item 7.03 | "Elaboração de planos diretores" |
+| Contabilidade | `170201` | item 17.19 | "Contabilidade, auditoria" |
+| Educação | `080101` | item 8.01 | "Ensino regular" |
+| Informática (desenvolvimento) | `010501` | item 1.04 | "Elaboração de programas" |
+| Construção civil | `070201` | item 7.02 | "Execução por administração" |
+| Transporte municipal | `160101` | item 16.01 | "Serviços de transporte" |
+
+A tabela completa está no [Anexo II do leiaute SefinNacional 1.6](https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica) (`AnexoII-TabelaTributosNacionais`). `cNBS` e `cIndOp` também variam — consulte a tabela oficial do município de destino.
+
+> **⚠ Atenção:** `cTribNac` errado é causa frequente de E1235 ou de NFS-e tributada em alíquota errada. O leiaute valida o cruzamento `cTribNac × cClassTrib × município`. Use sempre o código exato do seu segmento.
+
+> **Cartório de Sinop:** sempre `'210101'`. NUNCA `'140101'` (lubrificação/limpeza — bug histórico já corrigido).
 
 ### `Valores`
 
@@ -507,8 +527,27 @@ final class Valores
 > **Precisão e arredondamento:**
 > - Valores monetários (`vServ`, `vDR`, `vBC`, `vISSQN`, `vLiq`) — sempre 2 casas decimais.
 > - Alíquotas (`pTotTribMun`) — **2 casas decimais fixas no DPS**. O leiaute SefinNacional 1.6 restringe ao tipo `TSDec3V2` (`\d{1,3}\.\d{2}`). Diferente da NF-e (NT 03.14, que ampliou pra 4 casas) — passar `4.0000` ao SEFIN resulta em E1235 ("Pattern constraint failed"). O SDK arredonda HALF_UP automaticamente: alíquota `3.5125` vira `3.51` no XML.
-> - Modo de arredondamento: PHP `round()` `HALF_UP` (5 vai pra cima): `0.125 → 0.13`, `0.005 → 0.01`.
-> - **Caveat float-point:** valores que terminam em 5 na 3ª casa decimal podem não bater com a aritmética intuitiva. Ex: `round(0.115, 2) = 0.11` (não `0.12`), porque `0.115` em binário é `0.114999…`. Pra precisão crítica em valores fracionários, calcule em centavos (int) ou use BCMath.
+> - Modo de arredondamento: PHP `round()` `HALF_UP` (5 vai pra cima): `0.125 → 0.13`, `0.005 → 0.01`. PHP 8+ corrigiu o caveat float-point clássico (`0.115` agora retorna `0.12`, não mais `0.11` como em PHP 7).
+>
+> **Tabela validada empiricamente (PHP 8.4 + SEFIN homologação):**
+>
+> | Input `aliquotaIssqnPercentual` | `<pTotTribMun>` no DPS | `<pAliqAplic>` na resposta SEFIN | Comentário |
+> |---|---|---|---|
+> | `4.00` (2 casas) | `4.00` | `4.00` | bate exato |
+> | `3.5125` (4 casas) | `3.51` | `4.00` | input arredondado HALF_UP, mas SEFIN ignora — usa cadastro |
+> | `3.5555` (4 casas) | `3.56` | `4.00` | idem |
+> | `3.5050` | `3.51` | `4.00` | HALF_UP do 5 |
+> | `3.5099` | `3.51` | `4.00` | abaixo de 5, vira 51 mesmo (sobe na 3ª pra 5) |
+
+> **⚠ ACHADO IMPORTANTE — `pTotTribMun` é declaratório, não tributário:**
+>
+> O `pTotTribMun` enviado no DPS **não define a alíquota efetiva** do ISSQN. É a "alíquota aproximada de tributos municipais" pra atender a Lei 12.741/2012 (Lei da Transparência Fiscal — exibe na nota a carga tributária estimada).
+>
+> A alíquota real do ISSQN é determinada pelo **cadastro tributário do município no SEFIN** (vinculado ao `cTribNac` × `cClassTrib`). Vem na resposta autorizada como `<pAliqAplic>` e é usada pra calcular `<vISSQN>`.
+>
+> Validado em homologação 13/05/2026 (NFS-es #61 e #62 do cartório de Sinop): mesmo enviando `pTotTribMun=3.51` ou `3.56`, SEFIN aplicou `pAliqAplic=4.00` (alíquota oficial de Sinop pra LC 116 item 21.01) e calculou ISSQN sobre 4%.
+>
+> Implicação prática: você não precisa "acertar" a alíquota tributária no DPS — basta enviar uma estimativa razoável da carga total. Em cartório de RI fica `4.00` (alíquota local). Pra outros segmentos, consulte a alíquota cadastrada pelo município.
 
 ---
 
