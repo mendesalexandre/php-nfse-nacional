@@ -534,10 +534,14 @@ final class Valores
 > | Input `aliquotaIssqnPercentual` | `<pTotTribMun>` no DPS | `<pAliqAplic>` na resposta SEFIN | Comentário |
 > |---|---|---|---|
 > | `4.00` (2 casas) | `4.00` | `4.00` | bate exato |
-> | `3.5125` (4 casas) | `3.51` | `4.00` | input arredondado HALF_UP, mas SEFIN ignora — usa cadastro |
-> | `3.5555` (4 casas) | `3.56` | `4.00` | idem |
-> | `3.5050` | `3.51` | `4.00` | HALF_UP do 5 |
-> | `3.5099` | `3.51` | `4.00` | abaixo de 5, vira 51 mesmo (sobe na 3ª pra 5) |
+> | `3.5125` (3ª casa = 2, abaixo de 5) | `3.51` | `4.00` | input arredondado HALF_UP, SEFIN ignora — usa cadastro |
+> | `3.5555` (3ª casa = 5 exato) | `3.56` | `4.00` | 5 vai pra cima |
+> | `3.5995` (3ª casa = 9, transborda unidade) | `3.60` | `4.00` | `…995 → 3.60` |
+> | `3.5099` (3ª casa = 0, mas há 99) | `3.51` | `4.00` | sobe pela 4ª/5ª casa fazendo a 3ª passar de 5 |
+> | `0.0049` | `0.00` | n/a | abaixo de 5 na 3ª, zera |
+> | `0.005` | `0.01` | n/a | exatamente 5, vai pra 0.01 |
+> | `0.006` | `0.01` | n/a | acima de 5 |
+> | `0.115` | `0.12` | n/a | PHP 8+ resolveu — em PHP 7 dava `0.11` |
 
 > **⚠ ACHADO IMPORTANTE — `pTotTribMun` é declaratório, não tributário:**
 >
