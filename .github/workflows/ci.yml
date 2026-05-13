@@ -34,6 +34,21 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      # Remove TUDO que setup-php deixou em auth.json + global config.
+      # Causa do bug: setup-php@v2 escreve o GITHUB_TOKEN auto-injetado
+      # como github-oauth no auth.json global. O token novo é JWT-formatado
+      # (`ghs_<id>_<base64-jwt>`), Composer rejeita formato com regex
+      # antigo e PRINTA o token inteiro na mensagem de erro.
+      # Histórico de leaks: runs 25770737716, 25779676388, e o mais
+      # recente — todos deletados.
+      - name: Limpar tokens GitHub do Composer
+        run: |
+          composer config --global --unset github-oauth.github.com 2>/dev/null || true
+          composer config --global --unset http-basic.github.com 2>/dev/null || true
+          rm -f ~/.composer/auth.json ~/.config/composer/auth.json 2>/dev/null || true
+          mkdir -p ~/.config/composer
+          echo '{}' > ~/.config/composer/auth.json
+
       - name: Cache Composer
         uses: actions/cache@v4
         with:
@@ -42,13 +57,6 @@ jobs:
           restore-keys: composer-${{ matrix.php }}-
 
       - name: Install dependencies
-        # Limpa AMBAS as fontes de token pra impedir Composer de tentar
-        # autenticar contra GitHub (todas nossas deps são públicas no
-        # Packagist). Histórico:
-        #   - PHP 8.3 (1ª vez): Composer rejeitou GHS JWT e printou inteiro
-        #     em log → fix com COMPOSER_AUTH={} resolveu
-        #   - PHP 8.4 (2ª vez): voltou a vazar pq setup-php seta
-        #     COMPOSER_TOKEN via env próprio → adicionado COMPOSER_TOKEN=''
         env:
           COMPOSER_AUTH: '{}'
           COMPOSER_TOKEN: ''
@@ -73,6 +81,14 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Limpar tokens GitHub do Composer
+        run: |
+          composer config --global --unset github-oauth.github.com 2>/dev/null || true
+          composer config --global --unset http-basic.github.com 2>/dev/null || true
+          rm -f ~/.composer/auth.json ~/.config/composer/auth.json 2>/dev/null || true
+          mkdir -p ~/.config/composer
+          echo '{}' > ~/.config/composer/auth.json
+
       - name: Cache Composer
         uses: actions/cache@v4
         with:
@@ -83,6 +99,7 @@ jobs:
       - name: Install dependencies
         env:
           COMPOSER_AUTH: '{}'
+          COMPOSER_TOKEN: ''
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run PHPStan
