@@ -109,15 +109,20 @@ final class ManifestacaoService
      * `<infPedReg Id="...">` do XML de retorno daquele evento (formato
      * `PRE` + chaveAcesso(50) + tipoEvento(6) = 59 chars).
      *
+     * O `cpfAgente` é o CPF do responsável pela anulação (11 dígitos).
+     * Em PJ, use o CPF do sócio/responsável legal vinculado ao certificado.
+     *
      * `xMotivo` é obrigatório (15-200 chars).
      */
     public function anularRejeicao(
         string $chaveAcesso,
+        string $cpfAgente,
         string $idEvManifRej,
         string $xMotivo,
     ): SefinResposta {
         $evento = new EventoAnulacaoRejeicao(
             chaveAcesso: $chaveAcesso,
+            cpfAgente: $cpfAgente,
             idEvManifRej: $idEvManifRej,
             xMotivo: $xMotivo,
         );
@@ -125,6 +130,7 @@ final class ManifestacaoService
         return $this->dispararEvento($evento, [
             'operacao' => 'anularRejeicao',
             'chave' => $evento->chaveAcesso,
+            'cpf_agente' => $evento->cpfAgente,
             'id_rejeicao_original' => $idEvManifRej,
         ]);
     }

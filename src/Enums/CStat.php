@@ -66,6 +66,8 @@ enum CStat: int
     case ErroSchemaXml                 = 1235;
     /** tpEmit=2/3 (Tomador/Intermediário) — não habilitado nesta versão da aplicação. */
     case ErroEmitenteNaoHabilitado     = 9996;
+    /** Erro genérico de "falha de configuração" — geralmente evento não habilitado pra município/cenário. */
+    case ErroFalhaConfiguracao         = 999;
 
     // ─── ADN — Eventos avançados (Manifestação, Análise Fiscal, Bloqueio) ───
     case AdnPrazoLeiauteExpirado       = 1800;
@@ -129,6 +131,7 @@ enum CStat: int
             self::ErroDeducaoNaoPermitida       => 'Tipo de dedução/redução não permitida pela parametrização do município',
             self::ErroSchemaXml                 => 'Falha no esquema XML do DF-e',
             self::ErroEmitenteNaoHabilitado     => 'Emissão pelo tomador ou intermediário não permitida nesta versão da aplicação',
+            self::ErroFalhaConfiguracao         => 'Falha de configuração — geralmente o evento não está habilitado pro município ou parametrização da operação',
             self::AdnPrazoLeiauteExpirado       => 'Prazo de aceitação da versão do leiaute da NFS-e expirou',
             self::AdnIdDuplicadoNoAdn           => 'Já existe um DF-e identificado com este id no ADN',
             self::AdnIdDifereDosCampos,

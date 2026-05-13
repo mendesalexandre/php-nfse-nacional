@@ -329,10 +329,15 @@ $nfse->manifestacao()->rejeitar(
 
 $nfse->manifestacao()->anularRejeicao(
     string $chaveAcesso,
-    string $idEvManifRej,    // Id da Rejeição original (PRE + chave + tipoEvento = 59 chars)
+    string $cpfAgente,        // CPF do responsável pela anulação (11 dígitos)
+    string $idEvManifRej,     // Id da Rejeição original — aceita "PRE+56dig" OU 59 dígitos puros
     string $xMotivo,          // 15-200 chars, obrigatório
 ): SefinResposta
 ```
+
+> **Sobre o `idEvManifRej`:** o leiaute exige formato `TSIdNumEvento` (59 dígitos puros = chave50 + tipoEvento6 + nSeqEvento3). Mas o SDK aceita também o formato `PRE+56dig` (que é o `Id` do `<infPedReg>` da Rejeição original) e converte automaticamente. Use o que for mais conveniente.
+
+> **Sobre o `cpfAgente`:** apesar do nome do campo no leiaute ser `CPFAgTrib` (sugerindo "agente tributário"), na prática é o CPF do **responsável** pela anulação. Em PJ, use o CPF do sócio/responsável legal vinculado ao certificado.
 
 Códigos de evento gerados:
 
@@ -345,6 +350,11 @@ Códigos de evento gerados:
 > **Restrição (E1833):** cada autor (Prestador/Tomador/Intermediário) pode emitir UMA Confirmação OU UMA Rejeição — não ambos. Tentar uma segunda manifestação resulta em erro do ADN.
 
 > **Restrição (E1835):** uma Rejeição só pode ser anulada UMA vez. Após anular, não dá pra rejeitar de novo.
+
+> **Validado em homologação SEFIN (13/05/2026, cartório de Sinop):**
+> - ✅ **Confirmação do Prestador** (e202201) — cStat=100, NFS-e #72
+> - ✅ **Rejeição do Prestador** (e202205, motivo Duplicidade) — cStat=100, NFS-e #73
+> - ⚠️ **Anulação da Rejeição** (e205208) — cStat=999 ("Falha de configuração"). Provavelmente a parametrização do município de Sinop ainda não habilita esse evento em homologação. Outros municípios podem ter habilitado — teste no seu.
 
 ```php
 use PhpNfseNacional\DTO\MotivoRejeicao;
@@ -425,10 +435,31 @@ file_put_contents("/var/nfse/{$chave}.pdf", $pdf);
 ### DANFSe local
 
 ```php
-$nfse->danfse()->gerarDoXml(string $xmlNfse): string                  // bytes do PDF
-$nfse->danfse()->gerarDeDados(DanfseDados $dados): string             // bytes do PDF
+$nfse->danfse()->gerarDoXml(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
+$nfse->danfse()->gerarDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
 $nfse->danfse()->parser(): DanfseXmlParser
 ```
+
+#### Customização opcional
+
+```php
+use PhpNfseNacional\Danfse\DanfseCustomizacao;
+
+$custom = new DanfseCustomizacao(
+    logoPrestadorPath:    '/var/cartorio/logo.png',  // opcional, PNG/JPG
+    observacoesAdicionais: 'Esta NFS-e refere-se a serviço cartorial. ' .
+                           'Para autenticidade consulte https://...',  // opcional, max 2000 chars
+);
+
+$pdf = $nfse->danfse()->gerarDoXml($xmlAutorizado, $custom);
+```
+
+| Customização | Onde aparece no DANFSe | Limite |
+|---|---|---|
+| `logoPrestadorPath` | Canto superior direito do bloco PRESTADOR (4cm × 1.26cm) | qualquer formato suportado pelo TCPDF (PNG/JPG/GIF) |
+| `observacoesAdicionais` | Concatenado ao bloco INFORMAÇÕES COMPLEMENTARES (após o `<xOutInf>` do XML) | 2000 chars |
+
+> **Logo institucional NFSe NÃO pode ser substituído** — é obrigatório no cabeçalho conforme item 2.2.4 da NT 008/2026. O logo do prestador é renderizado em espaço dedicado dentro do bloco PRESTADOR.
 
 Gera o DANFSe (PDF) localmente seguindo o leiaute **NT 008/2026** — todos os 13 blocos do Anexo I. **Não exige certificado.** Substitui o download oficial após 01/07/2026 quando o ADN desativa.
 

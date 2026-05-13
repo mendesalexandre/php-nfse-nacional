@@ -5,6 +5,49 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-05-13
+
+### Adicionado
+- **`DanfseCustomizacao` DTO** — customizações opcionais do DANFSe local:
+  - `logoPrestadorPath` — caminho pra logo do prestador (PNG/JPG).
+    Renderizado no canto superior direito do bloco PRESTADOR (4cm × 1.26cm).
+    NÃO substitui o logo institucional NFSe do cabeçalho (regra NT 008/2026).
+  - `observacoesAdicionais` — texto livre concatenado às informações
+    complementares vindas do XML (`<xOutInf>`). Max 2000 chars.
+- `DanfseService::gerarDoXml($xml, ?$custom)` e
+  `DanfseService::gerarDeDados($dados, ?$custom)` aceitam o segundo
+  parâmetro opcional.
+- `enum CStat`: novo case `ErroFalhaConfiguracao = 999` — erro genérico
+  do SEFIN/ADN ("Falha de configuração", geralmente evento não
+  habilitado pra município/cenário).
+
+### Validado em homologação SEFIN (cartório de Sinop)
+- ✅ Confirmação do Prestador (e202201) — NFS-e #72, cStat=100
+- ✅ Rejeição do Prestador (e202205, motivo Duplicidade) — NFS-e #73, cStat=100
+- ⚠️ Anulação da Rejeição (e205208) — cStat=999 ("Falha de configuração").
+  Provavelmente parametrização do município de Sinop ainda não habilita
+  esse evento em homologação. Outros municípios podem ter habilitado.
+
+### Corrigido (descoberto durante teste de manifestação)
+- **xDesc das manifestações exige prefixo "Manifestação de NFS-e - "** —
+  o leiaute SefinNacional 1.6 restringe `TS_xDesc` a uma enumeração
+  fechada. Antes: `'Confirmação do Prestador'` (inválido). Agora:
+  `'Manifestação de NFS-e - Confirmação do Prestador'` (válido).
+  Aplicado em `EventoConfirmacao`, `EventoRejeicao`,
+  `EventoAnulacaoRejeicao`.
+- **`EventoAnulacaoRejeicao` ganha campo `cpfAgente` obrigatório** —
+  schema XSD do `<infAnRej>` exige a ordem `CPFAgTrib → idEvManifRej →
+  xMotivo`. Sem o CPF, schema falha com E1235.
+- **`EventoAnulacaoRejeicao::idEvManifRej` agora aceita 2 formatos** —
+  o leiaute usa `TSIdNumEvento` (59 dígitos puros: chave50 +
+  tipoEvento6 + nSeq3), mas o `Id` da Rejeição original vem como
+  `PRE` + 56 dígitos. SDK aceita ambos e converte internamente
+  pro formato esperado.
+
+### Suite
+- 137 testes verdes (+5: 4 do `DanfseCustomizacaoTest` + 1 case novo no enum).
+- PHPStan level 8 limpo.
+
 ## [0.4.0] — 2026-05-13
 
 ### Adicionado

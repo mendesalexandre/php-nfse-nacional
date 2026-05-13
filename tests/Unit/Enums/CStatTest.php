@@ -102,9 +102,9 @@ final class CStatTest extends TestCase
     public function test_tryFrom_retorna_null_pra_codigo_desconhecido(): void
     {
         // Códigos desconhecidos do SDK retornam null — não enumerados
-        self::assertNull(CStat::tryFrom(999));
         self::assertNull(CStat::tryFrom(0));
         self::assertNull(CStat::tryFrom(7777));
+        self::assertNull(CStat::tryFrom(31415));
     }
 
     public function test_tryFrom_retorna_enum_pra_codigo_conhecido(): void

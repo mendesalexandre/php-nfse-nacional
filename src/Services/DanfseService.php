@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Services;
 
+use PhpNfseNacional\Danfse\DanfseCustomizacao;
 use PhpNfseNacional\Danfse\DanfseDados;
 use PhpNfseNacional\Danfse\DanfseGenerator;
 use PhpNfseNacional\Danfse\DanfseXmlParser;
@@ -37,19 +38,19 @@ final class DanfseService
      *
      * @return string Bytes do PDF
      */
-    public function gerarDoXml(string $xmlNfse): string
+    public function gerarDoXml(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
     {
         $dados = $this->parser->parse($xmlNfse);
-        return $this->generator->gerar($dados);
+        return $this->generator->gerar($dados, $custom);
     }
 
     /**
      * Variante low-level — gera o PDF a partir de DTOs já parseados.
      * Permite ao usuário do SDK customizar dados antes da renderização.
      */
-    public function gerarDeDados(DanfseDados $dados): string
+    public function gerarDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
     {
-        return $this->generator->gerar($dados);
+        return $this->generator->gerar($dados, $custom);
     }
 
     /**

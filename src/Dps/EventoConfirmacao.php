@@ -65,7 +65,10 @@ final class EventoConfirmacao implements EventoNfse
 
     public function descricao(): string
     {
-        return 'Confirmação do ' . $this->autor->label();
+        // xDesc é enumeração restrita do leiaute (TS_xDesc) — texto exato
+        // exigido pelo SEFIN. Outros valores resultam em E1235 ("Enumeration
+        // constraint failed").
+        return 'Manifestação de NFS-e - Confirmação do ' . $this->autor->label();
     }
 
     /**
