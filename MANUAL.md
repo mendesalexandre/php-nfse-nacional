@@ -157,6 +157,7 @@ final class Config
         public readonly int $maxTentativas = 3,           // 1..10
         public readonly string $versaoAplicacao = 'php-nfse-1.0',  // max 20 chars
         public readonly bool $debugLogPayload = false,    // log XML do DPS no debug
+        public readonly bool $incluirIbsCbs = false,      // Reforma Tributária — opt-in
     );
 
     public function ehProducao(): bool;
@@ -164,6 +165,8 @@ final class Config
 ```
 
 Imutável. Habilite `debugLogPayload: true` quando estiver investigando rejeição da SEFIN — o `SefinClient` vai logar o XML completo via PSR-3 no nível `debug`.
+
+> **`incluirIbsCbs` (Reforma Tributária):** default `false`. Quando `true`, inclui o bloco `<IBSCBS>` no DPS de envio. Validado em homologação que SEFIN aceita DPS com OU sem o bloco — quando ausente, o IBSCBS também não aparece na resposta autorizada (opt-in pelo emissor). A Reforma está em rampa de subida (alíquotas simbólicas em 2026: IBS UF 0.10%, IBS Mun 0%, CBS 0.90%); deixe `false` enquanto não for obrigatório. Independente desse toggle, o DANFSe local SEMPRE renderiza IBS/CBS se vier no XML autorizado.
 
 ### `NFSe::create()`
 

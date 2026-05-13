@@ -81,7 +81,9 @@ final class DpsBuilder
         $this->appendTomador($infDPS, $tomador);
         $this->appendServico($infDPS, $servico);
         $this->appendValores($infDPS, $valores);
-        $this->appendIBSCBS($infDPS, $servico, $valores);
+        if ($this->config->incluirIbsCbs) {
+            $this->appendIBSCBS($infDPS, $servico, $valores);
+        }
 
         $xml = $dom->saveXML();
         if ($xml === false) {
@@ -138,7 +140,18 @@ final class DpsBuilder
         $infDPS->appendChild($this->el($doc, 'verAplic', $this->config->versaoAplicacao));
         $infDPS->appendChild($this->el($doc, 'serie', $id->serie));
         $infDPS->appendChild($this->el($doc, 'nDPS', (string) $id->numeroDps));
-        $infDPS->appendChild($this->el($doc, 'dCompet', $id->dataCompetenciaResolvida()->format('Y-m-d')));
+        // dCompet formatado na mesma timezone do dhEmi (-03:00). SEFIN compara
+        // as duas e rejeita E0015 quando dCompet > dhEmi.date — em horário de
+        // virada (00:00..03:00 UTC), formatar dCompet com timezone default
+        // (UTC ou outro) pode jogar a data pro dia seguinte enquanto o dhEmi
+        // (já em SP) ainda está no dia anterior.
+        $infDPS->appendChild($this->el(
+            $doc,
+            'dCompet',
+            $id->dataCompetenciaResolvida()
+                ->setTimezone(new \DateTimeZone(Config::TIMEZONE_DPS))
+                ->format('Y-m-d'),
+        ));
         $infDPS->appendChild($this->el($doc, 'tpEmit', (string) $id->tipoEmissao->value));
         $infDPS->appendChild($this->el($doc, 'cLocEmi', $this->config->prestador->endereco->codigoMunicipioIbge));
     }

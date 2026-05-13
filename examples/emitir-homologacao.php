@@ -99,6 +99,7 @@ $config = new Config(
     prestador: $prestador,
     ambiente: Ambiente::Homologacao,
     debugLogPayload: true,
+    incluirIbsCbs: (bool) (getenv('INCLUIR_IBSCBS') ?: false),
 );
 
 $nfse = NFSe::create($config, $cert);

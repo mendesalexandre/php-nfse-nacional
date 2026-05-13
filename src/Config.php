@@ -49,6 +49,18 @@ final class Config
         public readonly int $maxTentativas = 3,
         public readonly string $versaoAplicacao = 'php-nfse-1.0',
         public readonly bool $debugLogPayload = false,
+        /**
+         * Se true, inclui o bloco <IBSCBS> no DPS de envio (Reforma Tributária).
+         *
+         * Default false: a SEFIN aceita DPS sem IBSCBS hoje (a Reforma está em
+         * rampa de subida, alíquotas simbólicas em 2026). Quando virar
+         * obrigatório (provável a partir de 2027/2028), basta passar true.
+         *
+         * Independente desse toggle, o DANFSe local SEMPRE renderiza IBS/CBS
+         * se vier no XML autorizado pelo SEFIN — quem renderiza é o ADN/SEFIN,
+         * não o emissor.
+         */
+        public readonly bool $incluirIbsCbs = false,
     ) {
         $errors = [];
         if ($timeoutSegundos < 5 || $timeoutSegundos > 300) {

@@ -173,9 +173,66 @@ final class DpsBuilderTest extends TestCase
         );
     }
 
-    public function test_inclui_grupo_IBSCBS_obrigatorio(): void
+    public function test_dCompet_usa_timezone_do_dhEmi_evita_E0015(): void
     {
+        // Regressão: PHP em UTC + horário noturno causava dCompet > dhEmi.date.
+        // Servidor em UTC à 01:00 (= 22:00 SP do dia anterior). Sem fix, dCompet
+        // formatava no tz default (UTC, dia seguinte) enquanto dhEmi recuado
+        // ficava em SP no dia anterior — SEFIN rejeitava com E0015.
+        $tzOriginal = date_default_timezone_get();
+        date_default_timezone_set('UTC');
+        try {
+            // Hora UTC pós-meia-noite mas antes das 03:00 (SP ainda no dia anterior)
+            $dataCompetUtc = new \DateTimeImmutable('2026-05-13 01:00:00', new \DateTimeZone('UTC'));
+
+            $builder = new DpsBuilder($this->configPadrao());
+            $xml = $builder->build(
+                new Identificacao(numeroDps: 1, dataCompetencia: $dataCompetUtc),
+                $this->tomadorPf(),
+                $this->servico(),
+                new Valores(100.00, 20.00, 4.00),
+            );
+            $dom = new DOMDocument();
+            $dom->loadXML($xml);
+            $xpath = new DOMXPath($dom);
+            $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+            $dCompet = $xpath->query('//n:dCompet')->item(0)?->nodeValue ?? '';
+
+            // Em SP, 2026-05-13 01:00 UTC = 2026-05-12 22:00 -03:00 → "2026-05-12"
+            self::assertSame('2026-05-12', $dCompet);
+        } finally {
+            date_default_timezone_set($tzOriginal);
+        }
+    }
+
+    public function test_omite_IBSCBS_por_padrao(): void
+    {
+        // Default: incluirIbsCbs=false. SEFIN aceita DPS sem o bloco.
         $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertStringNotContainsString('<IBSCBS>', $xml);
+    }
+
+    public function test_inclui_IBSCBS_quando_toggle_ligado(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
+            endereco: $endereco,
+        );
+        $config = new Config(
+            prestador: $prestador,
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $builder = new DpsBuilder($config);
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
