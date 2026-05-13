@@ -5,6 +5,50 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-13
+
+### Adicionado
+- **Manifestação de NFS-e** — eventos pelo Prestador, Tomador ou
+  Intermediário pra confirmar ou rejeitar uma NFS-e emitida. Novo
+  service exposto via `$nfse->manifestacao()`:
+  - `confirmar(chave, AutorManifestacao)` — gera evento e202201/203202/204203
+  - `rejeitar(chave, AutorManifestacao, MotivoRejeicao, ?xMotivo)` — gera
+    e202205/203206/204207. xMotivo obrigatório quando motivo=Outros.
+  - `anularRejeicao(chave, idRejeicaoOriginal, xMotivo)` — gera e205208,
+    desfaz uma Rejeição anterior referenciando o Id dela.
+- **3 DTOs de evento novos:** `EventoConfirmacao`, `EventoRejeicao`,
+  `EventoAnulacaoRejeicao` (`src/Dps/`).
+- **Enum `AutorManifestacao`** com helpers `codigoConfirmacao()` e
+  `codigoRejeicao()` que devolvem o código do evento conforme o autor.
+- **Enum `MotivoRejeicao`** com 6 cases (Duplicidade, JaEmitidaPeloTomador,
+  SemFatoGerador, ErroResponsabilidade, ErroValorOuData, Outros) +
+  `label()` e `exigeXMotivo()`.
+
+### Corrigido (breaking)
+- **Código do evento de Substituição corrigido** — era `101102`, deveria
+  ser **`105102`** conforme o leiaute oficial SefinNacional 1.6
+  (Anexo I/Manual de Integração página 56). Bug nunca foi pego porque
+  ninguém testou substituição em homologação real (só cancelamento).
+  Atualizado:
+  - `EventoSubstituicao::codigoTipoEvento()` → `'105102'`
+  - Docblocks em `EventoSubstituicao`, `SubstituicaoService`, `EventoNfse`,
+    `CStat::CanceladaPorSubstituicao`
+  - `MANUAL.md`
+  - Teste `EventoSubstituicaoTest`
+
+### Documentado
+- `EventoNfse` (interface) lista todos os 16 códigos de evento conhecidos
+  do leiaute (cancelamento, substituição, análise fiscal, manifestação,
+  ofício, etc.) com descrição. Útil pra quem quiser implementar evento
+  customizado fora do SDK.
+- `MANUAL.md` ganha seção "Manifestação de NFS-e" com tabela de códigos
+  por autor, restrições do leiaute (E1833, E1835) e exemplos de uso.
+
+### Suite
+- 131 testes verdes (+12 novos: 4 EventoConfirmacao, 5 EventoRejeicao,
+  3 EventoAnulacaoRejeicao).
+- PHPStan level 8 limpo.
+
 ## [0.3.8] — 2026-05-13
 
 ### Adicionado

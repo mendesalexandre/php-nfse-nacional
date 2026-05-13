@@ -11,10 +11,16 @@ namespace PhpNfseNacional\Dps;
  * Cada tipo de evento implementa essa interface com seus campos específicos.
  * O `EventoBuilder` monta o XML genericamente, sem hardcode de nenhum tipo.
  *
- * Códigos de evento conforme leiaute SefinNacional 1.6:
+ * Códigos de evento conforme leiaute SefinNacional 1.6 (TS_CodEvento):
  *   - 101101 → Cancelamento de NFS-e
- *   - 101102 → Cancelamento por substituição
- *   - 101103 → (reservado/futuro)
+ *   - 105102 → Cancelamento por substituição
+ *   - 101103 → Solicitação de Análise Fiscal pra Cancelamento
+ *   - 105104 / 105105 → Cancelamento Deferido / Indeferido por Análise Fiscal
+ *   - 202201 / 203202 / 204203 → Confirmação (Prestador/Tomador/Intermediário)
+ *   - 205204 → Confirmação Tácita (gerado automaticamente pelo sistema)
+ *   - 202205 / 203206 / 204207 → Rejeição (Prestador/Tomador/Intermediário)
+ *   - 205208 → Anulação da Rejeição
+ *   - 305101 / 305102 / 305103 → Cancelamento / Bloqueio / Desbloqueio por Ofício
  *
  * Pra adicionar um evento novo, basta implementar essa interface e usar o
  * mesmo EventoBuilder. Sem mudança no SDK.
