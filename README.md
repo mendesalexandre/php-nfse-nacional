@@ -225,7 +225,6 @@ src/
 - [x] Examples completos do ciclo de vida (emitir, cancelar, substituir,
       consultar, download, danfse-local)
 - [ ] Cobertura ampliada (Certificate, Signer)
-- [ ] Múltiplos serviços por NFS-e
 - [ ] DANFSe customizável (logo do prestador, observações livres)
 - [ ] API CNC/ADN (`POST /DFe/`, `GET /DFe/{NSU}`) — pra municípios c/ sistema próprio
 
