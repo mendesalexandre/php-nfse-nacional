@@ -5,6 +5,23 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-05-13
+
+### Adicionado
+- **Cobertura de testes ampliada** — 152 testes verdes (era 137):
+  - **`ManifestacaoServiceTest`** (7 testes) — Confirmação, Rejeição,
+    Anulação Rejeição (PRE+56dig E 59 dígitos puros), idempotência (E0840),
+    rejeição (cStat ≠ aceito), validação pré-HTTP de motivo=Outros sem
+    xMotivo. Usa Guzzle MockHandler — não depende de SEFIN real.
+  - **`DanfseCustomizacaoTest`** ganha `test_pdf_com_logo_prestador_renderiza_sem_quebrar`
+    (gera PNG inline via GD pra cobrir o caminho do logo) +
+    `test_temLogoPrestador_e_temObservacoesAdicionais_helpers`.
+  - **`CertificateTest`** novo (6 testes) — gera PFX self-signed em runtime
+    (openssl_pkey_new + openssl_csr_sign + openssl_pkcs12_export). Cobre
+    `fromPfxContent`, `fromPfxFile`, senha errada, arquivo inexistente,
+    extração de CNPJ do subjectCN, construtor direto com PEMs.
+- Cobertura agora atinge ~todas as superfícies públicas do SDK.
+
 ## [0.4.1] — 2026-05-13
 
 ### Adicionado

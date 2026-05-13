@@ -69,4 +69,46 @@ final class DanfseCustomizacaoTest extends TestCase
         $pdf = $service->gerarDoXml($this->xmlAutorizado());
         self::assertStringStartsWith('%PDF-', $pdf);
     }
+
+    public function test_pdf_com_logo_prestador_renderiza_sem_quebrar(): void
+    {
+        // Gera PNG mínimo válido em runtime (não polui o repo com fixture binário)
+        if (!extension_loaded('gd')) {
+            self::markTestSkipped('extensão gd não disponível');
+        }
+
+        $tmpLogo = tempnam(sys_get_temp_dir(), 'logo_') . '.png';
+        $img = imagecreatetruecolor(200, 100);
+        self::assertNotFalse($img);
+        $bg = imagecolorallocate($img, 50, 100, 200);
+        self::assertNotFalse($bg);
+        imagefilledrectangle($img, 0, 0, 200, 100, $bg);
+        imagepng($img, $tmpLogo);
+        imagedestroy($img);
+
+        try {
+            $custom = new DanfseCustomizacao(logoPrestadorPath: $tmpLogo);
+            self::assertTrue($custom->temLogoPrestador());
+
+            $pdf = (new DanfseService())->gerarDoXml($this->xmlAutorizado(), $custom);
+            self::assertStringStartsWith('%PDF-', $pdf);
+            // PDF com imagem fica maior que sem (mesmo logo pequeno PNG ~200B)
+            self::assertGreaterThan(80_000, strlen($pdf));
+        } finally {
+            @unlink($tmpLogo);
+        }
+    }
+
+    public function test_temLogoPrestador_e_temObservacoesAdicionais_helpers(): void
+    {
+        $vazio = new DanfseCustomizacao();
+        self::assertFalse($vazio->temLogoPrestador());
+        self::assertFalse($vazio->temObservacoesAdicionais());
+
+        $obs = new DanfseCustomizacao(observacoesAdicionais: '   ');  // só whitespace
+        self::assertFalse($obs->temObservacoesAdicionais(), 'whitespace puro não conta');
+
+        $obs2 = new DanfseCustomizacao(observacoesAdicionais: 'tem texto');
+        self::assertTrue($obs2->temObservacoesAdicionais());
+    }
 }
