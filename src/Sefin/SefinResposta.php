@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Sefin;
 
+use PhpNfseNacional\Enums\CStat;
+
 /**
  * Resposta normalizada do Portal Nacional após envio do DPS.
  *
@@ -32,7 +34,7 @@ final class SefinResposta
 
     public function emitida(): bool
     {
-        return $this->cStat === 100 && $this->chaveAcesso !== null;
+        return $this->cStat === CStat::Emitida->value && $this->chaveAcesso !== null;
     }
 
     /**
@@ -41,11 +43,35 @@ final class SefinResposta
      */
     public function cancelada(): bool
     {
-        return in_array($this->cStat, [101, 102, 135, 155], true);
+        return in_array($this->cStat, CStat::estadosCancelada(), true);
     }
 
     public function erro(): bool
     {
         return !$this->emitida() && !$this->cancelada();
+    }
+
+    /**
+     * Operação foi tratada como idempotente — o evento já estava vinculado
+     * à NFS-e antes desta tentativa. Útil pra distinguir "cancelei agora"
+     * de "já estava cancelada antes" na resposta de
+     * `CancelamentoService::cancelar` ou `SubstituicaoService::substituir`.
+     */
+    public function eventoIdempotente(): bool
+    {
+        return $this->cStat === CStat::EventoVinculado->value;
+    }
+
+    /**
+     * Devolve o cStat tipado quando o código é conhecido pelo SDK; null
+     * quando é um cStat fora da lista enumerada (qualquer erro novo do
+     * SEFIN/ADN). Use pra log/análise:
+     *
+     *   $stat = $resp->cStatTipado();
+     *   if ($stat?->ehErroSchema()) { ... }
+     */
+    public function cStatTipado(): ?CStat
+    {
+        return $this->cStat !== null ? CStat::tryFrom($this->cStat) : null;
     }
 }

@@ -5,6 +5,41 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.8] — 2026-05-13
+
+### Adicionado
+- **`enum CStat: int`** — códigos de status do SEFIN/ADN tipados.
+  53 cases cobrindo:
+  - **6 sucessos:** `Emitida` (100), `Cancelada` (101),
+    `CanceladaPorSubstituicao` (102), `EventoRegistrado` (135),
+    `CancelamentoHomologado` (155), `EventoVinculado` (840 idempotente).
+  - **7 erros comuns SEFIN:** `ErroDhEmiPosteriorAoProc` (8),
+    `ErroCompetPosteriorAoEmi` (15), `ErroConvenioInativo` (38),
+    `ErroRegEspTribComDeducao` (438), `ErroDeducaoNaoPermitida` (440),
+    `ErroSchemaXml` (1235), `ErroEmitenteNaoHabilitado` (9996).
+  - **40 erros ADN** (1800-2032 — manifestação, análise fiscal,
+    bloqueio, compartilhamento) extraídos do Anexo IV oficial do
+    leiaute SefinNacional 1.6 (CSV produção).
+  - Helpers: `descricao()` retorna mensagem humana; `ehSucesso()`,
+    `ehErroSefin()`, `ehErroAdn()`, `ehErroSchema()` pra classificação.
+  - Constants estáticos: `aceitosEvento()` ([100, 135, 155, 840]),
+    `estadosCancelada()` ([101, 102, 135, 155]).
+- **`SefinResposta::eventoIdempotente()`** — true quando cStat=840
+  (evento já estava vinculado à NFS-e antes desta tentativa).
+  Substitui comparação direta `$resp->cStat === 840` em código cliente.
+- **`SefinResposta::cStatTipado()`** — devolve `?CStat`. Use pra
+  comparação tipada: `if ($resp->cStatTipado()?->ehErroSchema()) {…}`.
+
+### Modificado
+- `CancelamentoService` e `SubstituicaoService` agora usam
+  `CStat::aceitosEvento()` em vez de array hardcoded `[100, 135, 155, 840]`.
+- Logs `'ja_existia' => $cStat === 840` viraram `=== CStat::EventoVinculado->value`.
+- Examples `cancelar.php` e `substituir.php` usam `$resp->eventoIdempotente()`.
+
+### Suite
+- 119 testes verdes (+9 novos: 8 do `CStatTest` + 1 ajustado).
+- PHPStan level 8 limpo.
+
 ## [0.3.7] — 2026-05-13
 
 ### Adicionado
