@@ -224,9 +224,10 @@ src/
 - [x] Substituição de NFS-e (evento 101102)
 - [x] Examples completos do ciclo de vida (emitir, cancelar, substituir,
       consultar, download, danfse-local)
-- [ ] Cobertura ampliada (DanfseGenerator, Certificate, Signer)
-- [ ] Lote síncrono de DPS
+- [ ] Cobertura ampliada (Certificate, Signer)
 - [ ] Múltiplos serviços por NFS-e
+- [ ] DANFSe customizável (logo do prestador, observações livres)
+- [ ] API CNC/ADN (`POST /DFe/`, `GET /DFe/{NSU}`) — pra municípios c/ sistema próprio
 
 ## Licença
 
