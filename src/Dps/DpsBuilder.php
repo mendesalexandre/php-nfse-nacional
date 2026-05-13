@@ -188,7 +188,12 @@ final class DpsBuilder
 
         $prestador = $this->config->prestador;
         $prest->appendChild($this->el($doc, 'CNPJ', $prestador->cnpj));
-        $prest->appendChild($this->el($doc, 'IM', $prestador->inscricaoMunicipal));
+        // <IM> é opcional. Omitido quando null/vazio — caso de uso típico:
+        // MEI em município que não tem dados complementares no CNC NFS-e
+        // (SEFIN rejeita com cStat 120 quando IM é enviada nesse cenário).
+        if ($prestador->inscricaoMunicipal !== null && $prestador->inscricaoMunicipal !== '') {
+            $prest->appendChild($this->el($doc, 'IM', $prestador->inscricaoMunicipal));
+        }
 
         $regTrib = $this->el($doc, 'regTrib');
         $regTrib->appendChild($this->el($doc, 'opSimpNac',

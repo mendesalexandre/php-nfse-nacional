@@ -14,14 +14,20 @@ use PhpNfseNacional\Support\Documento;
  *
  * Normalmente é singleton dentro do app — instanciado uma vez a partir
  * da configuração persistente e reutilizado em cada emissão.
+ *
+ * `inscricaoMunicipal` é opcional. Quando null/vazia, o `<IM>` do
+ * prestador é omitido do DPS. Caso de uso típico: MEI emitindo em
+ * município que não tem informações complementares do prestador
+ * cadastradas no CNC NFS-e (cStat 120 — "IM não deve ser informada").
  */
 final class Prestador
 {
     public readonly string $cnpj;
+    public readonly ?string $inscricaoMunicipal;
 
     public function __construct(
         string $cnpj,
-        public readonly string $inscricaoMunicipal,
+        ?string $inscricaoMunicipal,
         public readonly string $razaoSocial,
         public readonly Endereco $endereco,
         public readonly RegimeEspecialTributacao $regimeEspecial = RegimeEspecialTributacao::Nenhum,
@@ -31,13 +37,12 @@ final class Prestador
         public readonly ?string $telefone = null,
     ) {
         $this->cnpj = Documento::limpar($cnpj);
+        $imNormalizada = $inscricaoMunicipal !== null ? trim($inscricaoMunicipal) : null;
+        $this->inscricaoMunicipal = $imNormalizada === '' ? null : $imNormalizada;
 
         $errors = [];
         if (!Documento::ehCnpj($this->cnpj)) {
             $errors[] = "CNPJ do prestador inválido: {$cnpj}";
-        }
-        if (trim($inscricaoMunicipal) === '') {
-            $errors[] = 'Inscrição municipal vazia';
         }
         if (trim($razaoSocial) === '') {
             $errors[] = 'Razão social vazia';
