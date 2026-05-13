@@ -42,13 +42,16 @@ jobs:
           restore-keys: composer-${{ matrix.php }}-
 
       - name: Install dependencies
-        # Limpa COMPOSER_AUTH pra impedir Composer de tentar autenticar
-        # contra GitHub (todas nossas deps são públicas no Packagist).
-        # Em PHP 8.3 a versão de Composer instalada rejeitava o
-        # JWT-formatted GHS token e printava ele inteiro na mensagem
-        # de erro — mesmo set vazio aqui evita o caminho problemático.
+        # Limpa AMBAS as fontes de token pra impedir Composer de tentar
+        # autenticar contra GitHub (todas nossas deps são públicas no
+        # Packagist). Histórico:
+        #   - PHP 8.3 (1ª vez): Composer rejeitou GHS JWT e printou inteiro
+        #     em log → fix com COMPOSER_AUTH={} resolveu
+        #   - PHP 8.4 (2ª vez): voltou a vazar pq setup-php seta
+        #     COMPOSER_TOKEN via env próprio → adicionado COMPOSER_TOKEN=''
         env:
           COMPOSER_AUTH: '{}'
+          COMPOSER_TOKEN: ''
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run PHPUnit
