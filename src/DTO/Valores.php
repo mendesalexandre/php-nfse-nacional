@@ -18,6 +18,30 @@ use PhpNfseNacional\Exceptions\ValidationException;
  * menos deduções), o ISSQN PRECISA estar incluído em deducoesReducoes.
  * Equivalente: vDR = vServ − BC. Não é intuitivo mas é a regra do
  * leiaute SEFIN Nacional 1.6.
+ *
+ * Precisão:
+ *   - **Valores monetários** (vServ, vDR, vBC, vISSQN, vLiq) — 2 casas
+ *     decimais. Convenção do leiaute, igual NF-e.
+ *   - **Alíquotas** (`pTotTribMun`) — **2 casas decimais fixas no DPS**.
+ *     O leiaute SefinNacional 1.6 restringe ao tipo `TSDec3V2`. Diferente
+ *     da NF-e (NT 03.14, que ampliou pra 4 casas) — confirmado em
+ *     homologação SEFIN: enviar `4.0000` causa E1235. O SDK arredonda
+ *     automaticamente via `number_format(..., 2)` ao montar o DPS.
+ *   - Pra alíquotas reduzidas (ex: 3.5125%), o SDK arredonda HALF_UP
+ *     pra 2 casas (→ 3.51). Se precisar preservar a alíquota fracionada
+ *     no leiaute futuro (NT que ampliar pra 4 casas), basta mudar a
+ *     formatação no `DpsBuilder::appendValores`.
+ *
+ * Arredondamento:
+ *   - Padrão: PHP `round()` modo `HALF_UP` (5 arredonda pra cima):
+ *     - 0.125 → 0.13   |   0.124 → 0.12   |   0.005 → 0.01
+ *   - **Caveat float-point:** valores que terminam em 5 na 3ª casa
+ *     decimal podem não bater com a aritmética intuitiva por causa da
+ *     representação binária. Ex: `round(0.115, 2)` retorna `0.11` (não
+ *     `0.12`), porque `0.115` é armazenado como `0.114999…`. Pega gente
+ *     em valores como ISSQN apurado `0.115`, `0.225`, `0.335`. Pra
+ *     precisão crítica, calcule em centavos (int) e divida por 100, ou
+ *     use BCMath/strings.
  */
 final class Valores
 {

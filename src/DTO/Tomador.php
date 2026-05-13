@@ -23,6 +23,17 @@ final class Tomador
         public readonly Endereco $endereco,
         public readonly ?string $email = null,
         public readonly ?string $telefone = null,
+        /**
+         * Inscrição Municipal do tomador (opcional).
+         *
+         * Aceita pelo leiaute SefinNacional 1.6 no nó <toma><IM>. Útil
+         * principalmente quando o tomador é PJ no mesmo município do
+         * prestador (ex: tomador advocacia/consultoria) — permite cruzamento
+         * de dados pela prefeitura e tratamento de imunidade tributária por
+         * IM. Em cartório de RI, tomador é majoritariamente PF, então fica
+         * normalmente null.
+         */
+        public readonly ?string $inscricaoMunicipal = null,
     ) {
         $this->documento = Documento::limpar($documento);
 
