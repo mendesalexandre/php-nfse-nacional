@@ -9,10 +9,16 @@ SDK PHP framework-agnostic para integração com NFS-e Nacional (Padrão
 Brasileiro SEFIN). Funciona em Laravel, Symfony, projeto vanilla — qualquer
 coisa com PHP 8.1+ e suporte a PSR-3/PSR-18.
 
+📖 **Documentação:**
+- Este README — quickstart, instalação, exemplos rápidos
+- **[MANUAL.md](MANUAL.md)** — referência completa da API (cada método: assinatura, parâmetros, retorno, exceções)
+- [CHANGELOG.md](CHANGELOG.md) — histórico de versões
+- [`examples/`](examples/) — scripts ponta-a-ponta (emitir, cancelar, substituir, consultar, download, danfse-local)
+
 ## Status
 
-Ciclo de vida da NFS-e completo: **emissão, consulta, cancelamento, download
-e DANFSe NT 008/2026**. PHPStan level 8 limpo, 62 testes verdes, validado
+Ciclo de vida da NFS-e completo: **emissão, consulta, cancelamento, substituição,
+download e DANFSe NT 008/2026**. PHPStan level 8 limpo, 102 testes verdes, validado
 ponta-a-ponta em homologação SEFIN (NFS-e #57, chave
 `51079092200179028000138000000000005726057774456203`). Pré-1.0 — API pode
 sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
