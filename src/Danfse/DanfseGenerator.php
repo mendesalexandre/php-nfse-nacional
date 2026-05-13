@@ -43,6 +43,9 @@ final class DanfseGenerator
     /** Cursor Y atual em cm — usado pelos blocos pra empilharem sequencialmente */
     private float $cursorY = 0.0;
 
+    /** Customização opcional aplicada na renderização (logo prestador + observações). */
+    private ?DanfseCustomizacao $custom = null;
+
     /** Altura do título do bloco (item 2.4.1 — 7pt bold MAIÚSCULAS) */
     private const ALTURA_TITULO_BLOCO_CM = 0.40;
 
@@ -57,8 +60,10 @@ final class DanfseGenerator
         $this->garantirBarcode2D();
     }
 
-    public function gerar(DanfseDados $dados): string
+    public function gerar(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
     {
+        $this->custom = $custom;
+
         $this->pdf = new TcpdfSemLink('P', 'mm', 'A4', true, 'UTF-8', false);
         $this->pdf->setTcpdfLink(false);
         $this->pdf->SetCreator('mendesalexandre/php-nfse-nacional');
@@ -272,6 +277,39 @@ final class DanfseGenerator
         $p = $dados->prestador;
         $this->iniciarBloco('PRESTADOR / FORNECEDOR');
         $h = 0.63;
+
+        // Logo do prestador (customização opcional) — renderizado no canto
+        // superior direito do bloco, sobre 4cm de largura por 1.26cm de altura
+        // (= 2 linhas). NÃO substitui o logo institucional NFSe do cabeçalho
+        // (regra NT 008/2026) — só adiciona identidade visual.
+        if ($this->custom !== null && $this->custom->temLogoPrestador()) {
+            $logoLarguraCm = 4.0;
+            $logoAlturaCm = 1.26;
+            $xLogo = DanfseLayout::cmToMm(20.70 - $logoLarguraCm - 0.30); // align right edge
+            $yLogo = DanfseLayout::cmToMm($this->cursorY + 0.05);
+            try {
+                $this->pdf->Image(
+                    (string) $this->custom->logoPrestadorPath,
+                    $xLogo,
+                    $yLogo,
+                    DanfseLayout::cmToMm($logoLarguraCm),
+                    DanfseLayout::cmToMm($logoAlturaCm),
+                    '',
+                    '',
+                    'T',
+                    true,        // resize
+                    300,         // dpi
+                    '',          // palign
+                    false,       // ismask
+                    false,       // imgmask
+                    0,           // border
+                    'CM',        // fitbox: contain
+                );
+            } catch (\Throwable) {
+                // Se a imagem falhar (formato exótico, corrompida), ignora
+                // silenciosamente — DANFSe sai sem logo, mas é gerado.
+            }
+        }
 
         // Linha 1 — CNPJ/CPF/NIF | Indicador Municipal | Telefone
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
@@ -660,6 +698,12 @@ final class DanfseGenerator
         }
         if (!empty($i['informacoes_complementares'])) {
             $linhas[] = $i['informacoes_complementares'];
+        }
+
+        // Observações adicionais (customização opcional) — concatenadas
+        // ao xOutInf vindo do XML, separadas por linha em branco.
+        if ($this->custom !== null && $this->custom->temObservacoesAdicionais()) {
+            $linhas[] = (string) $this->custom->observacoesAdicionais;
         }
 
         // Totais Aproximados de Tributos (obrigatório — Lei 12.741/2012)
