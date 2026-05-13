@@ -20,7 +20,7 @@ final class Identificacao
         public readonly int $numeroDps,
         public readonly string $serie = '1',
         public readonly ?DateTimeImmutable $dataCompetencia = null,
-        public readonly TipoEmissaoDps $tipoEmissao = TipoEmissaoDps::Normal,
+        public readonly TipoEmissaoDps $tipoEmissao = TipoEmissaoDps::Prestador,
     ) {
         $errors = [];
 
