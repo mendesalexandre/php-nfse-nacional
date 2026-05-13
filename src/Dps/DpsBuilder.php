@@ -213,6 +213,12 @@ final class DpsBuilder
             $toma->appendChild($this->el($doc, 'CNPJ', $tomador->documento));
         }
 
+        // IM do tomador é opcional. Quando enviada, vai antes do <xNome>
+        // conforme ordem do schema TSDestinaDps no leiaute SefinNacional 1.6.
+        if ($tomador->inscricaoMunicipal !== null && $tomador->inscricaoMunicipal !== '') {
+            $toma->appendChild($this->el($doc, 'IM', $tomador->inscricaoMunicipal));
+        }
+
         $toma->appendChild($this->el($doc, 'xNome',
             TextoSanitizador::paraNFSe($tomador->nome, 300),
         ));
@@ -326,13 +332,23 @@ final class DpsBuilder
         $trib->appendChild($tribMun);
 
         // totTrib > pTotTrib (obrigatório a partir da SefinNacional 1.6)
-        $totTrib = $this->el($doc, 'totTrib');
+        //
+        // Alíquota com **2 casas decimais fixas** (`number_format(..., 2)`).
+        // Diferente da NF-e (NT 03.14, 4 casas), o leiaute SefinNacional 1.6
+        // restringe `pTotTrib*` ao tipo `TSDec3V2` — exige exatamente 2
+        // casas decimais. Tentar enviar `4.0000` ou `3.5125` resulta em
+        // E1235 ("Pattern constraint failed"). Confirmado empiricamente em
+        // homologação 13/05/2026.
+        //
+        // Pra alíquotas reduzidas como 3.5125%, é necessário arredondar
+        // antes (round() default é HALF_UP: 3.5125 → 3.51).
         $pTot = $this->el($doc, 'pTotTrib');
         $pTot->appendChild($this->el($doc, 'pTotTribFed', '0.00'));
         $pTot->appendChild($this->el($doc, 'pTotTribEst', '0.00'));
         $pTot->appendChild($this->el($doc, 'pTotTribMun',
             number_format($valores->aliquotaIssqnPercentual, 2, '.', ''),
         ));
+        $totTrib = $this->el($doc, 'totTrib');
         $totTrib->appendChild($pTot);
         $trib->appendChild($totTrib);
 

@@ -5,6 +5,43 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-05-13
+
+### Adicionado
+- **`Tomador::$inscricaoMunicipal`** opcional — quando preenchido, emite
+  `<toma><IM>` no DPS conforme leiaute SefinNacional 1.6 (schema TSDestinaDps).
+  Útil quando o tomador é PJ no mesmo município do prestador (cruzamento de
+  dados pela prefeitura, imunidade tributária por IM). Em cartório de RI
+  fica null normalmente.
+
+### Removido (breaking — pré-1.0)
+- **`Config::ehProducao()`** — método helper redundante. Use comparação direta
+  com o enum: `$config->ambiente === Ambiente::Producao`. Segue convenção do
+  `nfephp-org/sped-nfe` que também não tem helper.
+
+### Documentado
+- **Precisão e arredondamento** detalhado em `MANUAL.md` e no docblock de
+  `Valores`:
+  - Valores monetários: 2 casas decimais.
+  - Alíquotas (`pTotTribMun`): **2 casas decimais fixas no DPS**, leiaute
+    SefinNacional 1.6 restringe ao tipo `TSDec3V2`. **Diferente da NF-e**
+    (NT 03.14, que ampliou pra 4 casas) — enviar 4 casas resulta em E1235
+    ("Pattern constraint failed"). Confirmado empiricamente em homologação
+    SEFIN: tentamos `pTotTribMun=4.0000` e foi rejeitado; `4.00` é aceito.
+  - Modo `HALF_UP` do PHP `round()`: 0.125 → 0.13, 0.005 → 0.01.
+  - Caveat float-point: `round(0.115, 2) = 0.11` (não `0.12`) porque
+    `0.115` em binário é `0.114999…`.
+
+### Modificado
+- `MANUAL.md` reflete remoção de `ehProducao` e adição de IM no Tomador.
+
+### Validado
+- NFS-e #60 emitida em homologação SEFIN com `pTotTribMun=4.00` (2 casas)
+  após confirmar que 4 casas são rejeitadas.
+- Suite: 109 testes verdes (+4: `pTotTribMun_2_casas`,
+  `pTotTribMun_arredonda`, `tomador_IM_omitida_quando_null`,
+  `tomador_IM_emitida_quando_preenchida`).
+
 ## [0.3.4] — 2026-05-13
 
 ### Adicionado

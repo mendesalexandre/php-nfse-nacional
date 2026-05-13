@@ -243,6 +243,77 @@ final class DpsBuilderTest extends TestCase
         self::assertStringContainsString('<CST>000</CST>', $xml);
     }
 
+    public function test_pTotTribMun_formatado_com_2_casas_decimais(): void
+    {
+        // SefinNacional 1.6 restringe pTotTrib* ao tipo TSDec3V2 (exatamente
+        // 2 casas decimais). Diferente da NF-e (NT 03.14, 4 casas) — confirmado
+        // empiricamente em homologação SEFIN: passar '4.0000' resulta em E1235
+        // ("Pattern constraint failed").
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertStringContainsString('<pTotTribMun>4.00</pTotTribMun>', $xml);
+        self::assertStringContainsString('<pTotTribFed>0.00</pTotTribFed>', $xml);
+        self::assertStringContainsString('<pTotTribEst>0.00</pTotTribEst>', $xml);
+    }
+
+    public function test_pTotTribMun_arredonda_aliquota_com_mais_de_2_casas(): void
+    {
+        // Alíquota 3.5125% (redução tributária) — number_format arredonda HALF_UP
+        // pra 2 casas. Caveat conhecido do leiaute (TSDec3V2).
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 3.5125),
+        );
+        // 3.5125 → 3.51 (HALF_UP da 3ª casa decimal)
+        self::assertStringContainsString('<pTotTribMun>3.51</pTotTribMun>', $xml);
+    }
+
+    public function test_tomador_IM_omitida_quando_null(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $tomador = new Tomador(
+            documento: '12345678909',
+            nome: 'João',
+            endereco: new Endereco('R', '1', 'C', '01310100', '3550308', 'SP'),
+        );
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $tomador,
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        // <toma> existe mas SEM <IM>
+        self::assertStringContainsString('<toma>', $xml);
+        $tomaBlock = substr($xml, strpos($xml, '<toma>'), strpos($xml, '</toma>') - strpos($xml, '<toma>'));
+        self::assertStringNotContainsString('<IM>', $tomaBlock);
+    }
+
+    public function test_tomador_IM_emitida_quando_preenchida(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $tomador = new Tomador(
+            documento: '12345678000195',
+            nome: 'EMPRESA TOMADORA LTDA',
+            endereco: new Endereco('R', '1', 'C', '01310100', '3550308', 'SP'),
+            inscricaoMunicipal: '987654',
+        );
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $tomador,
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertStringContainsString('<IM>987654</IM>', $xml);
+    }
+
     public function test_cTribNac_default_eh_210101(): void
     {
         $builder = new DpsBuilder($this->configPadrao());

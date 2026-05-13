@@ -77,9 +77,4 @@ final class Config
             throw new ValidationException($errors, 'Config inválida');
         }
     }
-
-    public function ehProducao(): bool
-    {
-        return $this->ambiente === Ambiente::Producao;
-    }
 }

@@ -159,10 +159,10 @@ final class Config
         public readonly bool $debugLogPayload = false,    // log XML do DPS no debug
         public readonly bool $incluirIbsCbs = false,      // Reforma Tributária — opt-in
     );
-
-    public function ehProducao(): bool;
 }
 ```
+
+> **Sem helper `isProduction()`.** Comparação direta com o enum é mais expressiva e segue o estilo do `nfephp-org/sped-nfe`: `if ($config->ambiente === Ambiente::Producao) { ... }`.
 
 Imutável. Habilite `debugLogPayload: true` quando estiver investigando rejeição da SEFIN — o `SefinClient` vai logar o XML completo via PSR-3 no nível `debug`.
 
@@ -453,16 +453,19 @@ final class Tomador
     public readonly string $documento;   // limpo (só dígitos), 11 ou 14
 
     public function __construct(
-        string                $documento,        // CPF ou CNPJ, com ou sem máscara
+        string                $documento,             // CPF ou CNPJ, com ou sem máscara
         public readonly string  $nome,
         public readonly Endereco $endereco,
-        public readonly ?string $email = null,    // valida format se != null
+        public readonly ?string $email = null,         // valida format se != null
         public readonly ?string $telefone = null,
+        public readonly ?string $inscricaoMunicipal = null,  // <toma><IM> opcional
     );
 
     public function ehPessoaFisica(): bool;     // strlen($documento) === 11
 }
 ```
+
+> **`inscricaoMunicipal`:** opcional. Útil quando o tomador é PJ no mesmo município do prestador — permite cruzamento de dados pela prefeitura e tratamento de imunidade tributária por IM. Em cartório de RI o tomador é majoritariamente PF, então fica null normalmente.
 
 ### `Servico`
 
@@ -500,6 +503,12 @@ final class Valores
 ```
 
 > **ISSQN "por dentro":** o leiaute SefinNacional computa `vBC = vServ − vDR`. Para a base bater com a real, `deducoesReducoes` precisa **incluir o ISSQN** (= soma de taxas + ISSQN arredondado). É contraintuitivo mas é regra do leiaute. Calcule no cliente antes de instanciar.
+
+> **Precisão e arredondamento:**
+> - Valores monetários (`vServ`, `vDR`, `vBC`, `vISSQN`, `vLiq`) — sempre 2 casas decimais.
+> - Alíquotas (`pTotTribMun`) — **2 casas decimais fixas no DPS**. O leiaute SefinNacional 1.6 restringe ao tipo `TSDec3V2` (`\d{1,3}\.\d{2}`). Diferente da NF-e (NT 03.14, que ampliou pra 4 casas) — passar `4.0000` ao SEFIN resulta em E1235 ("Pattern constraint failed"). O SDK arredonda HALF_UP automaticamente: alíquota `3.5125` vira `3.51` no XML.
+> - Modo de arredondamento: PHP `round()` `HALF_UP` (5 vai pra cima): `0.125 → 0.13`, `0.005 → 0.01`.
+> - **Caveat float-point:** valores que terminam em 5 na 3ª casa decimal podem não bater com a aritmética intuitiva. Ex: `round(0.115, 2) = 0.11` (não `0.12`), porque `0.115` em binário é `0.114999…`. Pra precisão crítica em valores fracionários, calcule em centavos (int) ou use BCMath.
 
 ---
 
