@@ -27,7 +27,7 @@ echo "Baixando artefatos da NFS-e {$chave}\n\n";
 
 // 1. XML autorizado
 try {
-    $xml = $nfse->download()->xmlNfse($chave);
+    $xml = $nfse->baixarXml($chave);
     $arquivoXml = "/tmp/nfse-{$chave}-{$timestamp}.xml";
     file_put_contents($arquivoXml, $xml);
     echo "✓ XML salvo em {$arquivoXml} (" . strlen($xml) . " bytes)\n";
@@ -38,7 +38,7 @@ try {
 
 // 2. DANFSe (PDF) via ADN
 try {
-    $pdf = $nfse->download()->pdfDanfse($chave);
+    $pdf = $nfse->baixarPdf($chave);
     $arquivoPdf = "/tmp/nfse-{$chave}-{$timestamp}.pdf";
     file_put_contents($arquivoPdf, $pdf);
     echo "✓ DANFSe salvo em {$arquivoPdf} (" . strlen($pdf) . " bytes)\n";

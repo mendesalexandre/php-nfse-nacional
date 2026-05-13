@@ -20,7 +20,7 @@ $chave = envOrDie('CHAVE');
 echo "Consultando NFS-e {$chave}\n\n";
 
 try {
-    $resp = $nfse->consulta()->consultarNfse($chave);
+    $resp = $nfse->consultar($chave);
 
     echo "✓ Resposta:\n";
     echo "  → Chave: {$resp->chaveAcesso}\n";
@@ -36,7 +36,7 @@ try {
     }
 
     echo "\nEventos vinculados:\n";
-    $eventos = $nfse->consulta()->consultarEventos($chave);
+    $eventos = $nfse->consultarEventos($chave);
     if ($eventos->xmlRetorno === null) {
         echo "  (nenhum evento)\n";
     } else {

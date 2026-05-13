@@ -35,7 +35,7 @@ echo "  → Motivo:      {$motivo->label()}\n";
 echo "  → Justificativa: {$justificativa}\n\n";
 
 try {
-    $resp = $nfse->substituicao()->substituir($original, $substituta, $motivo, $justificativa);
+    $resp = $nfse->substituir($original, $substituta, $motivo, $justificativa);
 
     echo "✓ SUBSTITUIÇÃO REGISTRADA\n";
     echo "  → cStat: {$resp->cStat}\n";

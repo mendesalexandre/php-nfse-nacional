@@ -5,6 +5,61 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-13
+
+### Modificado (BREAKING — pré-1.0)
+
+- **API achatada no facade `NFSe`** — removidos os getters de subdomínio
+  (`emissao()`, `consulta()`, `cancelamento()`, `substituicao()`,
+  `manifestacao()`, `download()`, `danfse()`). As ações agora são métodos
+  diretos:
+
+  | Antes (v0.4.x)                                   | Agora (v0.5.0+)              |
+  |--------------------------------------------------|------------------------------|
+  | `$nfse->emissao()->emitir(...)`                  | `$nfse->emitir(...)`         |
+  | `$nfse->consulta()->consultarNfse($chave)`       | `$nfse->consultar($chave)`   |
+  | `$nfse->consulta()->consultarDps($chave)`        | `$nfse->consultarDps($chave)`|
+  | `$nfse->consulta()->consultarEventos(...)`       | `$nfse->consultarEventos(...)`|
+  | `$nfse->cancelamento()->cancelar(...)`           | `$nfse->cancelar(...)`       |
+  | `$nfse->substituicao()->substituir(...)`         | `$nfse->substituir(...)`     |
+  | `$nfse->manifestacao()->confirmar(...)`          | `$nfse->confirmar(...)`      |
+  | `$nfse->manifestacao()->rejeitar(...)`           | `$nfse->rejeitar(...)`       |
+  | `$nfse->manifestacao()->anularRejeicao(...)`     | `$nfse->anularRejeicao(...)` |
+  | `$nfse->download()->xmlNfse($chave)`             | `$nfse->baixarXml($chave)`   |
+  | `$nfse->download()->pdfDanfse($chave)`           | `$nfse->baixarPdf($chave)`   |
+  | `$nfse->danfse()->gerarDoXml($xml, $custom)`     | `$nfse->danfseLocal($xml, $custom)` |
+  | `$nfse->danfse()->gerarDeDados($dados, $custom)` | `$nfse->danfseLocalDeDados($dados, $custom)` |
+
+  Motivo: a redundância "subdomínio→ação" (`->emissao()->emitir`) era
+  ruído visual. API achatada lê melhor pro caso comum.
+
+- **Service classes continuam públicos** em `PhpNfseNacional\Services\` —
+  quem usa DI granular (Symfony/Laravel containers, mock por subdomínio)
+  pode instanciar `EmissaoService`, `CancelamentoService`, etc. diretamente.
+  Só a facade mudou.
+
+### Migração
+
+```php
+// v0.4.x
+$resp = $nfse->emissao()->emitir($id, $tomador, $servico, $valores);
+$resp = $nfse->cancelamento()->cancelar($chave, $motivo, $just);
+
+// v0.5.0
+$resp = $nfse->emitir($id, $tomador, $servico, $valores);
+$resp = $nfse->cancelar($chave, $motivo, $just);
+```
+
+`sed` pra atualizar projeto inteiro:
+```bash
+sed -i 's/\$nfse->emissao()->emitir/\$nfse->emitir/g; s/\$nfse->cancelamento()->cancelar/\$nfse->cancelar/g; s/\$nfse->substituicao()->substituir/\$nfse->substituir/g; s/\$nfse->manifestacao()->confirmar/\$nfse->confirmar/g; s/\$nfse->manifestacao()->rejeitar/\$nfse->rejeitar/g; s/\$nfse->manifestacao()->anularRejeicao/\$nfse->anularRejeicao/g; s/\$nfse->consulta()->consultarNfse/\$nfse->consultar/g; s/\$nfse->consulta()->consultarDps/\$nfse->consultarDps/g; s/\$nfse->consulta()->consultarEventos/\$nfse->consultarEventos/g; s/\$nfse->download()->xmlNfse/\$nfse->baixarXml/g; s/\$nfse->download()->pdfDanfse/\$nfse->baixarPdf/g; s/\$nfse->danfse()->gerarDoXml/\$nfse->danfseLocal/g; s/\$nfse->danfse()->gerarDeDados/\$nfse->danfseLocalDeDados/g' src/**/*.php
+```
+
+### Suite
+- 152 testes verdes (sem mudança — testes usam Service direto, não facade).
+- PHPStan level 8 limpo.
+- Examples e MANUAL.md atualizados.
+
 ## [0.4.2] — 2026-05-13
 
 ### Adicionado

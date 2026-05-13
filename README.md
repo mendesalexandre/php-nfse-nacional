@@ -82,7 +82,7 @@ $config = new Config(
 $nfse = NFSe::create($config, $cert);
 
 // 4. Emita uma NFS-e
-$resposta = $nfse->emissao()->emitir(
+$resposta = $nfse->emitir(
     identificacao: new Identificacao(numeroDps: 1, serie: '1'),
     tomador: new Tomador(
         documento: '12345678901',
@@ -116,7 +116,7 @@ echo "Número: " . $resposta->numeroNfse;
 ```php
 use PhpNfseNacional\DTO\MotivoCancelamento;
 
-$resposta = $nfse->cancelamento()->cancelar(
+$resposta = $nfse->cancelar(
     chaveAcesso: '35012345200001234567890123456789012345678123456789',
     motivo: MotivoCancelamento::ErroEmissao,
     justificativa: 'Valor da NFS-e divergente do recibo',
@@ -126,12 +126,12 @@ $resposta = $nfse->cancelamento()->cancelar(
 ### Substituição
 
 Cancela uma NFS-e e a vincula a uma substituidora previamente emitida.
-A substituidora precisa ter sido emitida antes via `$nfse->emissao()->emitir(...)`.
+A substituidora precisa ter sido emitida antes via `$nfse->emitir(...)`.
 
 ```php
 use PhpNfseNacional\DTO\MotivoCancelamento;
 
-$resposta = $nfse->substituicao()->substituir(
+$resposta = $nfse->substituir(
     chaveOriginal:   '51079092200179028000138000000000005726057774456203',
     chaveSubstituta: '51079092200179028000138000000000005826057774456204',
     motivo:          MotivoCancelamento::ErroEmissao,
