@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **PHP 8.5 na matriz CI** — workflow agora roda em PHP 8.1, 8.2, 8.3, 8.4, 8.5.
+- Tabela de arredondamento ampliada no `MANUAL.md` com casos "acima de 5
+  na 3ª casa" validados empiricamente em PHP 8.4 + homologação SEFIN:
+  - `3.5995` → `pTotTribMun=3.60` (transborda unidade), `pAliqAplic=4.00`
+    (NFS-e #63)
+- Achado reforçado: independente do `pTotTribMun` enviado (3.51, 3.56,
+  3.60, 4.00, …), SEFIN sempre aplica `pAliqAplic=4.00` pra cartório
+  de Sinop — confirmando que o campo é puramente declaratório (Lei
+  12.741/2012).
+
 ## [0.3.6] — 2026-05-13
 
 ### Documentado
