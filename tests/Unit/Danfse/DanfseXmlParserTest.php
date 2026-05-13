@@ -73,6 +73,79 @@ final class DanfseXmlParserTest extends TestCase
         self::assertSame(0.92, $dados->valorTotal['issqn_apurado']);
     }
 
+    public function test_total_ibscbs_eh_soma_de_vIBSTot_mais_vCBS_nao_vTotNF(): void
+    {
+        // Regressão: o parser usava `totCIBS/vTotNF` como total do IBS/CBS,
+        // mas vTotNF é o valor total da nota (igual ao vLiq), não a soma
+        // dos tributos. Bug visível na DANFSe pra nota R$ 100 c/ IBS+CBS
+        // de R$ 0.97: aparecia "Total IBS/CBS = R$ 100,00" e
+        // "Líquido + IBS/CBS = R$ 200,00".
+        //
+        // XML inline com cenário típico: IBS UF 0.10 + IBS Mun 0 + CBS 0.87
+        // = 0.97 total. Líquido = 100. Líquido + IBS/CBS = 100.97.
+        $xml = $this->xmlComIbsCbs(vIbsTot: 0.10, vCbs: 0.87, vLiq: 100.00, vTotNF: 100.00);
+
+        $dados = (new DanfseXmlParser())->parse($xml);
+
+        self::assertSame(0.97, $dados->valorTotal['total_ibscbs']);
+        self::assertSame(100.00, $dados->valorTotal['valor_liquido']);
+        self::assertSame(100.97, $dados->valorTotal['valor_liquido_mais_ibscbs']);
+    }
+
+    private function xmlComIbsCbs(float $vIbsTot, float $vCbs, float $vLiq, float $vTotNF): string
+    {
+        return <<<XML
+        <?xml version="1.0" encoding="utf-8"?>
+        <NFSe versao="1.01" xmlns="http://www.sped.fazenda.gov.br/nfse">
+          <infNFSe Id="NFS00000000000000000000000000000000000000000000000001">
+            <nNFSe>1</nNFSe>
+            <cStat>100</cStat>
+            <dhProc>2026-05-12T22:11:12-03:00</dhProc>
+            <verAplic>SefinNacional_1.6.0</verAplic>
+            <ambGer>2</ambGer>
+            <valores>
+              <vBC>96.80</vBC>
+              <pAliqAplic>4.00</pAliqAplic>
+              <vISSQN>3.20</vISSQN>
+              <vLiq>{$vLiq}</vLiq>
+            </valores>
+            <IBSCBS>
+              <cLocalidadeIncid>5107909</cLocalidadeIncid>
+              <xLocalidadeIncid>Sinop</xLocalidadeIncid>
+              <valores>
+                <vBC>96.80</vBC>
+                <uf><pIBSUF>0.10</pIBSUF><pAliqEfetUF>0.10</pAliqEfetUF></uf>
+                <mun><pIBSMun>0.00</pIBSMun><pAliqEfetMun>0.00</pAliqEfetMun></mun>
+                <fed><pCBS>0.90</pCBS><pAliqEfetCBS>0.90</pAliqEfetCBS></fed>
+              </valores>
+              <totCIBS>
+                <vTotNF>{$vTotNF}</vTotNF>
+                <gIBS>
+                  <vIBSTot>{$vIbsTot}</vIBSTot>
+                  <gIBSUFTot><vIBSUF>{$vIbsTot}</vIBSUF></gIBSUFTot>
+                  <gIBSMunTot><vIBSMun>0.00</vIBSMun></gIBSMunTot>
+                </gIBS>
+                <gCBS><vCBS>{$vCbs}</vCBS></gCBS>
+              </totCIBS>
+            </IBSCBS>
+            <DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01">
+              <infDPS Id="DPS00000000000000000000000000000000000000000000000001">
+                <tpAmb>2</tpAmb>
+                <dhEmi>2026-05-12T22:10:11-03:00</dhEmi>
+                <serie>1</serie>
+                <nDPS>1</nDPS>
+                <dCompet>2026-05-12</dCompet>
+                <prest><CNPJ>00179028000138</CNPJ><IM>11408</IM></prest>
+                <toma><CPF>44208855134</CPF><xNome>X</xNome></toma>
+                <serv><cServ><cTribNac>210101</cTribNac><xDescServ>X</xDescServ><cNBS>113040000</cNBS></cServ></serv>
+                <valores><vServPrest><vServ>{$vLiq}</vServ></vServPrest></valores>
+              </infDPS>
+            </DPS>
+          </infNFSe>
+        </NFSe>
+        XML;
+    }
+
     public function test_tributacao_municipal_extraida(): void
     {
         $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());

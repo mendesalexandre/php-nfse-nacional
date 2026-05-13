@@ -347,7 +347,18 @@ final class DanfseXmlParser
         $dpsValPath = '//n:DPS/n:infDPS/n:valores';
         $totPath = '//n:infNFSe/n:IBSCBS/n:totCIBS';
         $vLiq = $this->float($xpath, '//n:infNFSe/n:valores/n:vLiq');
-        $vTotIbsCbs = $this->float($xpath, $totPath . '/n:vTotNF');
+
+        // Total do IBS/CBS = vIBSTot (soma IBS UF + Mun) + vCBS.
+        // Atenção: NÃO usar `totCIBS/vTotNF` aqui — esse campo é o "Valor Total
+        // da Nota" (igual ao vLiq, conforme leiaute), não o total dos tributos
+        // IBS/CBS. Confundir gera "Total IBS/CBS = R$ 100" e "Líquido + IBS/CBS
+        // = R$ 200" no DANFSe pra uma nota de R$ 100.
+        $vIbsTotal = $this->float($xpath, $totPath . '/n:gIBS/n:vIBSTot');
+        $vCbs = $this->float($xpath, $totPath . '/n:gCBS/n:vCBS');
+        $vTotIbsCbs = ($vIbsTotal !== null || $vCbs !== null)
+            ? (float) (($vIbsTotal ?? 0.0) + ($vCbs ?? 0.0))
+            : null;
+
         return [
             'valor_servicos' => $this->float($xpath, $dpsValPath . '/n:vServPrest/n:vServ'),
             'desconto_incondicionado' => $this->float($xpath, $dpsValPath . '/n:vDescCondIncond/n:vDescIncond'),

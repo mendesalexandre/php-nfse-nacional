@@ -5,6 +5,38 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-05-13
+
+### Adicionado
+- **Toggle `Config::incluirIbsCbs`** (default `false`) — controla se o bloco
+  `<IBSCBS>` é incluído no DPS de envio. Validado empiricamente em homologação:
+  SEFIN aceita DPS com OU sem o bloco — quando ausente, o IBSCBS também não
+  aparece na resposta autorizada (opt-in pelo emissor).
+  - NFS-e #58 emitida com toggle on → resposta tem IBSCBS completo
+    (IBS UF 0.10%, IBS Mun 0%, CBS 0.90%, total R$ 0.97 sobre R$ 100)
+  - NFS-e #59 emitida com toggle off → resposta sem IBSCBS, idêntico ao
+    comportamento atual do `hadder/nfse-nacional`
+- Example `emitir-homologacao.php` aceita env `INCLUIR_IBSCBS=1` pra ligar
+  o toggle.
+
+### Modificado (breaking — pré-1.0)
+- `DpsBuilder` deixa de incluir `<IBSCBS>` por padrão. Pra manter o
+  comportamento da v0.3.3 (sempre incluir): passar `incluirIbsCbs: true` no
+  `Config`.
+
+### Corrigido
+- **`dCompet` agora respeita timezone do `dhEmi`** — gerava DPS com
+  `dCompet > dhEmi.date` em servidores com PHP em UTC durante horário noturno
+  (00:00–03:00 UTC = ainda dia anterior em SP). SEFIN rejeitava com cStat=15
+  E0015 ("data de competência posterior à data de emissão"). Fix: formatar
+  `dCompet` em `America/Sao_Paulo` (mesma tz do `dhEmi`).
+- **`Total do IBS/CBS` na DANFSe local** — usava `<vTotNF>` (= valor total
+  da nota) em vez de somar `<vIBSTot> + <vCBS>`. Bug visível: NFS-e de R$
+  100,00 com IBS/CBS de R$ 0,97 mostrava "Total IBS/CBS = R$ 100,00" e
+  "Líquido + IBS/CBS = R$ 200,00". Após fix: R$ 0,97 e R$ 100,97.
+- 105 testes verdes (era 103); novos testes regressivos pro dCompet em UTC,
+  pro toggle IBSCBS (on/off), e pro cálculo do total IBS/CBS no parser.
+
 ## [0.3.3] — 2026-05-12
 
 ### Adicionado
