@@ -111,6 +111,13 @@ enum CStat: int
     case AdnAssinaturaComErro          = 2020;
     case AdnAssinaturaObrigatoria      = 2029;
     case AdnAssinaturaCertMunicipio    = 2032;
+    /**
+     * Pedido de Registro de Evento de Cancelamento por Substituição (e105102)
+     * não aceito via POST /nfse/{chave}/eventos. Indica que o evento exige
+     * outro endpoint ou parametrização específica do município.
+     * Validado em homologação SEFIN 13/05/2026 (Sinop).
+     */
+    case AdnSubstNaoAceitaViaEventos   = 1861;
 
     /**
      * Mensagem oficial associada ao código (texto humano).
@@ -173,6 +180,7 @@ enum CStat: int
             self::AdnAssinaturaComErro          => 'Arquivo enviado com erro na assinatura',
             self::AdnAssinaturaObrigatoria      => 'Assinatura obrigatória quando enviado pra API',
             self::AdnAssinaturaCertMunicipio    => 'Assinatura deve ser feita com certificado digital do município emissor do evento',
+            self::AdnSubstNaoAceitaViaEventos   => 'Pedido de Registro de Evento de Cancelamento por Substituição não aceito via API Eventos (POST /nfse/{chave}/eventos) — pode requerer endpoint dedicado ou parametrização específica do município',
         };
     }
 
