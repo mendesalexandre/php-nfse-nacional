@@ -18,6 +18,7 @@ use PhpNfseNacional\Services\ConsultaService;
 use PhpNfseNacional\Services\DanfseService;
 use PhpNfseNacional\Services\DownloadService;
 use PhpNfseNacional\Services\EmissaoService;
+use PhpNfseNacional\Services\ManifestacaoService;
 use PhpNfseNacional\Services\SubstituicaoService;
 
 /**
@@ -43,6 +44,7 @@ final class NFSe
         public readonly ConsultaService $consulta,
         public readonly CancelamentoService $cancelamento,
         public readonly SubstituicaoService $substituicao,
+        public readonly ManifestacaoService $manifestacao,
         public readonly DownloadService $download,
         public readonly DanfseService $danfse,
     ) {}
@@ -84,6 +86,13 @@ final class NFSe
                 $endpoints,
                 $logger,
             ),
+            manifestacao: new ManifestacaoService(
+                $eventoBuilder,
+                $signer,
+                $client,
+                $endpoints,
+                $logger,
+            ),
             download: new DownloadService($client, $endpoints),
             danfse: new DanfseService(),
         );
@@ -107,6 +116,11 @@ final class NFSe
     public function substituicao(): SubstituicaoService
     {
         return $this->substituicao;
+    }
+
+    public function manifestacao(): ManifestacaoService
+    {
+        return $this->manifestacao;
     }
 
     public function download(): DownloadService

@@ -23,7 +23,7 @@ final class EventoSubstituicaoTest extends TestCase
             justificativa: 'Reemissão por divergência de valor',
         );
 
-        self::assertSame('101102', $e->codigoTipoEvento());
+        self::assertSame('105102', $e->codigoTipoEvento());
         self::assertSame(self::CHAVE_A, $e->chaveAcesso());
         self::assertSame(self::CHAVE_B, $e->chaveSubstituta);
         self::assertSame(1, $e->nSequencial());

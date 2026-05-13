@@ -8,7 +8,7 @@ use PhpNfseNacional\DTO\MotivoCancelamento;
 use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
- * Evento e101102 — Cancelamento por substituição.
+ * Evento e105102 — Cancelamento por substituição.
  *
  * Cancela uma NFS-e e a vincula a outra NFS-e (substituidora) emitida
  * em separado. A substituidora deve ter sido emitida normalmente ANTES
@@ -70,7 +70,7 @@ final class EventoSubstituicao implements EventoNfse
 
     public function codigoTipoEvento(): string
     {
-        return '101102';
+        return '105102';
     }
 
     public function nSequencial(): int

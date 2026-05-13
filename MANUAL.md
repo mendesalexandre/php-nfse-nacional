@@ -20,6 +20,7 @@ Para histórico de versões, ver [CHANGELOG.md](CHANGELOG.md).
    - [Emissão](#emissão) — `$nfse->emissao()->emitir()`
    - [Consulta](#consulta) — `consultarNfse / consultarDps / consultarEventos`
    - [Cancelamento](#cancelamento) — `$nfse->cancelamento()->cancelar()`
+   - [Manifestação de NFS-e](#manifestação-de-nfs-e) — `confirmar / rejeitar / anularRejeicao`
    - [Substituição](#substituição) — `$nfse->substituicao()->substituir()`
    - [Download](#download) — `xmlNfse / pdfDanfse`
    - [DANFSe local](#danfse-local) — `$nfse->danfse()->gerarDoXml()`
@@ -309,6 +310,63 @@ if ($resp->cStat === 840) {
 }
 ```
 
+### Manifestação de NFS-e
+
+Eventos pelo Prestador, Tomador ou Intermediário pra **confirmar** ou **rejeitar** uma NFS-e emitida. Útil quando o tomador recebe uma nota e quer (a) reconhecer formalmente, (b) recusar (motivo: duplicidade, sem fato gerador, valor errado, etc.) ou (c) anular uma rejeição feita por engano.
+
+```php
+$nfse->manifestacao()->confirmar(
+    string             $chaveAcesso,
+    AutorManifestacao  $autor,                // Prestador, Tomador, Intermediario
+): SefinResposta
+
+$nfse->manifestacao()->rejeitar(
+    string             $chaveAcesso,
+    AutorManifestacao  $autor,
+    MotivoRejeicao     $motivo,                // Duplicidade, JaEmitidaPeloTomador, ...
+    string             $xMotivo = '',          // obrigatório se motivo=Outros (15-200 chars)
+): SefinResposta
+
+$nfse->manifestacao()->anularRejeicao(
+    string $chaveAcesso,
+    string $idEvManifRej,    // Id da Rejeição original (PRE + chave + tipoEvento = 59 chars)
+    string $xMotivo,          // 15-200 chars, obrigatório
+): SefinResposta
+```
+
+Códigos de evento gerados:
+
+| Operação | Prestador | Tomador | Intermediário |
+|---|---|---|---|
+| Confirmação | `e202201` | `e203202` | `e204203` |
+| Rejeição | `e202205` | `e203206` | `e204207` |
+| Anulação Rejeição | `e205208` | `e205208` | `e205208` |
+
+> **Restrição (E1833):** cada autor (Prestador/Tomador/Intermediário) pode emitir UMA Confirmação OU UMA Rejeição — não ambos. Tentar uma segunda manifestação resulta em erro do ADN.
+
+> **Restrição (E1835):** uma Rejeição só pode ser anulada UMA vez. Após anular, não dá pra rejeitar de novo.
+
+```php
+use PhpNfseNacional\DTO\MotivoRejeicao;
+use PhpNfseNacional\Enums\AutorManifestacao;
+
+// Tomador rejeita NFS-e que recebeu por duplicidade
+$resp = $nfse->manifestacao()->rejeitar(
+    chaveAcesso: '51079...',
+    autor: AutorManifestacao::Tomador,
+    motivo: MotivoRejeicao::Duplicidade,
+);
+
+// 1 hora depois, tomador percebe que rejeitou por engano
+$idRejeicaoOriginal = 'PRE51079...203206';   // do `<infPedReg Id="...">` da rejeição
+
+$resp = $nfse->manifestacao()->anularRejeicao(
+    chaveAcesso: '51079...',
+    idEvManifRej: $idRejeicaoOriginal,
+    xMotivo: 'Rejeição feita por engano — NFS-e está correta',
+);
+```
+
 ### Substituição
 
 ```php
@@ -320,7 +378,7 @@ $nfse->substituicao()->substituir(
 ): SefinResposta
 ```
 
-Evento e101102 — cancela `chaveOriginal` e registra o vínculo com `chaveSubstituta`.
+Evento e105102 — cancela `chaveOriginal` e registra o vínculo com `chaveSubstituta`.
 
 > **Pré-requisito:** `chaveSubstituta` já tem que ter sido emitida normalmente via `$nfse->emissao()->emitir()`. Esse método **não** emite a substituidora — apenas registra o vínculo + cancelamento.
 

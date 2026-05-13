@@ -17,7 +17,7 @@ use PhpNfseNacional\Sefin\SefinEndpoints;
 use PhpNfseNacional\Sefin\SefinResposta;
 
 /**
- * Cancelamento por substituição de NFS-e (evento e101102).
+ * Cancelamento por substituição de NFS-e (evento e105102).
  *
  * Diferença pro CancelamentoService: além de cancelar a NFS-e original,
  * vincula a uma NFS-e substituidora (já emitida normalmente em separado).

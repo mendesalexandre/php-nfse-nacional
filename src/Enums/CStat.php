@@ -34,7 +34,7 @@ enum CStat: int
     case Emitida                       = 100;
     /** NFS-e cancelada (estado final após evento e101101). */
     case Cancelada                     = 101;
-    /** NFS-e cancelada por substituição (estado final após e101102). */
+    /** NFS-e cancelada por substituição (estado final após e105102). */
     case CanceladaPorSubstituicao      = 102;
 
     // ─── SEFIN Nacional — Sucesso em eventos ───
