@@ -114,7 +114,18 @@ final class DfeService
         $chave = $raw['ChaveAcesso'] ?? $raw['chaveAcesso'] ?? $raw['chave'] ?? null;
         $tipoEv = $raw['TipoEvento'] ?? $raw['tipoEvento'] ?? null;
         $seqEv = $raw['SequencialEvento'] ?? $raw['sequencialEvento'] ?? $raw['nSeqEvento'] ?? null;
-        $dhProc = $raw['DataHoraRegistro'] ?? $raw['dataHoraRegistro'] ?? $raw['dhProc'] ?? null;
+
+        // Empírico (homol 18/mai/2026): SEFIN devolve `DataHoraGeracao`.
+        // Aceitamos também as variantes mais comuns.
+        $dhProc = $raw['DataHoraGeracao']
+            ?? $raw['dataHoraGeracao']
+            ?? $raw['DataHoraRegistro']
+            ?? $raw['dataHoraRegistro']
+            ?? $raw['dhProc']
+            ?? null;
+
+        // XML do documento embutido (gzip+base64). Vem em `ArquivoXml`.
+        $arquivoXml = $raw['ArquivoXml'] ?? $raw['arquivoXml'] ?? null;
 
         return new ItemDfe(
             nsu: $nsu,
@@ -123,6 +134,7 @@ final class DfeService
             tipoEvento: is_string($tipoEv) ? $tipoEv : ($tipoEv !== null ? (string) $tipoEv : null),
             sequencialEvento: is_numeric($seqEv) ? (int) $seqEv : null,
             dataHora: is_string($dhProc) ? $dhProc : null,
+            arquivoXmlGzipB64: is_string($arquivoXml) ? $arquivoXml : null,
             bruto: $raw,
         );
     }
