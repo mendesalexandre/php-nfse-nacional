@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-05-18
+
 ### Adicionado
 - **Enums de tabelas oficiais e cobertura tributária.** Seis novos enums em
   `PhpNfseNacional\Enums\`, sem alterações no `DpsBuilder` ainda (uso
