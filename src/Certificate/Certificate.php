@@ -62,11 +62,18 @@ final class Certificate
         $validade = new DateTimeImmutable('@' . $info['validTo_time_t']);
         $cn = $info['subject']['CN'] ?? 'desconhecido';
 
-        // CNPJ aparece no subject ou em extensions (otherName). Pra simplicidade
-        // tentamos extrair do CN (formato típico: "RAZÃO SOCIAL:CNPJ").
+        // CNPJ aparece no subject ou em extensions (otherName SAN). Tenta
+        // primeiro extrair do CN (formato típico: "RAZÃO SOCIAL:CNPJ");
+        // se não achar, faz fallback na extensão SAN OID 2.16.76.1.3.3
+        // (padrão ICP-Brasil pra cert de PJ — empresa pode ter CNPJ
+        // só na SAN sem aparecer no CN, especialmente em certs antigos
+        // ou de modelos exóticos).
         $cnpj = '';
         if (preg_match('/(\d{14})/', $cn, $m)) {
             $cnpj = $m[1];
+        }
+        if ($cnpj === '') {
+            $cnpj = self::extrairCnpjDaSan($certs['cert']) ?? '';
         }
 
         return new self(
@@ -76,6 +83,48 @@ final class Certificate
             cnpj: $cnpj,
             subjectCN: $cn,
         );
+    }
+
+    /**
+     * Extrai CNPJ da extensão SAN (Subject Alternative Name) do cert ICP-Brasil.
+     *
+     * Padrão DOC-ICP-04: PJ tem o CNPJ codificado num otherName com OID
+     * 2.16.76.1.3.3, formato BCD: 14 dígitos numéricos. O OpenSSL devolve
+     * essa extensão como string ASN.1 dump — fazemos um regex sobre o
+     * texto/binário do cert PEM porque `openssl_x509_parse` não decodifica
+     * otherNames de forma estruturada.
+     *
+     * Retorna 14 dígitos ou null se não achar.
+     */
+    private static function extrairCnpjDaSan(string $certPem): ?string
+    {
+        // Lê o cert como DER pra varrer ASN.1
+        $derBase64 = preg_replace('/-----[^-]+-----|\s+/', '', $certPem);
+        if (!is_string($derBase64) || $derBase64 === '') {
+            return null;
+        }
+        $der = base64_decode($derBase64, true);
+        if ($der === false) {
+            return null;
+        }
+
+        // OID 2.16.76.1.3.3 em DER = 06 08 60 4C 01 03 03
+        // (06=OID tag, 08=length, 60 4C 01 03 03 = encoding do OID)
+        $oidDer = "\x06\x08\x60\x4C\x01\x03\x03";
+        $pos = strpos($der, $oidDer);
+        if ($pos === false) {
+            return null;
+        }
+
+        // Depois do OID vem o conteúdo do otherName. Procura nos próximos
+        // 64 bytes uma sequência de 14 dígitos seguidos no início (formato
+        // ICP-Brasil: NNNNNNNNNNNNNNNJJJJJJJJJJJJJJJJJ — primeiros 14 são
+        // CNPJ, depois vem nome empresarial / dados do titular).
+        $segmento = substr($der, $pos + strlen($oidDer), 256);
+        if (preg_match('/(\d{14})/', $segmento, $m)) {
+            return $m[1];
+        }
+        return null;
     }
 
     public function estaVencido(): bool

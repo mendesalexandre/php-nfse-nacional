@@ -22,7 +22,10 @@ Para histórico de versões, ver [CHANGELOG.md](CHANGELOG.md).
    - [Cancelamento](#cancelamento) — `$nfse->cancelar()`
    - [Manifestação de NFS-e](#manifestação-de-nfs-e) — `confirmar / rejeitar / anularRejeicao`
    - [Substituição](#substituição) — `$nfse->substituir()`
-   - [Download](#download) — `xmlNfse / pdfDanfse`
+   - [Download](#download) — `baixarXml / baixarPdf` (com retry)
+   - [Verificação idempotente](#verificação-idempotente) — `$nfse->verificarDps()`
+   - [Listagem de eventos](#listagem-de-eventos-por-nfs-e) — `$nfse->listarEventos()`
+   - [Distribuição DFe](#distribuição-dfe-caixa-postal) — `$nfse->sincronizarDfe()`
    - [DANFSe local](#danfse-local) — `$nfse->danfseLocal()`
 4. [Tipos de retorno](#tipos-de-retorno)
    - [`SefinResposta`](#sefinresposta)
@@ -432,29 +435,109 @@ $resp = $nfse->substituir(
 ### Download
 
 ```php
-$nfse->baixarXml(string $chaveAcesso): string         // XML autorizado
-$nfse->baixarPdf(string $chaveAcesso): string       // bytes do PDF
-$nfse->consultar(string $chaveAcesso): SefinResposta
+$nfse->baixarXml(string $chaveAcesso): string                              // XML autorizado
+$nfse->baixarPdf(string $chaveAcesso, int $tentativas = 3): string         // bytes do PDF, com retry
 ```
 
 | Método | Onde busca | Observação |
 |---|---|---|
-| `xmlNfse` | SEFIN Nacional `/nfse/{chave}` | XML completo (DPS + assinaturas + autorização) |
-| `pdfDanfse` | ADN `/danfse/{chave}` | **A partir de 01/07/2026 ADN desativa esse endpoint** — use [`danfse()`](#danfse-local) |
-| `consultarNfse` | SEFIN | Helper, idêntico a `consulta()->consultarNfse` |
+| `baixarXml` | SEFIN Nacional `/nfse/{chave}` | XML completo (DPS + assinaturas + autorização) |
+| `baixarPdf` | ADN `/danfse/{chave}` | **Retry exponencial em 502/503/504** (1.5s, 3.0s, 4.5s). **A partir de 01/07/2026 ADN desativa esse endpoint** — use [`danfseLocal()`](#danfse-local) |
+
+`baixarPdf` retenta automaticamente em códigos HTTP transientes (502/503/504) e em erros de conexão. O backoff é exponencial: `1.5s × n`. Após esgotar `$tentativas` lança `SefinException`. Em 4xx (404, etc.) lança imediatamente — esses não são transientes.
 
 **Erros:**
 - `ValidationException` — chave inválida
 - `RuntimeException` — chave válida mas SEFIN não devolveu XML
-- `SefinException` — HTTP ≠ 200 ou conteúdo não é PDF (`pdfDanfse` valida magic bytes `%PDF`)
+- `SefinException` — HTTP ≠ 200 (4xx imediato; 5xx só após esgotar retries), ou conteúdo não é PDF (`baixarPdf` valida magic bytes `%PDF`)
 
 ```php
 $xml = $nfse->baixarXml($chave);
 file_put_contents("/var/nfse/{$chave}.xml", $xml);
 
-$pdf = $nfse->baixarPdf($chave);
+$pdf = $nfse->baixarPdf($chave);  // ou com tentativas customizado: baixarPdf($chave, 5)
 file_put_contents("/var/nfse/{$chave}.pdf", $pdf);
 ```
+
+### Verificação idempotente
+
+```php
+$nfse->verificarDps(string $idDps): bool
+```
+
+Usa `HEAD /dps/{id}` no SEFIN — leve, sem baixar o corpo. Retorna `true` se o DPS já existe (HTTP 200), `false` se não existe (HTTP 404). Outros códigos lançam `SefinException`.
+
+Útil pra evitar dupla emissão (cliente que retenta agressivamente, sequencial reutilizado em conflito, processo recuperando-se de crash). Chame antes de `emitir()`:
+
+```php
+$idDps = 'DPS510790920017902800013800001000000000128585';
+
+if ($nfse->verificarDps($idDps)) {
+    // já existe — não emite, consulta o status:
+    $resp = $nfse->consultarDps($idDps);
+} else {
+    $resp = $nfse->emitir(...);
+}
+```
+
+### Listagem de eventos por NFS-e
+
+```php
+$nfse->listarEventos(string $chaveAcesso): array
+```
+
+Retorna **todos** os eventos vinculados a uma NFS-e — cancelamento, substituição, manifestações (confirmar/rejeitar/anular). Útil para auditoria.
+
+Diferente de `consultarEventos()` que aceita filtros (`tipoEvento`, `nSequencial`), aqui é tudo de uma vez. Endpoint: `GET /contribuintes/NFSe/{chave}/Eventos` no ADN.
+
+```php
+$eventos = $nfse->listarEventos($chave);
+foreach ($eventos as $ev) {
+    echo "Tipo {$ev['tipoEvento']}, seq {$ev['nSeqEvento']}, dh {$ev['dhRegEvento']}\n";
+}
+```
+
+Retorna `array<int, mixed>` cru — o caller faz o parse conforme a necessidade.
+
+### Distribuição DFe (caixa postal)
+
+```php
+$nfse->sincronizarDfe(int $ultimoNsu = 0, int $maxPaginas = 20): RespostaDfe
+```
+
+O SEFIN mantém uma "caixa postal" por CNPJ onde guarda eventos vinculados: NFS-es emitidas **contra** o CNPJ (tomador), cancelamentos recebidos, substituições. O método itera por NSU (Número Sequencial Único) consumindo lotes paginados.
+
+Para sincronização incremental, persista `$ultimoNsu` da última chamada bem-sucedida:
+
+```php
+use PhpNfseNacional\Sefin\{ItemDfe, RespostaDfe};
+
+$ultimoNsuConhecido = (int) $cache->get('dfe_ultimo_nsu', 0);
+
+$resp = $nfse->sincronizarDfe($ultimoNsuConhecido);
+
+/** @var ItemDfe $item */
+foreach ($resp->itens as $item) {
+    $item->nsu;              // 42 — usado pra paginação
+    $item->tipoDocumento;    // 'NFS-e' / 'Evento' / etc.
+    $item->chaveAcesso;      // 50 dígitos (quando aplicável)
+    $item->tipoEvento;       // '101101', '105102', etc.
+    $item->sequencialEvento; // 1..99
+    $item->dataHora;         // ISO 8601
+    $item->bruto;            // array raw do ADN (inspeção)
+}
+
+$resp->ultimoNsu;            // 50 — passar na próxima chamada
+$resp->statusProcessamento;  // 'NenhumDocumentoLocalizado' / 'ProcessamentoNormal'
+$resp->temMais;              // true se atingiu maxPaginas (= mais DFes pendentes)
+$resp->vazio();              // === count($resp->itens) === 0
+
+$cache->set('dfe_ultimo_nsu', $resp->ultimoNsu);
+```
+
+**Limites:** `maxPaginas` default 20 → até 1000 DFes/chamada (ADN devolve ~50 por página). Acima disso, faça loop externo controlando `$ultimoNsu` entre as chamadas.
+
+**Quando `temMais === true`**: você atingiu o teto de páginas mas ainda há DFes pendentes. Cache o `ultimoNsu` e chame de novo (pode usar `setTimeout` ou um job assíncrono).
 
 ### DANFSe local
 
