@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.11.2] — 2026-05-18
+
 ### Adicionado
 - **`RespostaDfe` ganha métodos derivados** pra responder consultas comuns
   sobre o lote sem novas chamadas HTTP. Listas por status (`chavesCanceladas`,
