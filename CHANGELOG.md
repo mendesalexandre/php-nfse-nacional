@@ -5,6 +5,35 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-05-18
+
+### Corrigido
+- **`DfeService` parser** — capturava só dois dos três campos importantes
+  da resposta do ADN. Smoke real (162 DFes do cartório homologação)
+  revelou:
+  - SEFIN devolve `DataHoraGeracao` (não `DataHoraRegistro` como presumido).
+    Antes do fix, `ItemDfe::$dataHora` ficava sempre `null`.
+  - Cada DFe traz `ArquivoXml` embutido (gzip+base64) — XML completo do
+    documento já na resposta. Economiza N round-trips de `baixarXml()`
+    ao processar um lote.
+
+### Adicionado
+- **`ItemDfe::$arquivoXmlGzipB64`** + helper **`arquivoXmlDecodificado(): ?string`**
+  pra descompressão sob demanda. Acesso direto ao XML completo de cada
+  NFS-e/evento na caixa postal sem chamadas HTTP extras.
+- **`examples/sincronizar-dfe-homologacao.php`** — smoke da operação,
+  validado contra cartório homologação (162 itens em ~1s).
+
+### Notas empíricas
+- `tipoEvento` na resposta ADN vem como **string descritiva**
+  (`"CANCELAMENTO"`, `"CONFIRMACAO_PRESTADOR"`, `"REJEICAO_PRESTADOR"`),
+  não código numérico (`101101`, etc.). PHPDoc do `ItemDfe::$tipoEvento`
+  atualizado com valores empíricos.
+- Caixa postal do cartório de Sinop tem DFes desde 2023 — **sem limite
+  temporal aparente**. Primeira sincronização (`NSU=0`) puxa todo o
+  histórico; chamadas subsequentes com `ultimoNsu` persistido são
+  incrementais.
+
 ## [0.11.0] — 2026-05-18
 
 ### Adicionado
