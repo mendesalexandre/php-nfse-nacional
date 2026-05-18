@@ -23,12 +23,23 @@ final class ExigibilidadeSuspensa
     ) {
         $errors = [];
 
-        $proc = trim($numeroProcesso);
-        if ($proc === '') {
-            $errors[] = 'numeroProcesso vazio';
-        }
-        if (mb_strlen($proc) > 30) {
-            $errors[] = "numeroProcesso muito longo: '{$proc}' (máx 30 chars)";
+        // Pattern oficial do XSD `TSNumProcExigSuspensa` = `[0-9]{30}` —
+        // exatamente 30 dígitos numéricos, sem letras, sem pontuação.
+        // Confirmado contra `docs/schemas/1.01/tiposSimples_v1.01.xsd`
+        // após `cStat=1235` rejeitar todos os formatos CNJ tradicionais.
+        //
+        // O formato exato é convenção do leiaute SefinNacional — provavelmente
+        // CNJ (20 dígitos) + complemento. Como o XSD não documenta a
+        // semântica dos 30 dígitos, recomenda-se confirmar com o município
+        // de incidência qual formato esperam (geralmente CNJ + zeros à
+        // esquerda ou à direita).
+        if (!preg_match('/^\d{30}$/', $numeroProcesso)) {
+            $errors[] = sprintf(
+                "numeroProcesso inválido: '%s' (esperado exatamente 30 dígitos, recebeu %d chars '%s')",
+                substr($numeroProcesso, 0, 50),
+                strlen($numeroProcesso),
+                preg_match('/[^0-9]/', $numeroProcesso) ? 'com não-dígitos' : 'só dígitos',
+            );
         }
 
         if (!empty($errors)) {

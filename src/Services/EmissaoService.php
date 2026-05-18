@@ -10,6 +10,7 @@ use PhpNfseNacional\Certificate\Signer;
 use PhpNfseNacional\Config;
 use PhpNfseNacional\Dps\DpsBuilder;
 use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\Intermediario;
 use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
@@ -50,16 +51,18 @@ final class EmissaoService
         Tomador $tomador,
         Servico $servico,
         Valores $valores,
+        ?Intermediario $intermediario = null,
     ): SefinResposta {
         $this->logger->info('[EmissaoService] Iniciando emissão', [
             'ambiente' => $this->config->ambiente->label(),
             'nDPS' => $identificacao->numeroDps,
             'tomador' => $tomador->documento,
+            'intermediario' => $intermediario?->documento,
             'valor_servicos' => $valores->valorServicos,
         ]);
 
         // 1. Monta XML do DPS
-        $xmlCru = $this->builder->build($identificacao, $tomador, $servico, $valores);
+        $xmlCru = $this->builder->build($identificacao, $tomador, $servico, $valores, $intermediario);
 
         // 2. Assina (xmldsig + rsa-sha1)
         $xmlAssinado = $this->signer->sign($xmlCru, 'infDPS');

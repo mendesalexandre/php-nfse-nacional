@@ -275,9 +275,14 @@ final class SefinClient
     }
 
     /**
-     * Lista todos os eventos vinculados a uma NFS-e (cancelamento,
-     * substituição, manifestações). Retorna o JSON cru — o caller faz
-     * o parse conforme a necessidade (auditoria, geralmente).
+     * Lista todos os documentos (NFS-e + eventos) vinculados a uma chave
+     * de NFS-e específica. Endpoint `GET /contribuintes/NFSe/{chave}/Eventos`
+     * no ADN. Confirmado empiricamente (18/mai/2026) que retorna a **mesma
+     * estrutura** do `GET /contribuintes/DFe/{NSU}` — `LoteDFe[]` com a
+     * NFS-e + cada evento (cancelamento, manifestações, substituição).
+     *
+     * Retorna o array `LoteDFe` cru — caller pode iterar pra encontrar
+     * eventos específicos.
      *
      * @return array<int, mixed>
      */
@@ -294,7 +299,14 @@ final class SefinClient
         if ($status === 200) {
             $json = @json_decode($body, true);
             if (is_array($json)) {
-                // Resposta pode vir como lista direta ou objeto { eventos: [...] }
+                // Formato canônico (confirmado empiricamente): { LoteDFe: [...] }
+                if (isset($json['LoteDFe']) && is_array($json['LoteDFe'])) {
+                    return $json['LoteDFe'];
+                }
+                if (isset($json['loteDFe']) && is_array($json['loteDFe'])) {
+                    return $json['loteDFe'];
+                }
+                // Fallbacks para resposta plana (compat)
                 if (isset($json['Eventos']) && is_array($json['Eventos'])) {
                     return $json['Eventos'];
                 }
