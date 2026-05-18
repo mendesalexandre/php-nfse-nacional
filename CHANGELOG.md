@@ -5,6 +5,35 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **Grupo `<interm>` (Intermediário da operação)** — DTO `Intermediario`
+  + emissão opcional via `$nfse->emitir(..., intermediario: $i)`. Posicionado
+  entre `<toma>` e `<serv>` conforme leiaute V1.00.02 (linhas 295-325).
+  Suporta PJ (CNPJ) ou PF (CPF), com IM, endereço, fone e email opcionais.
+  Útil pra marketplaces/plataformas (delivery, agências de turismo).
+  7 testes novos.
+- **`NFSe::estaCancelada($chave): bool`** — detecta cancelamento via
+  `/contribuintes/NFSe/{chave}/Eventos`. **Forma canônica de detectar
+  cancelamento** — `consultar($chave)->cancelada()` NÃO funciona porque
+  `consultar()` retorna cStat=100 mesmo após cancelar (cancelamento é
+  evento separado, não muda o cStat). 4 testes novos.
+- **`docs/schemas/{1.00,1.01}/`** — XSDs oficiais do leiaute SefinNacional
+  copiados pra referência local. Cobre DPS, NFSe, evento, pedRegEvento,
+  tiposSimples/Complexos/Eventos/Cnc. Fonte canônica para resolver
+  patterns, tipos, ocorrências.
+
+### Corrigido
+- **`SefinClient::listarEventosNfse` parser** — esperava chave `Eventos`
+  mas o endpoint ADN `/contribuintes/NFSe/{chave}/Eventos` retorna na
+  verdade o envelope `LoteDFe[]` (mesma estrutura do sync DFe).
+  Confirmado empiricamente; aceita o nome canônico + fallbacks compat.
+- **`ExigibilidadeSuspensa::$numeroProcesso` valida pattern oficial.**
+  XSD `TSNumProcExigSuspensa` (em `tiposSimples_v1.01.xsd`) é
+  `[0-9]{30}` — exatamente 30 dígitos numéricos. Antes aceitava qualquer
+  string até 30 chars; agora valida estritamente. Empiricamente
+  confirmado: NFS-e #141 emitida com sucesso (cStat=100) com formato
+  correto, após CNJ formatado/só dígitos serem rejeitados com cStat=1235.
+
 ## [0.11.2] — 2026-05-18
 
 ### Adicionado

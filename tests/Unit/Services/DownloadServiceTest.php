@@ -170,6 +170,79 @@ final class DownloadServiceTest extends TestCase
         self::assertSame([], $service->listarEventosNfse(self::CHAVE));
     }
 
+    public function test_listarEventosNfse_aceita_LoteDFe_envelope(): void
+    {
+        // Formato canônico observado empiricamente — mesmo do sync DFe
+        $body = json_encode([
+            'StatusProcessamento' => 'DOCUMENTOS_LOCALIZADOS',
+            'LoteDFe' => [
+                ['NSU' => 1, 'TipoDocumento' => 'NFSE', 'ChaveAcesso' => self::CHAVE],
+                ['NSU' => 2, 'TipoDocumento' => 'EVENTO', 'ChaveAcesso' => self::CHAVE, 'TipoEvento' => 'CANCELAMENTO'],
+            ],
+        ]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, ['Content-Type' => 'application/json'], $body)]);
+
+        $resultado = $service->listarEventosNfse(self::CHAVE);
+        self::assertCount(2, $resultado);
+        self::assertSame('EVENTO', $resultado[1]['TipoDocumento']);
+    }
+
+    public function test_nfseEstaCancelada_true_quando_tem_evento_CANCELAMENTO(): void
+    {
+        $body = json_encode([
+            'LoteDFe' => [
+                ['NSU' => 1, 'TipoDocumento' => 'NFSE', 'ChaveAcesso' => self::CHAVE],
+                ['NSU' => 2, 'TipoDocumento' => 'EVENTO', 'ChaveAcesso' => self::CHAVE, 'TipoEvento' => 'CANCELAMENTO'],
+            ],
+        ]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, [], $body)]);
+
+        self::assertTrue($service->nfseEstaCancelada(self::CHAVE));
+    }
+
+    public function test_nfseEstaCancelada_true_quando_tem_evento_SUBSTITUICAO(): void
+    {
+        $body = json_encode([
+            'LoteDFe' => [
+                ['NSU' => 1, 'TipoDocumento' => 'NFSE', 'ChaveAcesso' => self::CHAVE],
+                ['NSU' => 2, 'TipoDocumento' => 'EVENTO', 'ChaveAcesso' => self::CHAVE, 'TipoEvento' => 'SUBSTITUICAO'],
+            ],
+        ]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, [], $body)]);
+
+        self::assertTrue($service->nfseEstaCancelada(self::CHAVE));
+    }
+
+    public function test_nfseEstaCancelada_false_quando_so_tem_NFSE(): void
+    {
+        $body = json_encode([
+            'LoteDFe' => [
+                ['NSU' => 1, 'TipoDocumento' => 'NFSE', 'ChaveAcesso' => self::CHAVE],
+            ],
+        ]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, [], $body)]);
+
+        self::assertFalse($service->nfseEstaCancelada(self::CHAVE));
+    }
+
+    public function test_nfseEstaCancelada_false_quando_so_tem_manifestacao(): void
+    {
+        $body = json_encode([
+            'LoteDFe' => [
+                ['NSU' => 1, 'TipoDocumento' => 'NFSE', 'ChaveAcesso' => self::CHAVE],
+                ['NSU' => 2, 'TipoDocumento' => 'EVENTO', 'ChaveAcesso' => self::CHAVE, 'TipoEvento' => 'CONFIRMACAO_PRESTADOR'],
+            ],
+        ]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, [], $body)]);
+
+        self::assertFalse($service->nfseEstaCancelada(self::CHAVE));
+    }
+
     /**
      * @param Response|list<Response>|null $responses
      */
