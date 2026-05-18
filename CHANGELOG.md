@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-05-18
+
 ### Adicionado
 - **Cobertura completa do `<tribMun>` conforme spec V1.00.02.** O grupo
   passa a aceitar todos os elementos opcionais entre `<tribISSQN>` e
