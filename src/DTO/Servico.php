@@ -31,6 +31,13 @@ final class Servico
         ListaServicosNacional|string $cTribNac = '210101',
         ListaNbs|string $cNBS = '113040000',
         public readonly string $cIndOp = '100301',
+        /**
+         * Grupo `<infoCompl>` (Informações Complementares) — opcional.
+         * Quando setado, o `DpsBuilder` emite como ÚLTIMO filho de
+         * `<serv>`. Use pra observações da nota, referência a documento
+         * externo, identificador de documento técnico, etc.
+         */
+        public readonly ?InformacoesComplementares $infoCompl = null,
     ) {
         $this->cTribNac = $cTribNac instanceof ListaServicosNacional ? $cTribNac->value : $cTribNac;
         $this->cNBS = $cNBS instanceof ListaNbs ? $cNBS->value : $cNBS;
