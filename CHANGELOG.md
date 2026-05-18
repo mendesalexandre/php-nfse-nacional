@@ -26,6 +26,14 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   Não é BC-break: o default mantém o comportamento atual (pTotTrib).
   3 testes novos em `DpsBuilderTest` cobrem o switch.
 
+- **`<fone>` e `<email>` no grupo `<prest>`.** Quando `Prestador::$telefone`
+  ou `Prestador::$email` estão preenchidos, o `DpsBuilder` os emite entre
+  `<IM>` e `<regTrib>` — ordem confirmada contra XML real do emissor web
+  do SEFIN (NFS-e MEI, abril 2026). Telefone é normalizado (só dígitos),
+  email vai como informado. Os campos do DTO existiam desde antes mas não
+  iam para o XML, omissão sistemática que ficou evidente no smoke MEI.
+  3 testes novos cobrem presença, ausência e ordem dos filhos.
+
 ## [0.6.0] — 2026-05-13
 
 ### Alterado (BC-break)

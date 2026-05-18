@@ -192,6 +192,21 @@ final class DpsBuilder
             $prest->appendChild($this->el($doc, 'IM', $prestador->inscricaoMunicipal));
         }
 
+        // <fone> e <email> são opcionais no <prest>. Quando o DTO Prestador
+        // os preenche, vão entre <IM> e <regTrib> — ordem confirmada contra
+        // XML real emitido pelo emissor web do SEFIN (NFS-e MEI, abril 2026).
+        // Telefone armazenado só com dígitos (preg_replace removendo
+        // máscara/separadores).
+        if ($prestador->telefone !== null && $prestador->telefone !== '') {
+            $foneDigitos = preg_replace('/\D/', '', $prestador->telefone) ?? '';
+            if ($foneDigitos !== '') {
+                $prest->appendChild($this->el($doc, 'fone', $foneDigitos));
+            }
+        }
+        if ($prestador->email !== null && $prestador->email !== '') {
+            $prest->appendChild($this->el($doc, 'email', $prestador->email));
+        }
+
         $regTrib = $this->el($doc, 'regTrib');
         $regTrib->appendChild($this->el($doc, 'opSimpNac',
             (string) $prestador->simplesNacional->value,
