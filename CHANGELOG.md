@@ -5,21 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
-### Adicionado
-- **`Valores::$dispensadoIssqn` (default `false`).** Flag para emissores
-  dispensados de ISSQN apurado (MEI, isento, imune). Quando `true`:
-  - O `DpsBuilder` pula a validação cruzada `"ISSQN apurado = 0 com
-    BC > 0"`, que rejeitava DPS de MEI prestando serviço com alíquota
-    zero;
-  - O grupo `<totTrib>` é emitido como `<indTotTrib>0</indTotTrib>`
-    em vez de `<pTotTrib>` — mesmo padrão que o emissor web do SEFIN
-    utiliza para CNPJ MEI. Diferente do `pTotTrib` (alíquota
-    declaratória da Lei 12.741/2012), o `indTotTrib=0` indica que o
-    valor total dos tributos NÃO foi informado, posição correta para
-    prestador dispensado.
+### Removido
+- **Validação cruzada `"ISSQN apurado = 0 com BC > 0"` no `DpsBuilder`.**
+  Validar regra fiscal é responsabilidade do SEFIN, não da lib —
+  cenários válidos (MEI dispensado, isenções, novos cTribNac) variam
+  por município e mudam com o tempo. A lib agora aceita o cenário e
+  monta o XML; quem decide se a operação é fiscalmente válida é o
+  portal. O método privado `validarCruzado` foi removido inteiro.
 
-  Não é BC-break: o default mantém o comportamento atual (pTotTrib +
-  validação ativa). Cobertura com 4 testes novos em `DpsBuilderTest`.
+### Adicionado
+- **`Valores::$dispensadoIssqn` (default `false`).** Quando `true`, o
+  grupo `<totTrib>` é emitido como `<indTotTrib>0</indTotTrib>` em vez
+  de `<pTotTrib>` — mesmo padrão que o emissor web do SEFIN utiliza
+  para CNPJ MEI. Ambos são opções válidas do *choice* TSTotTrib no
+  leiaute SefinNacional 1.6. `pTotTrib` declara as alíquotas
+  aproximadas (Lei 12.741/2012); `indTotTrib=0` indica que o valor
+  total dos tributos NÃO foi informado — posição correta para
+  prestador dispensado.
+
+  Não é BC-break: o default mantém o comportamento atual (pTotTrib).
+  3 testes novos em `DpsBuilderTest` cobrem o switch.
 
 ## [0.6.0] — 2026-05-13
 

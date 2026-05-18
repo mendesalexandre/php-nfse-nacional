@@ -415,10 +415,12 @@ final class DpsBuilderTest extends TestCase
         self::assertSame(0, $xpath->query('//n:totTrib/n:pTotTrib')->length);
     }
 
-    public function test_dispensadoIssqn_pula_validacao_BC_sem_ISSQN(): void
+    public function test_aceita_BC_com_aliquota_zero_sem_validacao_fiscal(): void
     {
-        // Sem a flag, BC=800 + alíquota=0 estoura "ISSQN apurado = 0 com BC = 800.00"
-        // (cenário válido pra MEI). Com dispensadoIssqn=true, o builder aceita.
+        // Validação fiscal (BC vs ISSQN apurado) é responsabilidade do SEFIN,
+        // não da lib. O builder deve aceitar e montar o XML; quem decide se a
+        // operação é válida fiscalmente é o portal — regras mudam (MEI,
+        // isenções, novos cTribNac) e variam por município.
         $builder = new DpsBuilder($this->configPadrao());
 
         $xml = $builder->build(
@@ -429,29 +431,10 @@ final class DpsBuilderTest extends TestCase
                 valorServicos: 800.00,
                 deducoesReducoes: 0.00,
                 aliquotaIssqnPercentual: 0.00,
-                dispensadoIssqn: true,
             ),
         );
 
         self::assertNotEmpty($xml);
-    }
-
-    public function test_sem_dispensadoIssqn_ainda_rejeita_BC_sem_ISSQN(): void
-    {
-        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
-        $this->expectExceptionMessage('ISSQN apurado = 0');
-
-        $builder = new DpsBuilder($this->configPadrao());
-        $builder->build(
-            new Identificacao(numeroDps: 1),
-            $this->tomadorPf(),
-            $this->servico(),
-            new Valores(
-                valorServicos: 800.00,
-                deducoesReducoes: 0.00,
-                aliquotaIssqnPercentual: 0.00,
-            ),
-        );
     }
 
     public function test_sem_dispensadoIssqn_emite_pTotTrib_normalmente(): void

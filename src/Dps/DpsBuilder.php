@@ -60,9 +60,6 @@ final class DpsBuilder
         Servico $servico,
         Valores $valores,
     ): string {
-        // Validação cruzada antes de construir o XML — falha rápida
-        $this->validarCruzado($valores);
-
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = false;
@@ -418,36 +415,4 @@ final class DpsBuilder
         $infDPS->appendChild($ibscbs);
     }
 
-    /**
-     * Validações cruzadas entre DTOs que só fazem sentido na hora de montar
-     * o DPS (não cabem nos construtores individuais).
-     */
-    private function validarCruzado(Valores $valores): void
-    {
-        $errors = [];
-
-        // E0438: o leiaute proíbe regEspTrib != 0 + vDedRed. Aqui é só
-        // warning — o appendPrestador já força regEspTrib=0 quando há
-        // dedução. Mantido como nota interna pra depuração.
-        // (Não adiciona erro porque é auto-corrigido.)
-
-        // ISSQN apurado deve ser positivo se há vBC > 0, exceto quando o
-        // prestador é dispensado (MEI, isento, imune) — nesse caso o XML
-        // emite indTotTrib=0 e o SEFIN não cobra ISSQN no município.
-        if (
-            ! $valores->dispensadoIssqn
-            && $valores->baseCalculo() > 0
-            && $valores->valorIssqn() <= 0
-        ) {
-            $errors[] = sprintf(
-                'ISSQN apurado = 0 com BC = %.2f e alíquota = %.2f%% — confira os valores',
-                $valores->baseCalculo(),
-                $valores->aliquotaIssqnPercentual,
-            );
-        }
-
-        if (!empty($errors)) {
-            throw new ValidationException($errors, 'DPS inválido');
-        }
-    }
 }
