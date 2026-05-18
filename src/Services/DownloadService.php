@@ -74,12 +74,50 @@ final class DownloadService
      * Lista todos os eventos vinculados a uma NFS-e (cancelamento,
      * substituição, manifestações). Útil pra auditoria.
      *
-     * @return array<int, mixed> Array bruto dos eventos retornados pelo ADN
+     * Retorna o array bruto `LoteDFe` do ADN — cada item tem
+     * `TipoDocumento` ('NFSE' ou 'EVENTO'), `ChaveAcesso`, `TipoEvento`
+     * (quando aplicável), `DataHoraGeracao`, `ArquivoXml` (gzip+base64).
+     *
+     * @return array<int, mixed>
      */
     public function listarEventosNfse(string $chaveAcesso): array
     {
         $this->validarChave($chaveAcesso);
         return $this->client->listarEventosNfse($chaveAcesso);
+    }
+
+    /**
+     * Verifica se uma NFS-e tem evento de **CANCELAMENTO** ou **SUBSTITUICAO**
+     * vinculado — forma canônica de detectar cancelamento.
+     *
+     * Atenção: `consultar($chave)->cancelada()` NÃO funciona para detectar
+     * cancelamento — a consulta retorna cStat=100 (autorizada) mesmo após
+     * cancelar. O cancelamento é um evento separado vinculado à NFS-e, não
+     * altera o status da emissão original.
+     */
+    public function nfseEstaCancelada(string $chaveAcesso): bool
+    {
+        $itens = $this->listarEventosNfse($chaveAcesso);
+        foreach ($itens as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $tipoDoc = $item['TipoDocumento'] ?? $item['tipoDocumento'] ?? null;
+            if ($tipoDoc !== 'EVENTO') {
+                continue;
+            }
+            $tipoEv = $item['TipoEvento'] ?? $item['tipoEvento'] ?? null;
+            if (!is_string($tipoEv)) {
+                continue;
+            }
+            $tipoEvUpper = strtoupper($tipoEv);
+            if (str_contains($tipoEvUpper, 'CANCELAMENTO')
+                || str_contains($tipoEvUpper, 'SUBSTITUICAO')
+            ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

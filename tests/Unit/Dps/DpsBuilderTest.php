@@ -724,11 +724,33 @@ final class DpsBuilderTest extends TestCase
         new \PhpNfseNacional\DTO\BeneficioMunicipal(nBM: '123');
     }
 
+    public function test_exigibilidadeSuspensa_DTO_rejeita_processo_com_pontuacao(): void
+    {
+        // XSD TSNumProcExigSuspensa = [0-9]{30} (exatamente 30 dígitos)
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('numeroProcesso inválido');
+
+        new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(
+            tipo: \PhpNfseNacional\Enums\TipoExigibilidadeSuspensa::ProcessoJudicial,
+            numeroProcesso: '5001234-56.2026.8.11.0037',
+        );
+    }
+
+    public function test_exigibilidadeSuspensa_DTO_rejeita_menos_de_30_digitos(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+
+        new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(
+            tipo: \PhpNfseNacional\Enums\TipoExigibilidadeSuspensa::ProcessoJudicial,
+            numeroProcesso: '12345', // só 5 dígitos
+        );
+    }
+
     public function test_exigibilidadeSuspensa_emite_grupo_completo(): void
     {
         $es = new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(
             tipo: \PhpNfseNacional\Enums\TipoExigibilidadeSuspensa::ProcessoJudicial,
-            numeroProcesso: '5001234-56.2026.8.11.0037',
+            numeroProcesso: '500123456202681100370000000000', // 30 dígitos
         );
         $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
@@ -749,7 +771,7 @@ final class DpsBuilderTest extends TestCase
         $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
 
         self::assertSame('1', $xpath->query('//n:tribMun/n:exigSusp/n:tpSusp')->item(0)?->nodeValue);
-        self::assertSame('5001234-56.2026.8.11.0037', $xpath->query('//n:tribMun/n:exigSusp/n:nProcesso')->item(0)?->nodeValue);
+        self::assertSame('500123456202681100370000000000', $xpath->query('//n:tribMun/n:exigSusp/n:nProcesso')->item(0)?->nodeValue);
     }
 
     public function test_aliquotaMunicipal_emite_pAliq(): void
@@ -775,6 +797,143 @@ final class DpsBuilderTest extends TestCase
         self::assertSame('3.50', $xpath->query('//n:tribMun/n:pAliq')->item(0)?->nodeValue);
     }
 
+    public function test_intermediario_omitido_quando_nao_informado(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        self::assertStringNotContainsString('<interm>', $xml);
+    }
+
+    public function test_intermediario_pj_com_endereco_emite_grupo_completo(): void
+    {
+        $endereco = new Endereco('Av Paulista', '1000', 'Bela Vista', '01310100', '3550308', 'SP');
+        $intermediario = new \PhpNfseNacional\DTO\Intermediario(
+            documento: '12345678000195',
+            nome: 'MARKETPLACE EXEMPLO LTDA',
+            endereco: $endereco,
+            email: 'contato@marketplace.com',
+            telefone: '(11) 99999-8888',
+            inscricaoMunicipal: '987654',
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+            $intermediario,
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:interm')->length);
+        self::assertSame('12345678000195', $xpath->query('//n:interm/n:CNPJ')->item(0)?->nodeValue);
+        self::assertSame('987654', $xpath->query('//n:interm/n:IM')->item(0)?->nodeValue);
+        self::assertSame('MARKETPLACE EXEMPLO LTDA', $xpath->query('//n:interm/n:xNome')->item(0)?->nodeValue);
+        self::assertSame('Av Paulista', $xpath->query('//n:interm/n:end/n:xLgr')->item(0)?->nodeValue);
+        self::assertSame('11999998888', $xpath->query('//n:interm/n:fone')->item(0)?->nodeValue);
+        self::assertSame('contato@marketplace.com', $xpath->query('//n:interm/n:email')->item(0)?->nodeValue);
+    }
+
+    public function test_intermediario_pf_emite_CPF(): void
+    {
+        $intermediario = new \PhpNfseNacional\DTO\Intermediario(
+            documento: '12345678909',
+            nome: 'AGENTE INTERMEDIARIO',
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+            $intermediario,
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('12345678909', $xpath->query('//n:interm/n:CPF')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:interm/n:CNPJ')->length);
+        self::assertSame(0, $xpath->query('//n:interm/n:end')->length); // sem endereço
+    }
+
+    public function test_intermediario_posicao_entre_toma_e_serv(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $intermediario = new \PhpNfseNacional\DTO\Intermediario(
+            documento: '12345678000195',
+            nome: 'INTERM',
+            endereco: $endereco,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+            $intermediario,
+        );
+
+        $posToma = strpos($xml, '<toma>');
+        $posInterm = strpos($xml, '<interm>');
+        $posServ = strpos($xml, '<serv>');
+
+        self::assertNotFalse($posToma);
+        self::assertNotFalse($posInterm);
+        self::assertNotFalse($posServ);
+        self::assertLessThan($posInterm, $posToma);
+        self::assertLessThan($posServ, $posInterm);
+    }
+
+    public function test_intermediario_DTO_rejeita_documento_invalido(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('Documento do intermediário inválido');
+
+        new \PhpNfseNacional\DTO\Intermediario(
+            documento: '123',
+            nome: 'X',
+        );
+    }
+
+    public function test_intermediario_DTO_rejeita_nome_vazio(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('Nome do intermediário vazio');
+
+        new \PhpNfseNacional\DTO\Intermediario(
+            documento: '12345678000195',
+            nome: '   ',
+        );
+    }
+
+    public function test_intermediario_DTO_rejeita_email_invalido(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('Email do intermediário inválido');
+
+        new \PhpNfseNacional\DTO\Intermediario(
+            documento: '12345678000195',
+            nome: 'INTERM',
+            email: 'isso-nao-eh-email',
+        );
+    }
+
     public function test_tribMun_ordem_dos_filhos_segue_schema(): void
     {
         // Schema obriga: tribISSQN → cPaisResult? → BM? → exigSusp? →
@@ -785,7 +944,7 @@ final class DpsBuilderTest extends TestCase
         );
         $es = new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(
             tipo: \PhpNfseNacional\Enums\TipoExigibilidadeSuspensa::ProcessoAdministrativo,
-            numeroProcesso: 'PA-001/2026',
+            numeroProcesso: '000000000000000000000000000001', // 30 dígitos
         );
         $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(

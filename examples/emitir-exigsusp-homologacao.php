@@ -85,17 +85,15 @@ $servico = new Servico(
     codigoMunicipioPrestacao: getEnvOrDie('PRESTADOR_CMUN'),
 );
 
-// Número de processo. O XSD do leiaute define o tipo
-// `TSNumProcExigSuspensa` com pattern restritivo (cStat=1235).
-// Empiricamente confirmado que NÃO aceita:
-//   - CNJ formatado: '5001234-56.2026.8.11.0037'
-//   - CNJ só dígitos: '50012345620268110037'
-// Pattern exato pendente de descoberta — provavelmente formato
-// administrativo específico da Receita Federal/CNJ. Usando placeholder
-// alfanumérico.
+// Pattern XSD oficial confirmado em docs/schemas/1.01/tiposSimples_v1.01.xsd:
+//   TSNumProcExigSuspensa = [0-9]{30}  (exatamente 30 dígitos)
+//
+// O leiaute não documenta a semântica dos 30 dígitos. Convenção comum
+// é CNJ (20 dígitos) + 10 zeros de padding. Aqui usamos um placeholder
+// fictício; em produção use o número real fornecido pelo município.
 $exigSusp = new ExigibilidadeSuspensa(
     tipo: TipoExigibilidadeSuspensa::ProcessoJudicial,
-    numeroProcesso: getenv('NPROCESSO') ?: 'PROC-001/2026',
+    numeroProcesso: getenv('NPROCESSO') ?: '500123456202681100370000000000',
 );
 
 $valores = new Valores(

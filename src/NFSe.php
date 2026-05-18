@@ -14,6 +14,7 @@ use PhpNfseNacional\Danfse\DanfseDados;
 use PhpNfseNacional\Dps\DpsBuilder;
 use PhpNfseNacional\Dps\EventoBuilder;
 use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\Intermediario;
 use PhpNfseNacional\DTO\MotivoCancelamento;
 use PhpNfseNacional\DTO\MotivoRejeicao;
 use PhpNfseNacional\DTO\MotivoSubstituicao;
@@ -101,8 +102,15 @@ final class NFSe
         Tomador $tomador,
         Servico $servico,
         Valores $valores,
+        ?Intermediario $intermediario = null,
     ): SefinResposta {
-        return $this->emissaoService->emitir($identificacao, $tomador, $servico, $valores);
+        return $this->emissaoService->emitir(
+            $identificacao,
+            $tomador,
+            $servico,
+            $valores,
+            $intermediario,
+        );
     }
 
     // ───────── Consulta ─────────
@@ -213,6 +221,17 @@ final class NFSe
     public function listarEventos(string $chaveAcesso): array
     {
         return $this->downloadService->listarEventosNfse($chaveAcesso);
+    }
+
+    /**
+     * True se a NFS-e tem evento de **CANCELAMENTO** ou **SUBSTITUICAO**
+     * vinculado. Forma canônica de detectar cancelamento — `consultar()`
+     * retorna cStat=100 mesmo após cancelar (cancelamento é evento, não
+     * altera status da emissão original).
+     */
+    public function estaCancelada(string $chaveAcesso): bool
+    {
+        return $this->downloadService->nfseEstaCancelada($chaveAcesso);
     }
 
     // ───────── DFe (Distribuição de Documentos Eletrônicos) ─────────

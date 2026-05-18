@@ -9,6 +9,7 @@ use DOMDocument;
 use DOMElement;
 use PhpNfseNacional\Config;
 use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\Intermediario;
 use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
@@ -59,6 +60,7 @@ final class DpsBuilder
         Tomador $tomador,
         Servico $servico,
         Valores $valores,
+        ?Intermediario $intermediario = null,
     ): string {
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->preserveWhiteSpace = false;
@@ -72,10 +74,14 @@ final class DpsBuilder
         $infDPS->setAttribute('Id', $this->gerarDpsId($identificacao));
         $dps->appendChild($infDPS);
 
-        // Grupos obrigatórios em ordem do XSD
+        // Grupos obrigatórios em ordem do XSD. Ordem oficial (V1.00.02):
+        //   cabecalho → prest → toma? → interm? → serv → valores → IBSCBS?
         $this->appendCabecalho($infDPS, $identificacao);
         $this->appendPrestador($infDPS, $valores);
         $this->appendTomador($infDPS, $tomador);
+        if ($intermediario !== null) {
+            $this->appendIntermediario($infDPS, $intermediario);
+        }
         $this->appendServico($infDPS, $servico);
         $this->appendValores($infDPS, $valores);
         if ($this->config->incluirIbsCbs) {
@@ -306,6 +312,79 @@ final class DpsBuilder
         }
 
         $infDPS->appendChild($toma);
+    }
+
+    /**
+     * Grupo `<interm>` (Intermediário da operação) — opcional no DPS,
+     * posicionado entre `<toma>` e `<serv>` conforme leiaute SefinNacional
+     * V1.00.02 (linhas 295-325).
+     *
+     * Ordem dos filhos espelha `<toma>`: CPF/CNPJ → IM → xNome → end? →
+     * fone? → email?. Endereço também é opcional (`0-1`), diferente do
+     * tomador onde costuma ser obrigatório por convenção SEFIN.
+     */
+    private function appendIntermediario(DOMElement $infDPS, Intermediario $intermediario): void
+    {
+        $doc = $infDPS->ownerDocument;
+        if ($doc === null) {
+            return;
+        }
+
+        $interm = $this->el($doc, 'interm');
+
+        // CPF ou CNPJ (xs:choice)
+        if ($intermediario->ehPessoaFisica()) {
+            $interm->appendChild($this->el($doc, 'CPF', $intermediario->documento));
+        } else {
+            $interm->appendChild($this->el($doc, 'CNPJ', $intermediario->documento));
+        }
+
+        if ($intermediario->inscricaoMunicipal !== null && $intermediario->inscricaoMunicipal !== '') {
+            $interm->appendChild($this->el($doc, 'IM', $intermediario->inscricaoMunicipal));
+        }
+
+        $interm->appendChild($this->el($doc, 'xNome',
+            TextoSanitizador::paraNFSe($intermediario->nome, 150),
+        ));
+
+        if ($intermediario->endereco !== null) {
+            $end = $this->el($doc, 'end');
+            $endNac = $this->el($doc, 'endNac');
+            $endNac->appendChild($this->el($doc, 'cMun', $intermediario->endereco->codigoMunicipioIbge));
+            $endNac->appendChild($this->el($doc, 'CEP',
+                preg_replace('/\D/', '', $intermediario->endereco->cep) ?? '',
+            ));
+            $end->appendChild($endNac);
+
+            $end->appendChild($this->el($doc, 'xLgr',
+                TextoSanitizador::paraNFSe($intermediario->endereco->logradouro, 255),
+            ));
+            $end->appendChild($this->el($doc, 'nro',
+                TextoSanitizador::paraNFSe($intermediario->endereco->numero, 60) ?: 'S/N',
+            ));
+            if ($intermediario->endereco->complemento !== null && $intermediario->endereco->complemento !== '') {
+                $end->appendChild($this->el($doc, 'xCpl',
+                    TextoSanitizador::paraNFSe($intermediario->endereco->complemento, 156),
+                ));
+            }
+            $end->appendChild($this->el($doc, 'xBairro',
+                TextoSanitizador::paraNFSe($intermediario->endereco->bairro, 60),
+            ));
+
+            $interm->appendChild($end);
+        }
+
+        if ($intermediario->telefone !== null && $intermediario->telefone !== '') {
+            $foneDigitos = preg_replace('/\D/', '', $intermediario->telefone) ?? '';
+            if ($foneDigitos !== '') {
+                $interm->appendChild($this->el($doc, 'fone', $foneDigitos));
+            }
+        }
+        if ($intermediario->email !== null && $intermediario->email !== '') {
+            $interm->appendChild($this->el($doc, 'email', $intermediario->email));
+        }
+
+        $infDPS->appendChild($interm);
     }
 
     private function appendServico(DOMElement $infDPS, Servico $servico): void
