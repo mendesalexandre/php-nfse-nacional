@@ -159,9 +159,15 @@ final class DanfseGenerator
             $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
         }
 
-        // Direita — Município / Ambiente Gerador / Tipo de Ambiente
+        // Direita — Município / Ambiente / Tipo. A coluna direita do
+        // cabeçalho vai do x=15.62cm até o início do QR Code (x=17.48cm),
+        // total 1.76cm úteis. Textos curtos são obrigatórios para não
+        // invadir o QR. A marca d'água central comunica o ambiente em
+        // homologação.
         $xDir = $marginX + DanfseLayout::cmToMm(15.62);
-        $larguraDir = DanfseLayout::cmToMm(5.09 - (DanfseLayout::QR_TAMANHO_CM + 0.3));
+        $larguraDir = DanfseLayout::cmToMm(
+            DanfseLayout::QR_X_CM - 15.62 - 0.1, // gap de 0.1cm do QR
+        );
 
         $municipio = ($dados->prestador['municipio'] ?? '-')
             . ' - ' . ($dados->prestador['uf'] ?? '-');
@@ -169,16 +175,14 @@ final class DanfseGenerator
         $this->pdf->SetXY($xDir, $y + 0.5);
         $this->pdf->Cell($larguraDir, 3, 'Município: ' . $municipio, 0, 0, 'L');
 
-        $ambiente = ((int) ($dados->identificacao['ambiente_gerador'] ?? 0) === 1)
-            ? 'Sistema Nacional'
-            : 'Sistema Nacional';
+        $ambiente = 'Sistema Nacional';
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CABECALHO_AMBIENTE);
         $this->pdf->SetXY($xDir, $y + 4);
-        $this->pdf->Cell($larguraDir, 2.5, 'Ambiente Gerador: ' . $ambiente, 0, 0, 'L');
+        $this->pdf->Cell($larguraDir, 2.5, 'Ambiente: ' . $ambiente, 0, 0, 'L');
 
-        $tipoAmb = $dados->homologacao ? 'Produção Restrita (Homologação)' : 'Produção';
+        $tipoAmb = $dados->homologacao ? 'Homologação' : 'Produção';
         $this->pdf->SetXY($xDir, $y + 6.5);
-        $this->pdf->Cell($larguraDir, 2.5, 'Tipo de Ambiente: ' . $tipoAmb, 0, 0, 'L');
+        $this->pdf->Cell($larguraDir, 2.5, 'Tipo: ' . $tipoAmb, 0, 0, 'L');
 
         // QR Code à direita — coluna 4 (X=15.62 a 20.40 = 4.78cm de largura).
         // Item 2.4.3 da NT: X=17.48, Y=1.67, mínimo 1.52x1.52cm.
@@ -219,9 +223,15 @@ final class DanfseGenerator
 
     private function renderDadosNfse(DanfseDados $dados): void
     {
-        $alturaLinha = 0.65;
+        // Altura igualada aos demais blocos (3-10) para visual consistente.
+        $alturaLinha = 0.63;
 
-        // Linha 1 — CHAVE DE ACESSO (largura até o QR Code)
+        // BLOCO 2 usa as 3 primeiras colunas do grid padrão da página
+        // (cells de 5.09cm + 0.02cm gap = mesmas posições dos demais blocos).
+        // A 4ª coluna não é usada porque o QR Code do cabeçalho se estende
+        // verticalmente sobre essa área. Grid: 0.30 | 5.41 | 10.51, fim 15.60.
+
+        // Linha 1 — CHAVE DE ACESSO (3 colunas, largura 15.30)
         $this->renderCelula(0.30, $this->cursorY, 15.30, $alturaLinha,
             'CHAVE DE ACESSO DA NFS-E',
             DanfseLayout::formatarChave($dados->chave()),
@@ -235,7 +245,7 @@ final class DanfseGenerator
         $this->renderCelula(5.41, $this->cursorY, 5.09, $alturaLinha, 'COMPETÊNCIA DA NFS-E',
             DanfseLayout::formatarData($dados->identificacao['data_competencia'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true);
-        $this->renderCelula(10.51, $this->cursorY, 4.79, $alturaLinha, 'DATA E HORA DA EMISSÃO DA NFS-E',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $alturaLinha, 'DATA E HORA DA EMISSÃO DA NFS-E',
             DanfseLayout::formatarDataHora($dados->identificacao['data_emissao_nfse'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true);
         $this->cursorY += $alturaLinha;
@@ -247,7 +257,7 @@ final class DanfseGenerator
         $this->renderCelula(5.41, $this->cursorY, 5.09, $alturaLinha, 'SÉRIE DA DPS',
             $dados->identificacao['serie'] ?? '-',
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true);
-        $this->renderCelula(10.51, $this->cursorY, 4.79, $alturaLinha, 'DATA E HORA DA EMISSÃO DA DPS',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $alturaLinha, 'DATA E HORA DA EMISSÃO DA DPS',
             DanfseLayout::formatarDataHora($dados->identificacao['data_emissao_dps'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true);
         $this->cursorY += $alturaLinha;
@@ -261,7 +271,7 @@ final class DanfseGenerator
             $this->labelSituacao((int) ($dados->identificacao['cStat'] ?? 0)),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
             sombreado: true);
-        $this->renderCelula(10.51, $this->cursorY, 4.79, $alturaLinha, 'FINALIDADE',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $alturaLinha, 'FINALIDADE',
             $this->labelFinalidade($dados->identificacao['finalidade'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
             sombreado: true);
@@ -311,16 +321,21 @@ final class DanfseGenerator
             }
         }
 
-        // Linha 1 — CNPJ/CPF/NIF | Indicador Municipal | Telefone
+        // Layout conforme NT 008/2026 página 17 (PRESTADOR). Grid de 4
+        // colunas estritas — Telefone na coluna 4 (X=15.62), espaço entre
+        // IM (col 2) e Telefone (col 4) fica em branco propositalmente,
+        // conforme spec oficial.
+
+        // Linha 1 — CNPJ/CPF/NIF (col 1) | Indicador Municipal (col 2) | [vazio col 3] | Telefone (col 4)
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($p['documento']));
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal',
             $p['inscricao_municipal'] ?? '-');
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Telefone',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($p['telefone']));
         $this->cursorY += $h;
 
-        // Linha 2 — Nome | Município/UF | Código IBGE/CEP
+        // Linha 2 — Nome (cols 1-2) | Município/UF (col 3) | Código IBGE/CEP (col 4)
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
             $p['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
@@ -329,17 +344,17 @@ final class DanfseGenerator
             ($p['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($p['cep']));
         $this->cursorY += $h;
 
-        // Linha 3 — Endereço | E-mail
+        // Linha 3 — Endereço (cols 1-2) | E-mail (cols 3-4)
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Endereço',
             $this->montarEndereco($p));
         $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'E-mail',
             $p['email'] ?? '-');
         $this->cursorY += $h;
 
-        // Linha 4 — Simples Nacional | Regime de Apuração Tributária pelo SN
+        // Linha 4 — Simples Nacional (col 1) | [vazio col 2] | Regime Apuração SN (cols 3-4)
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Simples Nacional na Data de Competência',
             $this->labelSimplesNacional($p['opta_simples'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 15.29, $h, 'Regime de Apuração Tributária pelo SN',
+        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Regime de Apuração Tributária pelo SN',
             $p['regime_apuracao_sn'] ?? '-');
         $this->cursorY += $h;
     }
@@ -360,11 +375,13 @@ final class DanfseGenerator
         $this->iniciarBloco('TOMADOR / ADQUIRENTE');
 
         $h = 0.63;
+        // NT 008/2026 página 17 (TOMADOR). Telefone na col 4 (X=15.62),
+        // col 3 fica em branco propositalmente.
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($t['documento']));
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal',
             $t['inscricao_municipal'] ?? '-');
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Telefone',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($t['telefone']));
         $this->cursorY += $h;
 
@@ -403,9 +420,11 @@ final class DanfseGenerator
         $this->iniciarBloco('DESTINATÁRIO DA OPERAÇÃO');
 
         $h = 0.63;
+        // NT 008/2026 página 17 (DESTINATÁRIO). Telefone na col 4
+        // (X=15.62), cols 2-3 ficam em branco propositalmente.
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($d['documento']));
-        $this->renderCelula(5.41, $this->cursorY, 10.19, $h, 'Telefone',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($d['telefone']));
         $this->cursorY += $h;
 
@@ -436,11 +455,13 @@ final class DanfseGenerator
 
         $i = $dados->intermediario;
         $h = 0.63;
+        // NT 008/2026 página 17 (INTERMEDIÁRIO). Telefone na col 4
+        // (X=15.62), col 3 fica em branco propositalmente.
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($i['documento'] ?? null));
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal',
             $i['inscricao_municipal'] ?? '-');
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Telefone',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($i['telefone'] ?? null));
         $this->cursorY += $h;
 
