@@ -5,6 +5,35 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-05-18
+
+### Adicionado — Onda 2 (parte 2/2): infoCompl, deduções, PIS/COFINS
+
+- **`<infoCompl>` (Informações Complementares)** — grupo opcional dentro
+  de `<serv>`. DTO `InformacoesComplementares` com 3 campos opcionais:
+  `xInfComp` (texto livre até 2000 chars), `idDocTec`, `docRef`. Adicionado
+  como parâmetro opcional em `Servico::__construct(...)`. Posicionado como
+  ÚLTIMO filho de `<serv>` conforme TCServ no XSD.
+- **`<documentos>/<docDedRed>` (Deduções com documentos referenciados)** —
+  DTO `DocumentoDeducao` cobre o caso comum: choice de identificador
+  (`chNFSe` 50 dig | `chNFe` 44 dig | `nDoc` texto livre) + `tpDedRed`
+  (enum `TipoDeducaoReducao` com 9 cases) + `dtEmiDoc` + `vDedutivelRedutivel`
+  + `vDeducaoReducao`. Enum `Outras` exige `descricaoOutraDeducao`.
+  Campo `Valores::$documentosDeducao` (array) — quando preenchido, emite
+  `<documentos>` no lugar de `<vDR>` (são choice no schema; validado XOR
+  no construtor de `Valores`). Grupo `<fornec>` (fornecedor do documento)
+  reservado para iteração futura.
+- **`<tribFed>` (Tributação Federal)** — grupo opcional dentro de `<trib>`,
+  posicionado entre `<tribMun>` e `<totTrib>`. Inclui:
+  - **`<piscofins>`** — DTO `TributacaoPisCofins` + enum `CstPisCofins`
+    (10 cases 00-09) + enum `TipoRetencaoPisCofins` (Retido / NaoRetido).
+    Cobre CST, BC, alíquotas, valores apurados e indicação de retenção.
+  - **Retenções federais flat** — `Valores::$valorRetidoCp`,
+    `$valorRetidoIrrf`, `$valorRetidoCsll`. Vão em `<vRetCP>`, `<vRetIRRF>`,
+    `<vRetCSLL>`.
+- **19 testes novos** cobrindo todos os DTOs, validações XOR/range, ordem
+  dos filhos e fluxo emissão. Suite total: 267/267.
+
 ## [0.12.0] — 2026-05-18
 
 ### Adicionado

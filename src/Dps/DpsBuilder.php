@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DOMDocument;
 use DOMElement;
 use PhpNfseNacional\Config;
+use PhpNfseNacional\DTO\DocumentoDeducao;
 use PhpNfseNacional\DTO\Identificacao;
 use PhpNfseNacional\DTO\Intermediario;
 use PhpNfseNacional\DTO\Servico;
@@ -411,6 +412,30 @@ final class DpsBuilder
         $cServ->appendChild($this->el($doc, 'cNBS', $servico->cNBS));
         $serv->appendChild($cServ);
 
+        // <infoCompl> é o ÚLTIMO filho de <serv> conforme TCServ
+        // (tiposComplexos_v1.01.xsd linhas 1304-1311). Emite apenas se
+        // o DTO foi passado e tem pelo menos 1 campo preenchido.
+        if ($servico->infoCompl !== null && $servico->infoCompl->temConteudo()) {
+            $infoCompl = $this->el($doc, 'infoCompl');
+            // Ordem dos filhos conforme TCInfoCompl: idDocTec → docRef → xInfComp.
+            if ($servico->infoCompl->idDocTec !== null) {
+                $infoCompl->appendChild($this->el($doc, 'idDocTec',
+                    TextoSanitizador::paraNFSe($servico->infoCompl->idDocTec, 40),
+                ));
+            }
+            if ($servico->infoCompl->docRef !== null) {
+                $infoCompl->appendChild($this->el($doc, 'docRef',
+                    TextoSanitizador::paraNFSe($servico->infoCompl->docRef, 255),
+                ));
+            }
+            if ($servico->infoCompl->xInfComp !== null) {
+                $infoCompl->appendChild($this->el($doc, 'xInfComp',
+                    TextoSanitizador::paraNFSe($servico->infoCompl->xInfComp, 2000),
+                ));
+            }
+            $serv->appendChild($infoCompl);
+        }
+
         $infDPS->appendChild($serv);
     }
 
@@ -439,8 +464,18 @@ final class DpsBuilder
             $valNode->appendChild($vDesc);
         }
 
-        // vDedRed (opcional) — escolha de pDR|vDR|documentos. Usamos vDR.
-        if ($valores->deducoesReducoes > 0) {
+        // vDedRed (opcional) — choice no schema: pDR | vDR | documentos.
+        // pDR (percentual) ainda não exposto; vDR e documentos sim.
+        // O DTO Valores já valida que ambos não coexistem.
+        if (count($valores->documentosDeducao) > 0) {
+            $vDedRed = $this->el($doc, 'vDedRed');
+            $docs = $this->el($doc, 'documentos');
+            foreach ($valores->documentosDeducao as $dd) {
+                $docs->appendChild($this->montarDocDedRed($doc, $dd));
+            }
+            $vDedRed->appendChild($docs);
+            $valNode->appendChild($vDedRed);
+        } elseif ($valores->deducoesReducoes > 0) {
             $vDedRed = $this->el($doc, 'vDedRed');
             $vDedRed->appendChild($this->el($doc, 'vDR',
                 number_format($valores->deducoesReducoes, 2, '.', ''),
@@ -510,6 +545,73 @@ final class DpsBuilder
         ));
         $trib->appendChild($tribMun);
 
+        // <tribFed> (opcional) — PIS/COFINS + retenções federais
+        // (CP, IRRF, CSLL). Ordem: piscofins? → vRetCP? → vRetIRRF? → vRetCSLL?
+        // (CSV linhas 269-685). Emite só se algum campo está preenchido.
+        $temTribFed = $valores->tributacaoPisCofins !== null
+            || $valores->valorRetidoCp !== null
+            || $valores->valorRetidoIrrf !== null
+            || $valores->valorRetidoCsll !== null;
+
+        if ($temTribFed) {
+            $tribFed = $this->el($doc, 'tribFed');
+
+            if ($valores->tributacaoPisCofins !== null) {
+                $pc = $valores->tributacaoPisCofins;
+                $piscofinsNode = $this->el($doc, 'piscofins');
+                $piscofinsNode->appendChild($this->el($doc, 'CST', $pc->cst->value));
+                if ($pc->valorBaseCalculo !== null) {
+                    $piscofinsNode->appendChild($this->el($doc, 'vBCPisCofins',
+                        number_format($pc->valorBaseCalculo, 2, '.', ''),
+                    ));
+                }
+                if ($pc->aliquotaPis !== null) {
+                    $piscofinsNode->appendChild($this->el($doc, 'pAliqPis',
+                        number_format($pc->aliquotaPis, 2, '.', ''),
+                    ));
+                }
+                if ($pc->aliquotaCofins !== null) {
+                    $piscofinsNode->appendChild($this->el($doc, 'pAliqCofins',
+                        number_format($pc->aliquotaCofins, 2, '.', ''),
+                    ));
+                }
+                if ($pc->valorPis !== null) {
+                    $piscofinsNode->appendChild($this->el($doc, 'vPis',
+                        number_format($pc->valorPis, 2, '.', ''),
+                    ));
+                }
+                if ($pc->valorCofins !== null) {
+                    $piscofinsNode->appendChild($this->el($doc, 'vCofins',
+                        number_format($pc->valorCofins, 2, '.', ''),
+                    ));
+                }
+                if ($pc->tipoRetencao !== null) {
+                    $piscofinsNode->appendChild($this->el($doc, 'tpRetPisCofins',
+                        (string) $pc->tipoRetencao->value,
+                    ));
+                }
+                $tribFed->appendChild($piscofinsNode);
+            }
+
+            if ($valores->valorRetidoCp !== null) {
+                $tribFed->appendChild($this->el($doc, 'vRetCP',
+                    number_format($valores->valorRetidoCp, 2, '.', ''),
+                ));
+            }
+            if ($valores->valorRetidoIrrf !== null) {
+                $tribFed->appendChild($this->el($doc, 'vRetIRRF',
+                    number_format($valores->valorRetidoIrrf, 2, '.', ''),
+                ));
+            }
+            if ($valores->valorRetidoCsll !== null) {
+                $tribFed->appendChild($this->el($doc, 'vRetCSLL',
+                    number_format($valores->valorRetidoCsll, 2, '.', ''),
+                ));
+            }
+
+            $trib->appendChild($tribFed);
+        }
+
         // totTrib é um *choice* no leiaute (pTotTrib | vTotTrib | indTotTrib).
         // Prestador dispensado de ISSQN (MEI, isento, imune) usa indTotTrib=0
         // ("valor total dos tributos não informado") — mesmo padrão do
@@ -575,4 +677,51 @@ final class DpsBuilder
         $infDPS->appendChild($ibscbs);
     }
 
+    /**
+     * Monta um `<docDedRed>` (documento referenciado pra dedução/redução).
+     *
+     * Ordem dos filhos conforme TCDocDedRed (V1.00.02 linhas 522-569):
+     *   choice referência (chNFSe | chNFe | nDoc) →
+     *   tpDedRed →
+     *   xDescOutDed? →
+     *   dtEmiDoc →
+     *   vDedutivelRedutivel →
+     *   vDeducaoReducao →
+     *   (fornec? — não exposto nesta versão)
+     */
+    private function montarDocDedRed(\DOMDocument $doc, DocumentoDeducao $dd): DOMElement
+    {
+        $node = $this->el($doc, 'docDedRed');
+
+        // Choice de identificação (XOR validado no DTO)
+        if ($dd->chaveNfse !== null) {
+            $node->appendChild($this->el($doc, 'chNFSe', $dd->chaveNfse));
+        } elseif ($dd->chaveNfe !== null) {
+            $node->appendChild($this->el($doc, 'chNFe', $dd->chaveNfe));
+        } else {
+            $node->appendChild($this->el($doc, 'nDoc',
+                TextoSanitizador::paraNFSe((string) $dd->numeroDocumento, 255),
+            ));
+        }
+
+        $node->appendChild($this->el($doc, 'tpDedRed', $dd->tipo->value));
+
+        if ($dd->descricaoOutraDeducao !== null) {
+            $node->appendChild($this->el($doc, 'xDescOutDed',
+                TextoSanitizador::paraNFSe($dd->descricaoOutraDeducao, 150),
+            ));
+        }
+
+        $node->appendChild($this->el($doc, 'dtEmiDoc',
+            $dd->dataEmissaoDocumento->format('Y-m-d'),
+        ));
+        $node->appendChild($this->el($doc, 'vDedutivelRedutivel',
+            number_format($dd->valorDedutivel, 2, '.', ''),
+        ));
+        $node->appendChild($this->el($doc, 'vDeducaoReducao',
+            number_format($dd->valorDeducao, 2, '.', ''),
+        ));
+
+        return $node;
+    }
 }
