@@ -187,15 +187,18 @@ final class DanfseLayout
     /**
      * Labels do tipo de tributação do ISSQN (tribISSQN).
      *
+     * Mapeamento conforme leiaute oficial SefinNacional V1.00.02
+     * (Anexo IV, linha 256 — `tribMun/tribISSQN`).
+     *
      * @return array<int, string>
      */
     public static function tipoTributacaoIssqn(): array
     {
         return [
             1 => 'Operação Tributável',
-            2 => 'Exportação de Serviço',
-            3 => 'Não Incidência',
-            4 => 'Imunidade',
+            2 => 'Imunidade',
+            3 => 'Exportação de Serviço',
+            4 => 'Não Incidência',
         ];
     }
 
