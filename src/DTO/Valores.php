@@ -61,6 +61,22 @@ final class Valores
         public readonly float $aliquotaIssqnPercentual,
         public readonly bool $issqnRetido = false,
         public readonly float $descontoIncondicionado = 0.0,
+        /**
+         * Prestador é dispensado do ISSQN apurado (MEI, isento, imune).
+         *
+         * Quando true:
+         *   - O DpsBuilder pula a validação cruzada "BC > 0 com ISSQN = 0"
+         *     (cenário válido pra MEI: presta serviço, recebe o valor,
+         *     mas não recolhe ISSQN no município).
+         *   - O grupo `<totTrib>` é emitido como `<indTotTrib>0</indTotTrib>`
+         *     (valor total dos tributos NÃO informado) em vez de
+         *     `<pTotTrib>` — mesmo padrão que o emissor web do SEFIN
+         *     utiliza para CNPJ MEI.
+         *
+         * Os demais campos (`aliquotaIssqnPercentual`, etc.) continuam
+         * exigidos para os cálculos internos, mas não vão ao XML.
+         */
+        public readonly bool $dispensadoIssqn = false,
     ) {
         $errors = [];
 

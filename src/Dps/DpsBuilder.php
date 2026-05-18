@@ -353,25 +353,31 @@ final class DpsBuilder
         ));
         $trib->appendChild($tribMun);
 
-        // totTrib > pTotTrib (obrigatório a partir da SefinNacional 1.6)
+        // totTrib é um *choice* no leiaute (pTotTrib | vTotTrib | indTotTrib).
+        // Prestador dispensado de ISSQN (MEI, isento, imune) usa indTotTrib=0
+        // ("valor total dos tributos não informado") — mesmo padrão do
+        // emissor web do SEFIN para CNPJ MEI.
         //
-        // Alíquota com **2 casas decimais fixas** (`number_format(..., 2)`).
-        // Diferente da NF-e (NT 03.14, 4 casas), o leiaute SefinNacional 1.6
-        // restringe `pTotTrib*` ao tipo `TSDec3V2` — exige exatamente 2
-        // casas decimais. Tentar enviar `4.0000` ou `3.5125` resulta em
-        // E1235 ("Pattern constraint failed"). Confirmado empiricamente em
-        // homologação 13/05/2026.
-        //
-        // Pra alíquotas reduzidas como 3.5125%, é necessário arredondar
-        // antes (round() default é HALF_UP: 3.5125 → 3.51).
-        $pTot = $this->el($doc, 'pTotTrib');
-        $pTot->appendChild($this->el($doc, 'pTotTribFed', '0.00'));
-        $pTot->appendChild($this->el($doc, 'pTotTribEst', '0.00'));
-        $pTot->appendChild($this->el($doc, 'pTotTribMun',
-            number_format($valores->aliquotaIssqnPercentual, 2, '.', ''),
-        ));
+        // Para os demais, emite pTotTrib com pTotTribMun em 2 casas decimais
+        // fixas. O leiaute SefinNacional 1.6 restringe `pTotTrib*` ao tipo
+        // `TSDec3V2`; enviar `4.0000` ou `3.5125` resulta em E1235 ("Pattern
+        // constraint failed"). Confirmado empiricamente em homologação
+        // 13/05/2026. Pra alíquotas reduzidas (ex: 3.5125%) o caller deve
+        // arredondar antes (round() default HALF_UP: 3.5125 → 3.51).
         $totTrib = $this->el($doc, 'totTrib');
-        $totTrib->appendChild($pTot);
+
+        if ($valores->dispensadoIssqn) {
+            $totTrib->appendChild($this->el($doc, 'indTotTrib', '0'));
+        } else {
+            $pTot = $this->el($doc, 'pTotTrib');
+            $pTot->appendChild($this->el($doc, 'pTotTribFed', '0.00'));
+            $pTot->appendChild($this->el($doc, 'pTotTribEst', '0.00'));
+            $pTot->appendChild($this->el($doc, 'pTotTribMun',
+                number_format($valores->aliquotaIssqnPercentual, 2, '.', ''),
+            ));
+            $totTrib->appendChild($pTot);
+        }
+
         $trib->appendChild($totTrib);
 
         $valNode->appendChild($trib);
@@ -425,8 +431,14 @@ final class DpsBuilder
         // dedução. Mantido como nota interna pra depuração.
         // (Não adiciona erro porque é auto-corrigido.)
 
-        // ISSQN apurado deve ser positivo se há vBC > 0
-        if ($valores->baseCalculo() > 0 && $valores->valorIssqn() <= 0) {
+        // ISSQN apurado deve ser positivo se há vBC > 0, exceto quando o
+        // prestador é dispensado (MEI, isento, imune) — nesse caso o XML
+        // emite indTotTrib=0 e o SEFIN não cobra ISSQN no município.
+        if (
+            ! $valores->dispensadoIssqn
+            && $valores->baseCalculo() > 0
+            && $valores->valorIssqn() <= 0
+        ) {
             $errors[] = sprintf(
                 'ISSQN apurado = 0 com BC = %.2f e alíquota = %.2f%% — confira os valores',
                 $valores->baseCalculo(),

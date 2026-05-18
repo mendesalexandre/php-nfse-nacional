@@ -389,4 +389,88 @@ final class DpsBuilderTest extends TestCase
         $prestBlock = substr($xml, strpos($xml, '<prest>'), strpos($xml, '</prest>') - strpos($xml, '<prest>'));
         self::assertStringContainsString('<IM>12345</IM>', $prestBlock);
     }
+
+    public function test_dispensadoIssqn_emite_indTotTrib_no_lugar_de_pTotTrib(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 800.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+                dispensadoIssqn: true,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:totTrib/n:indTotTrib')->length);
+        self::assertSame('0', $xpath->query('//n:totTrib/n:indTotTrib')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:totTrib/n:pTotTrib')->length);
+    }
+
+    public function test_dispensadoIssqn_pula_validacao_BC_sem_ISSQN(): void
+    {
+        // Sem a flag, BC=800 + alíquota=0 estoura "ISSQN apurado = 0 com BC = 800.00"
+        // (cenário válido pra MEI). Com dispensadoIssqn=true, o builder aceita.
+        $builder = new DpsBuilder($this->configPadrao());
+
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 800.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+                dispensadoIssqn: true,
+            ),
+        );
+
+        self::assertNotEmpty($xml);
+    }
+
+    public function test_sem_dispensadoIssqn_ainda_rejeita_BC_sem_ISSQN(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('ISSQN apurado = 0');
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 800.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+            ),
+        );
+    }
+
+    public function test_sem_dispensadoIssqn_emite_pTotTrib_normalmente(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:totTrib/n:pTotTrib/n:pTotTribMun')->length);
+        self::assertSame('4.00', $xpath->query('//n:totTrib/n:pTotTrib/n:pTotTribMun')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:totTrib/n:indTotTrib')->length);
+    }
 }
