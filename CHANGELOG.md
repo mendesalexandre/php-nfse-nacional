@@ -5,11 +5,22 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **`RespostaDfe` ganha métodos derivados** pra responder consultas comuns
+  sobre o lote sem novas chamadas HTTP. Listas por status (`chavesCanceladas`,
+  `chavesConfirmadas`, `chavesRejeitadas`, `chavesSubstituidas`), filtros de
+  itens (`itensNfse`, `itensEvento`), lookup por chave (`foiCancelada`,
+  `eventosDaChave`, `statusPorChave`) e agregação (`agruparPorChave`).
+  Hierarquia de status: SUBSTITUIDA → CANCELADA → REJEITADA → CONFIRMADA →
+  EMITIDA. Filtragem case-insensitive por substring (`CONFIRMACAO_PRESTADOR`,
+  `CONFIRMACAO_TOMADOR`, etc. mapeiam todos para "Confirmada"). 15 testes
+  novos.
+
 ## [0.11.1] — 2026-05-18
 
 ### Corrigido
 - **`DfeService` parser** — capturava só dois dos três campos importantes
-  da resposta do ADN. Smoke real (162 DFes do cartório homologação)
+  da resposta do ADN. Smoke real (162 DFes em homologação)
   revelou:
   - SEFIN devolve `DataHoraGeracao` (não `DataHoraRegistro` como presumido).
     Antes do fix, `ItemDfe::$dataHora` ficava sempre `null`.
@@ -22,14 +33,14 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   pra descompressão sob demanda. Acesso direto ao XML completo de cada
   NFS-e/evento na caixa postal sem chamadas HTTP extras.
 - **`examples/sincronizar-dfe-homologacao.php`** — smoke da operação,
-  validado contra cartório homologação (162 itens em ~1s).
+  validado em homologação (162 itens em ~1s).
 
 ### Notas empíricas
 - `tipoEvento` na resposta ADN vem como **string descritiva**
   (`"CANCELAMENTO"`, `"CONFIRMACAO_PRESTADOR"`, `"REJEICAO_PRESTADOR"`),
   não código numérico (`101101`, etc.). PHPDoc do `ItemDfe::$tipoEvento`
   atualizado com valores empíricos.
-- Caixa postal do cartório de Sinop tem DFes desde 2023 — **sem limite
+- Caixa postal do prestador validado tem DFes desde 2023 — **sem limite
   temporal aparente**. Primeira sincronização (`NSU=0`) puxa todo o
   histórico; chamadas subsequentes com `ultimoNsu` persistido são
   incrementais.
@@ -240,8 +251,8 @@ CNC do município espera para o prestador.
   que indica que o evento e105102 (Cancelamento por Substituição) não
   pode ser enviado via `POST /nfse/{chave}/eventos`. Pode requerer
   endpoint dedicado ou parametrização específica do município.
-  Validado em homologação SEFIN 13/05/2026 (cartório de Sinop —
-  parametrização ainda não habilita esse evento por essa rota).
+  Validado em homologação SEFIN 13/05/2026 — parametrização do
+  município ainda não habilita esse evento por essa rota.
 
 ## [0.5.1] — 2026-05-13
 
@@ -379,11 +390,11 @@ sed -i 's/\$nfse->emissao()->emitir/\$nfse->emitir/g; s/\$nfse->cancelamento()->
   do SEFIN/ADN ("Falha de configuração", geralmente evento não
   habilitado pra município/cenário).
 
-### Validado em homologação SEFIN (cartório de Sinop)
-- ✅ Confirmação do Prestador (e202201) — NFS-e #72, cStat=100
-- ✅ Rejeição do Prestador (e202205, motivo Duplicidade) — NFS-e #73, cStat=100
+### Validado em homologação SEFIN
+- ✅ Confirmação do Prestador (e202201) — cStat=100
+- ✅ Rejeição do Prestador (e202205, motivo Duplicidade) — cStat=100
 - ⚠️ Anulação da Rejeição (e205208) — cStat=999 ("Falha de configuração").
-  Provavelmente parametrização do município de Sinop ainda não habilita
+  Provavelmente parametrização do município ainda não habilita
   esse evento em homologação. Outros municípios podem ter habilitado.
 
 ### Corrigido (descoberto durante teste de manifestação)
@@ -522,15 +533,15 @@ sed -i 's/\$nfse->emissao()->emitir/\$nfse->emitir/g; s/\$nfse->cancelamento()->
 
 ### Achados documentados
 - Achado reforçado: independente do `pTotTribMun` enviado (3.51, 3.56,
-  3.60, 4.00, …), SEFIN sempre aplica `pAliqAplic=4.00` pra cartório
-  de Sinop — confirmando que o campo é puramente declaratório (Lei
+  3.60, 4.00, …), SEFIN sempre aplica o `pAliqAplic` cadastrado pelo
+  município — confirmando que o campo é puramente declaratório (Lei
   12.741/2012).
 - **Limite de retroatividade do convênio:** SEFIN aceita `dhEmi`
   retroativo sem limite fixo de dias. O que limita é (a) **vigência do
   convênio do município** (cStat=38 quando convênio inativo na data) e
   (b) **parametrização tributária histórica** (cStat=440 quando regra de
-  dedução/regime mudou). Pra Sinop especificamente: convênio ativo
-  desde 11/mar/2026 (=63 dias atrás na data do teste).
+  dedução/regime mudou). Pro município validado: convênio ativo
+  há aproximadamente 63 dias na data do teste.
 
 ### Suite
 - 110 testes verdes (+1 novo:
@@ -542,9 +553,9 @@ sed -i 's/\$nfse->emissao()->emitir/\$nfse->emitir/g; s/\$nfse->cancelamento()->
 ### Documentado
 - **Achado importante: `pTotTribMun` é declaratório, não tributário.**
   Validado empiricamente em homologação SEFIN: enviando alíquotas 3.51,
-  3.56 pro cartório de Sinop (LC 116 item 21.01), SEFIN ignorou o valor
-  enviado e usou `pAliqAplic=4.00` (alíquota oficial cadastrada pela
-  prefeitura) pra calcular o ISSQN. Ou seja: o `pTotTribMun` no DPS é
+  3.56 pro prestador testado (LC 116 item 21.01), SEFIN ignorou o valor
+  enviado e usou o `pAliqAplic` oficial cadastrado pela prefeitura
+  pra calcular o ISSQN. Ou seja: o `pTotTribMun` no DPS é
   apenas a "alíquota aproximada de tributos municipais" pra Lei
   12.741/2012 (Transparência Fiscal) — NÃO define a alíquota efetiva
   do ISSQN. A alíquota real vem do cadastro tributário do município
@@ -567,8 +578,8 @@ sed -i 's/\$nfse->emissao()->emitir/\$nfse->emitir/g; s/\$nfse->cancelamento()->
 - **`Tomador::$inscricaoMunicipal`** opcional — quando preenchido, emite
   `<toma><IM>` no DPS conforme leiaute SefinNacional 1.6 (schema TSDestinaDps).
   Útil quando o tomador é PJ no mesmo município do prestador (cruzamento de
-  dados pela prefeitura, imunidade tributária por IM). Em cartório de RI
-  fica null normalmente.
+  dados pela prefeitura, imunidade tributária por IM). Em cartórios de
+  registro de imóveis fica null normalmente.
 
 ### Removido (breaking — pré-1.0)
 - **`Config::ehProducao()`** — método helper redundante. Use comparação direta
