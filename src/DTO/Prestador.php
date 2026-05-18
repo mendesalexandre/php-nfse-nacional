@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\DTO;
 
+use PhpNfseNacional\Enums\RegimeApuracaoSimplesNacional;
 use PhpNfseNacional\Enums\RegimeEspecialTributacao;
 use PhpNfseNacional\Enums\SituacaoSimplesNacional;
 use PhpNfseNacional\Exceptions\ValidationException;
@@ -35,6 +36,16 @@ final class Prestador
         public readonly bool $incentivadorCultural = false,
         public readonly ?string $email = null,
         public readonly ?string $telefone = null,
+        /**
+         * Regime de apuração do Simples Nacional (`<regApTribSN>` do DPS).
+         * Quando informado, o `DpsBuilder` emite o elemento entre
+         * `<opSimpNac>` e `<regEspTrib>` dentro do `<regTrib>` do `<prest>`.
+         *
+         * É necessário quando o município/SEFIN exige a discriminação
+         * de regime para ME/EPP (`opSimpNac=3`). MEI (`opSimpNac=2`)
+         * normalmente recolhe via DAS — o campo pode ficar `null`.
+         */
+        public readonly ?RegimeApuracaoSimplesNacional $regimeApuracaoSN = null,
     ) {
         $this->cnpj = Documento::limpar($cnpj);
         $imNormalizada = $inscricaoMunicipal !== null ? trim($inscricaoMunicipal) : null;

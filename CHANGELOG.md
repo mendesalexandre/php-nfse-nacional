@@ -5,6 +5,27 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **`Servico::cTribNac` e `Servico::cNBS` aceitam enum.** O construtor
+  agora aceita `ListaServicosNacional|string` e `ListaNbs|string` —
+  passar `ListaServicosNacional::S010101` ou a string `'010101'` produz
+  o mesmo resultado. As propriedades públicas continuam `string` (BC
+  preservado). Quem já passava strings cruas segue funcionando sem
+  alterações.
+- **`Prestador::$regimeApuracaoSN` (`?RegimeApuracaoSimplesNacional`).**
+  Quando setado, o `DpsBuilder` emite `<regApTribSN>` no `<regTrib>` do
+  `<prest>`, entre `<opSimpNac>` e `<regEspTrib>`. Default `null` (campo
+  é opcional pelo schema — emitido só quando o caller decide). Necessário
+  quando o município/SEFIN exige discriminação de regime para ME/EPP.
+  Diferente do `gildonei/nfse-nacional`, **não emitimos default mágico**
+  (`"1=Caixa"`) quando ausente: deixamos o cStat do portal sinalizar caso
+  seja obrigatório no contexto, evitando declarações implícitas erradas.
+
+### Notas
+- A flag `Valores::$dispensadoIssqn` (v0.7.0) continua a forma canônica
+  pra MEI dispensado — `regimeApuracaoSN` cobre outro plano (regime de
+  apuração federal/municipal), são complementares.
+
 ## [0.8.0] — 2026-05-18
 
 ### Adicionado
