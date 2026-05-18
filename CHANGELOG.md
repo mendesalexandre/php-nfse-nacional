@@ -5,6 +5,53 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+
+- **Retry automático com backoff exponencial em `baixarPdf()`.** O endpoint
+  ADN `/danfse/{chave}` é conhecidamente instável (confirmado empiricamente:
+  HTTP 502 persistente em homologação). `SefinClient::baixarDanfse()` agora
+  retenta em 502/503/504 e erros de conexão, com backoff `1.5s × tentativa`.
+  Default 3 tentativas; customizável: `baixarPdf($chave, tentativas: 5)`.
+  Códigos 4xx (404, etc.) continuam lançando na primeira (não-transientes).
+
+- **`NFSe::verificarDps($idDps): bool`** — verifica se um DPS já foi enviado
+  ao SEFIN sem baixar o corpo (usa `HEAD /dps/{id}`). Útil pra evitar dupla
+  emissão (cliente que retenta agressivamente, sequencial reutilizado,
+  recovery de crash). Retorna true em 200, false em 404, lança em outros.
+
+- **`NFSe::listarEventos($chave): array`** — lista todos os eventos
+  vinculados a uma NFS-e (cancelamento, substituição, manifestações) via
+  `GET /contribuintes/NFSe/{chave}/Eventos` no ADN. Útil pra auditoria.
+
+- **`NFSe::sincronizarDfe($ultimoNsu, $maxPaginas): RespostaDfe`** —
+  Distribuição de DFe (Documentos Fiscais Eletrônicos). O SEFIN mantém
+  uma "caixa postal" por CNPJ onde guarda eventos vinculados — NFS-es
+  emitidas contra o CNPJ, cancelamentos recebidos, etc.
+
+  Wire format: `GET /contribuintes/DFe/{NSU}?cnpjConsulta=...&lote=true`.
+  Itera paginadamente até esgotar lotes (status `NenhumDocumentoLocalizado`)
+  ou atingir `$maxPaginas` (default 20). Retorna `RespostaDfe` com
+  `itens`, `ultimoNsu` e `temMais`. O caller persiste `ultimoNsu` pra
+  sincronização incremental.
+
+  Novos DTOs em `PhpNfseNacional\Sefin\`: `ItemDfe` e `RespostaDfe`.
+  Novo serviço `Services\DfeService` (DI granular).
+
+- **Fallback de extração de CNPJ pelo SAN ICP-Brasil.** `Certificate::fromPfxFile()`
+  agora busca o CNPJ na extensão SAN com OID `2.16.76.1.3.3` quando não
+  encontra no CN do subject. Resolve certs antigos ou de modelos exóticos
+  que têm o CNPJ só no SAN (padrão DOC-ICP-04 da Receita Federal).
+
+- **`TextoSanitizador` com mapping Latin-1 tipográfico.** Substitui en/em-dash,
+  aspas curvas, ellipsis Unicode, NBSP e zero-width space pelos equivalentes
+  ASCII. Evita E1235 quando o cliente cola texto do Word/Google Docs no
+  `xInfComp` ou `discriminacao`. Inspirado no `SUBSTITUICOES_LATIN1` da
+  `badbrans/brans-nfe` (MIT).
+
+### Cobertura
+
+32 testes novos (suite total: 219, 587 asserts). PHPStan level 8 limpo.
+
 ## [0.10.0] — 2026-05-18
 
 ### Adicionado

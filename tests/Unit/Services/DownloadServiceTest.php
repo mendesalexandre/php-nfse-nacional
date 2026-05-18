@@ -77,7 +77,103 @@ final class DownloadServiceTest extends TestCase
         self::assertStringContainsString('<nNFSe>123</nNFSe>', $resultado);
     }
 
-    private function buildService(?Response $response): DownloadService
+    public function test_pdfDanfse_retry_em_502_e_depois_sucesso(): void
+    {
+        // Mock devolve 502 → 200 (PDF). Com tentativas=2, deve dar sucesso.
+        $pdfBytes = "%PDF-1.4\nfake\n%%EOF";
+        $service = $this->buildService([
+            new Response(502, [], 'Bad Gateway'),
+            new Response(200, ['Content-Type' => 'application/pdf'], $pdfBytes),
+        ]);
+
+        $resultado = $service->pdfDanfse(self::CHAVE, tentativas: 2);
+        self::assertSame($pdfBytes, $resultado);
+    }
+
+    public function test_pdfDanfse_lanca_apos_esgotar_tentativas_502(): void
+    {
+        // 3x 502 — deve lançar SefinException
+        $service = $this->buildService([
+            new Response(502, [], 'gw1'),
+            new Response(503, [], 'gw2'),
+            new Response(504, [], 'gw3'),
+        ]);
+
+        $this->expectException(SefinException::class);
+        $service->pdfDanfse(self::CHAVE, tentativas: 3);
+    }
+
+    public function test_pdfDanfse_lanca_imediato_em_4xx(): void
+    {
+        // 404 não retenta — lança na primeira
+        $service = $this->buildService([new Response(404, [], 'not found')]);
+
+        $this->expectException(SefinException::class);
+        $service->pdfDanfse(self::CHAVE, tentativas: 3);
+    }
+
+    public function test_verificarDps_retorna_true_em_HTTP_200(): void
+    {
+        $service = $this->buildService([new Response(200, [], '')]);
+        self::assertTrue($service->verificarDps('DPS' . str_repeat('0', 47)));
+    }
+
+    public function test_verificarDps_retorna_false_em_HTTP_404(): void
+    {
+        $service = $this->buildService([new Response(404, [], 'not found')]);
+        self::assertFalse($service->verificarDps('DPS' . str_repeat('0', 47)));
+    }
+
+    public function test_verificarDps_lanca_em_outros_status(): void
+    {
+        $service = $this->buildService([new Response(500, [], 'oops')]);
+        $this->expectException(SefinException::class);
+        $service->verificarDps('DPS' . str_repeat('0', 47));
+    }
+
+    public function test_verificarDps_lanca_quando_id_vazio(): void
+    {
+        $service = $this->buildService(null);
+        $this->expectException(ValidationException::class);
+        $service->verificarDps('');
+    }
+
+    public function test_listarEventosNfse_parsea_array_direto(): void
+    {
+        $eventos = [
+            ['tipoEvento' => '101101', 'nSeqEvento' => 1, 'dhRegEvento' => '2026-05-18T10:00:00-03:00'],
+            ['tipoEvento' => '105102', 'nSeqEvento' => 1, 'dhRegEvento' => '2026-05-18T11:00:00-03:00'],
+        ];
+        $body = json_encode($eventos);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, ['Content-Type' => 'application/json'], $body)]);
+
+        $resultado = $service->listarEventosNfse(self::CHAVE);
+        self::assertCount(2, $resultado);
+    }
+
+    public function test_listarEventosNfse_aceita_objeto_envelope_Eventos(): void
+    {
+        $body = json_encode(['Eventos' => [
+            ['tipoEvento' => '101101'],
+        ]]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, ['Content-Type' => 'application/json'], $body)]);
+
+        $resultado = $service->listarEventosNfse(self::CHAVE);
+        self::assertCount(1, $resultado);
+    }
+
+    public function test_listarEventosNfse_retorna_vazio_em_404(): void
+    {
+        $service = $this->buildService([new Response(404, [], '')]);
+        self::assertSame([], $service->listarEventosNfse(self::CHAVE));
+    }
+
+    /**
+     * @param Response|list<Response>|null $responses
+     */
+    private function buildService(Response|array|null $responses): DownloadService
     {
         $endereco = new Endereco('Av Exemplo', '100', 'Centro', '01310100', '3550308', 'SP');
         $prestador = new Prestador('00179028000138', '11408', 'CARTORIO TESTE', $endereco);
@@ -93,9 +189,14 @@ final class DownloadServiceTest extends TestCase
 
         $endpoints = new SefinEndpoints(Ambiente::Homologacao);
 
-        $mock = new MockHandler($response !== null ? [$response] : []);
+        $queue = $responses === null
+            ? []
+            : (is_array($responses) ? $responses : [$responses]);
+        $mock = new MockHandler($queue);
         $http = new Client(['handler' => HandlerStack::create($mock)]);
         $client = new SefinClient($config, $cert, $endpoints, $http);
+        // Sleeper no-op pra retry tests não congelarem a suite
+        $client->setSleeper(static fn (int $_) => null);
 
         return new DownloadService($client, $endpoints);
     }

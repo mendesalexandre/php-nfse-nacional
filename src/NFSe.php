@@ -21,12 +21,14 @@ use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
 use PhpNfseNacional\Enums\AutorManifestacao;
+use PhpNfseNacional\Sefin\RespostaDfe;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
 use PhpNfseNacional\Sefin\SefinResposta;
 use PhpNfseNacional\Services\CancelamentoService;
 use PhpNfseNacional\Services\ConsultaService;
 use PhpNfseNacional\Services\DanfseService;
+use PhpNfseNacional\Services\DfeService;
 use PhpNfseNacional\Services\DownloadService;
 use PhpNfseNacional\Services\EmissaoService;
 use PhpNfseNacional\Services\ManifestacaoService;
@@ -57,6 +59,7 @@ final class NFSe
         private readonly ManifestacaoService $manifestacaoService,
         private readonly DownloadService $downloadService,
         private readonly DanfseService $danfseService,
+        private readonly DfeService $dfeService,
     ) {}
 
     /**
@@ -87,6 +90,7 @@ final class NFSe
             manifestacaoService: new ManifestacaoService($eventoBuilder, $signer, $client, $endpoints, $logger),
             downloadService: new DownloadService($client, $endpoints),
             danfseService: new DanfseService(),
+            dfeService: new DfeService($client, $certificate),
         );
     }
 
@@ -186,9 +190,41 @@ final class NFSe
         return $this->downloadService->xmlNfse($chaveAcesso);
     }
 
-    public function baixarPdf(string $chaveAcesso): string
+    public function baixarPdf(string $chaveAcesso, int $tentativas = 3): string
     {
-        return $this->downloadService->pdfDanfse($chaveAcesso);
+        return $this->downloadService->pdfDanfse($chaveAcesso, $tentativas);
+    }
+
+    /**
+     * Verifica se um DPS já foi enviado ao SEFIN (HEAD /dps/{id}). Útil
+     * pra evitar dupla emissão antes de chamar `emitir()`.
+     */
+    public function verificarDps(string $idDps): bool
+    {
+        return $this->downloadService->verificarDps($idDps);
+    }
+
+    /**
+     * Lista todos os eventos vinculados a uma NFS-e (cancelamento,
+     * substituição, manifestações). Útil para auditoria.
+     *
+     * @return array<int, mixed>
+     */
+    public function listarEventos(string $chaveAcesso): array
+    {
+        return $this->downloadService->listarEventosNfse($chaveAcesso);
+    }
+
+    // ───────── DFe (Distribuição de Documentos Eletrônicos) ─────────
+
+    /**
+     * Sincroniza DFes pendentes na "caixa postal" do CNPJ do prestador.
+     * Use `$ultimoNsu` da última chamada bem-sucedida pra sincronização
+     * incremental (só pega DFes novos).
+     */
+    public function sincronizarDfe(int $ultimoNsu = 0, int $maxPaginas = 20): RespostaDfe
+    {
+        return $this->dfeService->sincronizar($ultimoNsu, $maxPaginas);
     }
 
     // ───────── DANFSe local ─────────

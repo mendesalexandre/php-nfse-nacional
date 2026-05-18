@@ -80,4 +80,32 @@ final class SefinEndpoints
     {
         return $this->adnBaseUrl() . '/danfse/' . $chave;
     }
+
+    /**
+     * Sincronização de DFe (caixa postal de eventos). Itera por NSU pra
+     * pegar todos os DFes vinculados ao CNPJ. Wire format:
+     *   GET /contribuintes/DFe/{NSU}?cnpjConsulta={CNPJ}&lote=true
+     *
+     * Retorna lote com até 50 itens por página (NSU=NúmeroSequencialÚnico).
+     * O cliente itera incrementando o NSU até receber lote vazio ou status
+     * "Nenhum documento localizado".
+     */
+    public function sincronizarDfe(int $nsu, string $cnpj, bool $lote = true): string
+    {
+        $loteParam = $lote ? 'true' : 'false';
+        return $this->adnBaseUrl()
+            . '/contribuintes/DFe/' . $nsu
+            . '?cnpjConsulta=' . $cnpj
+            . '&lote=' . $loteParam;
+    }
+
+    /**
+     * Lista todos os eventos vinculados a uma NFS-e (cancelamento,
+     * substituição, manifestações). Útil pra auditoria. Wire format:
+     *   GET /contribuintes/NFSe/{chave}/Eventos
+     */
+    public function listarEventosNfse(string $chave): string
+    {
+        return $this->adnBaseUrl() . '/contribuintes/NFSe/' . $chave . '/Eventos';
+    }
 }
