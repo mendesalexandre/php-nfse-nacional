@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-05-18
+
 ### Adicionado
 - **Grupo `<interm>` (Intermediário da operação)** — DTO `Intermediario`
   + emissão opcional via `$nfse->emitir(..., intermediario: $i)`. Posicionado
