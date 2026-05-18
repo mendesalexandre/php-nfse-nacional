@@ -8,11 +8,11 @@
 
 SDK PHP **framework-agnostic** pro [Sistema Nacional de NFS-e (SefinNacional 1.6)](https://www.gov.br/nfse/pt-br/) — Padrão Brasileiro de Nota Fiscal de Serviços eletrônica administrado pela SE/CGNFS-e (Receita Federal).
 
-Cobre **ciclo de vida completo:** emissão, consulta, cancelamento, substituição, manifestação, download, **DANFSe local NT 008/2026**.
+Cobre **ciclo de vida completo:** emissão, consulta, cancelamento, substituição, manifestação, download (com retry exponencial), **distribuição DFe paginada** (caixa postal CNPJ) e **DANFSe local NT 008/2026**.
 
 - **Repo:** github.com/mendesalexandre/php-nfse-nacional
 - **Packagist:** `composer require mendesalexandre/php-nfse-nacional`
-- **Versão atual:** ver `CHANGELOG.md` (a partir da v0.5.x — API achatada)
+- **Versão atual:** v0.11.0 (Onda 7 — retry/DFe/idempotência). Ver `CHANGELOG.md`
 - **Diretório local:** `/home/alexandre/code/sinop-nfse-nacional`
 - **Licença:** MIT
 
@@ -29,15 +29,15 @@ Cobre **ciclo de vida completo:** emissão, consulta, cancelamento, substituiç�
 src/
 ├── NFSe.php                     # Facade unificado (entry point)
 ├── Config.php                    # Imutável: prestador + ambiente + flags
-├── DTO/                          # Imutáveis readonly: Endereco, Tomador, Servico, Valores, Identificacao, Prestador, MotivoCancelamento, MotivoSubstituicao, MotivoRejeicao, TipoEmissaoDps
-├── Enums/                        # Ambiente, RegimeEspecialTributacao, SituacaoSimplesNacional, AutorManifestacao, CStat (54 cases)
-├── Certificate/                  # Carga .pfx + Signer rsa-sha1
+├── DTO/                          # Imutáveis readonly: Endereco, Tomador, Servico, Valores, Identificacao, Prestador, BeneficioMunicipal, ExigibilidadeSuspensa, MotivoCancelamento, MotivoSubstituicao, MotivoRejeicao, TipoEmissaoDps
+├── Enums/                        # Ambiente, RegimeEspecialTributacao, SituacaoSimplesNacional, AutorManifestacao, CStat (54 cases), TipoTributacaoIssqn, TipoImunidadeIssqn, TipoBeneficioMunicipal, TipoExigibilidadeSuspensa, TipoRetencaoIssqn, RegimeApuracaoSimplesNacional, ListaServicosNacional (335 cases LC 116), ListaNbs (917 cases)
+├── Certificate/                  # Carga .pfx + Signer rsa-sha1 + fallback SAN OID 2.16.76.1.3.3
 ├── Dps/                          # DpsBuilder + EventoBuilder + EventoCancelamento/Substituicao/Confirmacao/Rejeicao/AnulacaoRejeicao
-├── Sefin/                        # SefinClient (HTTP), SefinEndpoints, SefinResposta
-├── Services/                     # EmissaoService, CancelamentoService, SubstituicaoService, ManifestacaoService, ConsultaService, DownloadService, DanfseService
+├── Sefin/                        # SefinClient (HTTP + retry + sync DFe), SefinEndpoints, SefinResposta, ItemDfe, RespostaDfe
+├── Services/                     # EmissaoService, CancelamentoService, SubstituicaoService, ManifestacaoService, ConsultaService, DownloadService, DanfseService, DfeService
 ├── Danfse/                       # DanfseGenerator + DanfseXmlParser + DanfseDados + DanfseCustomizacao + DanfseLayout
 ├── Exceptions/                   # NfseException, ValidationException, CertificateException, SefinException
-└── Support/                      # Documento, IbgeMunicipios (5571 mun), TextoSanitizador
+└── Support/                      # Documento, IbgeMunicipios (5571 mun), TextoSanitizador (com mapping Latin-1 tipográfico)
 ```
 
 ## API Principal
@@ -62,9 +62,16 @@ $resp = $nfse->confirmar($chave, AutorManifestacao::Tomador);
 $resp = $nfse->rejeitar($chave, AutorManifestacao::Tomador, MotivoRejeicao::Duplicidade);
 $resp = $nfse->anularRejeicao($chave, $cpf, $idRejeicao, $xMotivo);
 
-// Download
+// Download (com retry exponencial em 502/503/504)
 $xml = $nfse->baixarXml($chave);
-$pdf = $nfse->baixarPdf($chave);
+$pdf = $nfse->baixarPdf($chave, tentativas: 3);
+
+// Idempotência + auditoria
+$existe = $nfse->verificarDps($idDps);            // HEAD /dps/{id}
+$eventos = $nfse->listarEventos($chave);          // /contribuintes/NFSe/{chave}/Eventos
+
+// Distribuição DFe (caixa postal CNPJ — quem emitiu contra o emissor)
+$resp = $nfse->sincronizarDfe($ultimoNsuConhecido);
 
 // DANFSe local (NT 008)
 $pdf = $nfse->danfseLocal($xml, $custom = null);
@@ -98,9 +105,19 @@ Service classes ficam em `PhpNfseNacional\Services\` — pra DI granular (Symfon
 | IBSCBS é opt-in pelo emissor — sem `<IBSCBS>` no DPS, resposta também não tem | smoke testing |
 | Anulação de Rejeição (e205208) e Substituição (e105102 via API Eventos) retornam cStat=999/1861 em homologação Sinop — parametrização do município | smoke testing |
 | `pTotTribMun` é declaratório, SEFIN aplica `pAliqAplic` da tabela municipal independente do que enviamos | NFS-es #61–#63 |
+| `tribISSQN` mapping oficial: 1=Tributável, **2=Imunidade**, 3=Exportação, 4=NãoIncidência (DanfseLayout legado tinha 2/3/4 invertidos — fix v0.9.1) | Anexo IV V1.00.02 linha 256 |
+| `dispensadoIssqn=true` (`<indTotTrib>0</indTotTrib>`) é EXCLUSIVO de Simples Nacional. Não Optante imune deve usar `<pTotTrib>` com `pTotTribMun=0` | cStat=713 cartório homol |
+| Exportação exige grupo `<comExt>` no `<serv>` (mdPrestacao, tpMoeda, etc.) — `tribISSQN=3 + cPaisResult` sozinho dá cStat=330 | smoke 138 |
+| `nProcesso` do `<exigSusp>` tem pattern XSD `TSNumProcExigSuspensa` restritivo — formato exato pendente de descoberta | smoke 18mai |
+| ADN `/danfse/{chave}` instável em homologação (HTTP 502 persistente em ambas tentativas) — usar `danfseLocal()` ou confiar no retry do SDK (v0.11.0) | smoke |
+| `<BM>/<nBM>` tem 14 dígitos: 7 IBGE + 2 tipo (01-04) + 5 sequencial — cadastrado pelo município no Sistema Nacional | leiaute linha 259 |
+| Cabeçalho DANFSE coluna direita tem apenas 1.76cm úteis (entre x=15.62 e QR Code em x=17.48) — textos curtos obrigatórios | fix v0.10.1 |
 
 ## Bug history (cuidado em refactors)
 
+- DANFSe local: 4 inconsistências de grid (cabeçalho, BLOCO 2 altura/largura, Telefone fora da col 4, Regime SN fora das cols 3-4) — corrigido v0.10.1 alinhando à NT 008 página 17
+- `DanfseLayout::tipoTributacaoIssqn()`: labels 2/3/4 invertidos (era Exportação/NãoIncid/Imunidade — oficial é Imunidade/Exportação/NãoIncid) — corrigido v0.9.1
+- `DpsBuilder::validarCruzado` validava regra fiscal (BC>0 + ISSQN=0) — removido v0.7.0 (escopo é sintaxe XML, não regra fiscal — quem decide é o SEFIN)
 - `EventoSubstituicao` usava `MotivoCancelamento` errado (corrigido v0.5.1)
 - `xDesc` da substituição estava sem prefixo (corrigido v0.5.1)
 - `xDesc` das manifestações idem (corrigido v0.4.1)
@@ -163,6 +180,7 @@ OPENSSL_CONF=/home/alexandre/code/SINOP/backend/docs/openssl-sha1.cnf \
 - `MANUAL.md` — referência completa estilo Swagger (todas as APIs, parâmetros, exceções, exemplos)
 - `CHANGELOG.md` — histórico versão a versão (cada release explica o "porquê")
 - `docs/nt-008-se-cgnfse-danfse-20260505.pdf` — NT oficial DANFSe NT 008/2026
+- `/home/alexandre/Dropbox/nfse/AnexoIV-LeiautesRN_ADN-SNNFSe_V1.00.02-Produção.csv` — Tabela oficial dos campos do DPS/NFS-e com posições, tipos, ocorrências. **Fonte canônica para resolver ambiguidades de schema.** Ver memória `leiaute-oficial-csv`
 
 ## Consumidores conhecidos
 

@@ -18,18 +18,27 @@ coisa com PHP 8.1+ e suporte a PSR-3/PSR-18.
 ## Status
 
 Ciclo de vida da NFS-e completo: **emissão, consulta, cancelamento, substituição,
-download e DANFSe NT 008/2026**. PHPStan level 8 limpo, 102 testes verdes, validado
-ponta-a-ponta em homologação SEFIN (NFS-e #57, chave
-`51079092200179028000138000000000005726057774456203`). Pré-1.0 — API pode
-sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
+manifestação, download, DANFSe NT 008/2026 e Distribuição de DFe (caixa postal
+do CNPJ)**. Cobertura do `<tribMun>` completa conforme leiaute V1.00.02
+(imunidade, exportação, benefício municipal, exigibilidade suspensa). Retry
+automático com backoff no download do DANFSe. PHPStan level 8 limpo, **219 testes
+verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 — API pode sofrer
+ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
 
-- Suporte completo ao leiaute SefinNacional 1.6
-- Suporte à **NT 008/2026** (novo DANFSE válido a partir de 1º/jul/2026)
+- Suporte completo ao leiaute SefinNacional 1.6 / V1.00.02 do Sistema Nacional NFS-e
+- Suporte à **NT 008/2026** (novo DANFSe válido a partir de 1º/jul/2026)
+- Cobertura tributária ampla: imunidade, exportação, benefício municipal,
+  exigibilidade suspensa, dispensa de ISSQN para MEI
+- Tabelas oficiais como enums tipados: `ListaServicosNacional` (335 cases da
+  LC 116/2003) e `ListaNbs` (917 cases)
 - Sem dependência de framework — funciona em Laravel, Symfony, projetos vanilla
+- Distribuição de DFe paginada (caixa postal do CNPJ no SEFIN)
+- Retry automático com backoff exponencial no download de DANFSe (502/503/504)
+- Verificação idempotente de DPS (`HEAD /dps/{id}`) antes de emitir
 - Tipagem forte (PHPStan level 8)
-- Testes desde o dia 1
+- Testes desde o dia 1 — 219 testes verdes em CI (PHP 8.1–8.5)
 
 ## Requisitos
 
@@ -122,6 +131,114 @@ $resposta = $nfse->cancelar(
     justificativa: 'Valor da NFS-e divergente do recibo',
 );
 ```
+
+### Cenários tributários comuns
+
+**MEI (dispensa do ISSQN apurado):**
+
+```php
+use PhpNfseNacional\DTO\Valores;
+use PhpNfseNacional\Enums\SituacaoSimplesNacional;
+
+$prestador = new Prestador(
+    /* ... */
+    simplesNacional: SituacaoSimplesNacional::MEI,
+    inscricaoMunicipal: null, // MEI normalmente sem IM cadastrada
+);
+
+$valores = new Valores(
+    valorServicos: 800.00,
+    deducoesReducoes: 0.00,
+    aliquotaIssqnPercentual: 0.00,
+    dispensadoIssqn: true, // emite <indTotTrib>0</indTotTrib> em vez de <pTotTrib>
+);
+```
+
+**Imunidade (templos, partidos, livros, etc.):**
+
+```php
+use PhpNfseNacional\Enums\{TipoTributacaoIssqn, TipoImunidadeIssqn};
+
+$valores = new Valores(
+    valorServicos: 100.00,
+    deducoesReducoes: 0.00,
+    aliquotaIssqnPercentual: 0.00,
+    tributacaoIssqn: TipoTributacaoIssqn::Imunidade,
+    imunidade: TipoImunidadeIssqn::TemplosQualquerCulto,
+);
+```
+
+**Benefício Municipal (redução de BC concedida pelo município):**
+
+```php
+use PhpNfseNacional\DTO\BeneficioMunicipal;
+
+$valores = new Valores(
+    valorServicos: 100.00,
+    deducoesReducoes: 0.00,
+    aliquotaIssqnPercentual: 4.00,
+    beneficioMunicipal: new BeneficioMunicipal(
+        nBM: '51079090100001',     // ID parametrizado pelo município
+        percentualReducaoBc: 50.00, // ou valorReducaoBc — choice no schema
+    ),
+);
+```
+
+**Códigos de serviço via enum (LC 116):**
+
+```php
+use PhpNfseNacional\Enums\{ListaServicosNacional, ListaNbs};
+
+$servico = new Servico(
+    discriminacao: 'Análise e desenvolvimento de sistemas',
+    codigoMunicipioPrestacao: '5107909',
+    cTribNac: ListaServicosNacional::S010101,  // ou string '010101'
+    cNBS:     ListaNbs::N101011100,             // ou string '101011100'
+);
+
+echo $servico->cTribNac;                                 // '010101'
+echo ListaServicosNacional::S010101->descricao();        // 'Análise e desenvolvimento...'
+```
+
+### Idempotência: verificar antes de emitir
+
+Pra evitar dupla emissão (sequencial DPS reutilizado, retry agressivo do
+cliente, etc.), use `verificarDps()` antes de chamar `emitir()`:
+
+```php
+$idDps = 'DPS510790920017902800013800001000000000128585';
+
+if ($nfse->verificarDps($idDps)) {
+    echo "DPS já existe no SEFIN — não emite de novo\n";
+} else {
+    $resposta = $nfse->emitir(...);
+}
+```
+
+Usa `HEAD /dps/{id}` — leve, sem baixar o corpo.
+
+### Distribuição de DFe (caixa postal)
+
+Quando alguém emite uma NFS-e contra o seu CNPJ (como tomador), o SEFIN
+guarda numa "caixa postal" associada ao CNPJ. O método `sincronizarDfe()`
+itera por todos os DFes desde o último NSU conhecido:
+
+```php
+// Persiste o último NSU pra sincronização incremental
+$ultimoNsuConhecido = (int) $cache->get('dfe_ultimo_nsu', 0);
+
+$resp = $nfse->sincronizarDfe($ultimoNsuConhecido);
+
+foreach ($resp->itens as $item) {
+    echo "NSU {$item->nsu}: {$item->tipoDocumento} chave={$item->chaveAcesso}\n";
+}
+
+$cache->set('dfe_ultimo_nsu', $resp->ultimoNsu);
+```
+
+O loop interno paginado pega até 20 páginas (= até 1000 DFes) por chamada.
+Para auditoria de eventos vinculados a uma NFS-e específica, use
+`listarEventos($chave)`.
 
 ### Substituição
 
@@ -217,23 +334,30 @@ src/
 ## Roadmap
 
 - [x] Estrutura + composer + DTOs + Config
-- [x] Certificate + Signer rsa-sha1
-- [x] DpsBuilder (XML completo)
+- [x] Certificate + Signer rsa-sha1 (com fallback SAN OID 2.16.76.1.3.3)
+- [x] DpsBuilder com cobertura completa `<tribMun>` (BM/exigSusp/imunidade)
 - [x] SefinClient + EmissaoService
 - [x] ConsultaService (status NFS-e, eventos)
 - [x] CancelamentoService (e101101)
-- [x] DownloadService (XML + PDF cancelada)
-- [x] DANFSe PDF — NT 008/2026 (TCPDF + QR Code)
-- [x] Testes unitários (PHPUnit) — 62 testes
-- [x] PHPStan level 8 limpo
-- [x] CI no GitHub Actions (PHP 8.1 – 8.4)
+- [x] DownloadService (XML + PDF + retry exponencial no DANFSe)
+- [x] DANFSe PDF local — NT 008/2026 (TCPDF + QR Code)
+- [x] DANFSe customizável (logo do prestador, observações livres)
+- [x] Substituição de NFS-e (evento e105102)
+- [x] Manifestação (Confirmar / Rejeitar / Anular Rejeição)
+- [x] **DFe paginado** (`GET /contribuintes/DFe/{NSU}`) — caixa postal do CNPJ
+- [x] **Listagem de eventos por NFS-e** (`GET /contribuintes/NFSe/{chave}/Eventos`)
+- [x] **Verificação idempotente** de DPS (`HEAD /dps/{id}`)
+- [x] Enums das tabelas oficiais: `ListaServicosNacional` (335), `ListaNbs` (917),
+      `TipoBeneficioMunicipal`, `TipoImunidadeIssqn`, `TipoExigibilidadeSuspensa`,
+      `RegimeApuracaoSimplesNacional`, `TipoRetencaoIssqn`, `TipoTributacaoIssqn`
+- [x] PHPStan level 8 limpo, 219 testes unitários
+- [x] CI no GitHub Actions (PHP 8.1 – 8.5)
 - [x] Validação ponta-a-ponta em homologação SEFIN
-- [x] Substituição de NFS-e (evento 101102)
-- [x] Examples completos do ciclo de vida (emitir, cancelar, substituir,
-      consultar, download, danfse-local)
-- [ ] Cobertura ampliada (Certificate, Signer)
-- [ ] DANFSe customizável (logo do prestador, observações livres)
-- [ ] API CNC/ADN (`POST /DFe/`, `GET /DFe/{NSU}`) — pra municípios c/ sistema próprio
+- [x] Examples completos do ciclo de vida
+- [ ] BC-break v1.0.0: `Valores::$issqnRetido` (bool) → `TipoRetencaoIssqn` (enum)
+- [ ] Cobertura ampliada — `<comExt>` (exportação), `<obra>` (construção civil),
+      `<interm>` (intermediário), `<vDedRed/documentos>` (deduções por NF de origem)
+- [ ] Endereço internacional (`endExt`) em prest/toma/interm/obra
 
 ## Licença
 

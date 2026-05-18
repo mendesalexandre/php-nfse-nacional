@@ -26,6 +26,14 @@ final class SefinClient
     private ClientInterface $http;
     private LoggerInterface $logger;
 
+    /**
+     * Função de sleep usada entre retries do `baixarDanfse`. Em testes
+     * é substituída por uma função no-op pra não congelar a suite.
+     *
+     * @var \Closure(int): void
+     */
+    private \Closure $sleeper;
+
     public function __construct(
         private readonly Config $config,
         private readonly Certificate $certificate,
@@ -35,6 +43,18 @@ final class SefinClient
     ) {
         $this->logger = $logger ?? new NullLogger();
         $this->http = $httpClient ?? $this->buildDefaultGuzzle();
+        $this->sleeper = static fn (int $microsegundos) => usleep($microsegundos);
+    }
+
+    /**
+     * Substitui a função de sleep — uso interno em testes.
+     *
+     * @param \Closure(int): void $sleeper
+     * @internal
+     */
+    public function setSleeper(\Closure $sleeper): void
+    {
+        $this->sleeper = $sleeper;
     }
 
     /**
@@ -137,20 +157,75 @@ final class SefinClient
     }
 
     /**
-     * Baixa o DANFSE (PDF) bruto. Retorna bytes do PDF.
+     * Baixa o DANFSE (PDF) bruto com retry exponencial.
+     *
+     * O endpoint `/danfse/{chave}` no ADN é conhecidamente instável
+     * (especialmente em homologação) — confirmado empiricamente que
+     * devolve HTTP 502 em ambos NFS-es válidas. Re-tenta automaticamente
+     * em 502/503/504 e erros de conexão, com backoff `1.5 * (n+1)` seg.
+     *
+     * Para outros HTTP error codes (4xx, etc.) lança imediatamente —
+     * provavelmente é problema permanente (chave inválida, sem permissão).
+     *
+     * Atenção: o ADN está em descontinuação (anunciado pra 01/07/2026).
+     * Em produção pós-data, use `$nfse->danfseLocal($xml)` (geração local
+     * pelo SDK conforme NT 008/2026).
      */
-    public function baixarDanfse(string $chave): string
+    public function baixarDanfse(string $chave, int $tentativas = 3): string
     {
-        $response = $this->http->request('GET', $this->endpoints->downloadDanfse($chave), [
-            'timeout' => $this->config->timeoutSegundos,
-            'http_errors' => false,
-            'headers' => ['Accept' => 'application/pdf'],
-        ]);
+        $ultimoStatus = null;
+        $ultimoErro = null;
+        $ultimoBody = '';
 
-        $body = (string) $response->getBody();
-        $status = $response->getStatusCode();
+        for ($n = 0; $n < $tentativas; $n++) {
+            try {
+                $response = $this->http->request('GET', $this->endpoints->downloadDanfse($chave), [
+                    'timeout' => $this->config->timeoutSegundos,
+                    'http_errors' => false,
+                    'headers' => ['Accept' => 'application/pdf'],
+                ]);
+            } catch (\Throwable $exc) {
+                $ultimoErro = $exc->getMessage();
+                $this->logger->warning('[SefinClient] DANFSE conexão falhou', [
+                    'chave' => $chave,
+                    'tentativa' => $n + 1,
+                    'erro' => $ultimoErro,
+                ]);
+                if ($n < $tentativas - 1) {
+                    ($this->sleeper)((int) (1_500_000 * ($n + 1)));
+                }
+                continue;
+            }
 
-        if ($status !== 200) {
+            $body = (string) $response->getBody();
+            $ultimoBody = $body;
+            $status = $response->getStatusCode();
+            $ultimoStatus = $status;
+
+            if ($status === 200) {
+                if (substr($body, 0, 4) !== '%PDF') {
+                    throw new SefinException(
+                        cStat: null,
+                        xMotivo: null,
+                        message: "Resposta não é PDF válido (chave={$chave})",
+                        rawResponse: substr($body, 0, 200),
+                    );
+                }
+                return $body;
+            }
+
+            // 502/503/504 são transientes — tenta de novo
+            if (in_array($status, [502, 503, 504], true) && $n < $tentativas - 1) {
+                $this->logger->warning('[SefinClient] DANFSE HTTP transiente, retry', [
+                    'chave' => $chave,
+                    'tentativa' => $n + 1,
+                    'status' => $status,
+                ]);
+                ($this->sleeper)((int) (1_500_000 * ($n + 1)));
+                continue;
+            }
+
+            // 4xx ou esgotou tentativas — lança
             throw new SefinException(
                 cStat: null,
                 xMotivo: null,
@@ -158,15 +233,113 @@ final class SefinClient
                 rawResponse: $body,
             );
         }
-        if (substr($body, 0, 4) !== '%PDF') {
-            throw new SefinException(
-                cStat: null,
-                xMotivo: null,
-                message: "Resposta não é PDF válido (chave={$chave})",
-                rawResponse: substr($body, 0, 200),
-            );
+
+        throw new SefinException(
+            cStat: null,
+            xMotivo: null,
+            message: "DANFSE chave={$chave} indisponível após {$tentativas} tentativas"
+                . ($ultimoStatus !== null ? " (último HTTP {$ultimoStatus})" : '')
+                . ($ultimoErro !== null ? " (último erro: {$ultimoErro})" : ''),
+            rawResponse: $ultimoBody,
+        );
+    }
+
+    /**
+     * Verifica se um DPS já existe no SEFIN sem baixar o corpo. Usa HEAD —
+     * leve, útil pra evitar dupla emissão antes de tentar `emitir()`.
+     *
+     * Retorna true em HTTP 200, false em 404. Outros códigos lançam
+     * SefinException.
+     */
+    public function verificarDps(string $idDps): bool
+    {
+        $url = $this->endpoints->consultarDpsPorChave($idDps);
+        $response = $this->http->request('HEAD', $url, [
+            'timeout' => $this->config->timeoutSegundos,
+            'http_errors' => false,
+        ]);
+        $status = $response->getStatusCode();
+
+        if ($status === 200) {
+            return true;
         }
-        return $body;
+        if ($status === 404) {
+            return false;
+        }
+        throw new SefinException(
+            cStat: null,
+            xMotivo: null,
+            message: "Falha ao verificar DPS id={$idDps}: HTTP {$status}",
+            rawResponse: (string) $response->getBody(),
+        );
+    }
+
+    /**
+     * Lista todos os eventos vinculados a uma NFS-e (cancelamento,
+     * substituição, manifestações). Retorna o JSON cru — o caller faz
+     * o parse conforme a necessidade (auditoria, geralmente).
+     *
+     * @return array<int, mixed>
+     */
+    public function listarEventosNfse(string $chave): array
+    {
+        $response = $this->http->request('GET', $this->endpoints->listarEventosNfse($chave), [
+            'timeout' => $this->config->timeoutSegundos,
+            'http_errors' => false,
+            'headers' => ['Accept' => 'application/json'],
+        ]);
+        $body = (string) $response->getBody();
+        $status = $response->getStatusCode();
+
+        if ($status === 200) {
+            $json = @json_decode($body, true);
+            if (is_array($json)) {
+                // Resposta pode vir como lista direta ou objeto { eventos: [...] }
+                if (isset($json['Eventos']) && is_array($json['Eventos'])) {
+                    return $json['Eventos'];
+                }
+                if (isset($json['eventos']) && is_array($json['eventos'])) {
+                    return $json['eventos'];
+                }
+                return $json;
+            }
+            return [];
+        }
+        if ($status === 404) {
+            return [];
+        }
+        throw new SefinException(
+            cStat: null,
+            xMotivo: null,
+            message: "Falha ao listar eventos chave={$chave}: HTTP {$status}",
+            rawResponse: $body,
+        );
+    }
+
+    /**
+     * Sincroniza DFe (caixa postal de eventos) consultando o ADN por NSU
+     * (Número Sequencial Único). Retorna o body JSON cru — o caller usa
+     * `DfeService` pra parsear pra DTOs.
+     */
+    public function sincronizarDfe(int $nsu, string $cnpj, bool $lote = true): string
+    {
+        $response = $this->http->request('GET', $this->endpoints->sincronizarDfe($nsu, $cnpj, $lote), [
+            'timeout' => $this->config->timeoutSegundos,
+            'http_errors' => false,
+            'headers' => ['Accept' => 'application/json'],
+        ]);
+        $body = (string) $response->getBody();
+        $status = $response->getStatusCode();
+
+        if ($status === 200 || $status === 404) {
+            return $body;
+        }
+        throw new SefinException(
+            cStat: null,
+            xMotivo: null,
+            message: "Falha ao sincronizar DFe NSU={$nsu}: HTTP {$status}",
+            rawResponse: $body,
+        );
     }
 
     /**
