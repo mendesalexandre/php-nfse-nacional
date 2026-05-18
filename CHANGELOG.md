@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-18
+
 ### Removido
 - **Validação cruzada `"ISSQN apurado = 0 com BC > 0"` no `DpsBuilder`.**
   Validar regra fiscal é responsabilidade do SEFIN, não da lib —
