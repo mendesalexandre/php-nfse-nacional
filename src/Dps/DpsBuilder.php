@@ -212,6 +212,19 @@ final class DpsBuilder
             (string) $prestador->simplesNacional->value,
         ));
 
+        // <regApTribSN> é opcional pelo leiaute. Emite somente quando o
+        // caller setou explicitamente em `Prestador::$regimeApuracaoSN`.
+        // Posição obrigatória: entre <opSimpNac> e <regEspTrib>. Quando o
+        // município/SEFIN exigir (típico p/ ME/EPP, opSimpNac=3), o erro
+        // virá do portal com código identificável — deliberadamente sem
+        // emitir default mágico (gildonei força "1=Caixa" quando ausente;
+        // preferimos explicitar a obrigação no caller).
+        if ($prestador->regimeApuracaoSN !== null) {
+            $regTrib->appendChild($this->el($doc, 'regApTribSN',
+                (string) $prestador->regimeApuracaoSN->value,
+            ));
+        }
+
         // E0438: regEspTrib != 0 + vDedRed na mesma DPS é rejeitado.
         // Forçamos Nenhum=0 automaticamente quando houver dedução.
         $regimeFinal = $prestador->regimeEspecial;

@@ -504,6 +504,109 @@ final class DpsBuilderTest extends TestCase
         self::assertSame(0, $xpath->query('//n:prest/n:email')->length);
     }
 
+    public function test_servico_aceita_enum_para_cTribNac_e_cNBS(): void
+    {
+        $servico = new Servico(
+            discriminacao: 'Análise e desenvolvimento de sistemas — sprint 12',
+            codigoMunicipioPrestacao: '3550308',
+            cTribNac: \PhpNfseNacional\Enums\ListaServicosNacional::S010101,
+            cNBS: \PhpNfseNacional\Enums\ListaNbs::N101011100,
+        );
+
+        self::assertSame('010101', $servico->cTribNac);
+        self::assertSame('101011100', $servico->cNBS);
+    }
+
+    public function test_servico_aceita_string_para_cTribNac_compat(): void
+    {
+        $servico = new Servico(
+            discriminacao: 'Algum serviço de exemplo',
+            codigoMunicipioPrestacao: '3550308',
+            cTribNac: '010101',
+            cNBS: '101011100',
+        );
+
+        self::assertSame('010101', $servico->cTribNac);
+        self::assertSame('101011100', $servico->cNBS);
+    }
+
+    public function test_regApTribSN_emitido_quando_prestador_seta(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'ME EXEMPLO LTDA',
+            endereco: $endereco,
+            simplesNacional: \PhpNfseNacional\Enums\SituacaoSimplesNacional::MeEpp,
+            regimeApuracaoSN: \PhpNfseNacional\Enums\RegimeApuracaoSimplesNacional::FederaisEMunicipalPorSN,
+        );
+        $builder = new DpsBuilder(new Config($prestador, Ambiente::Homologacao));
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:prest/n:regTrib/n:regApTribSN')->length);
+        self::assertSame('1', $xpath->query('//n:prest/n:regTrib/n:regApTribSN')->item(0)?->nodeValue);
+    }
+
+    public function test_regApTribSN_omitido_quando_prestador_nao_seta(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(0, $xpath->query('//n:prest/n:regTrib/n:regApTribSN')->length);
+    }
+
+    public function test_regApTribSN_posicao_entre_opSimpNac_e_regEspTrib(): void
+    {
+        // Schema: <regTrib> exige <opSimpNac> → <regApTribSN>? → <regEspTrib>.
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'ME EXEMPLO LTDA',
+            endereco: $endereco,
+            simplesNacional: \PhpNfseNacional\Enums\SituacaoSimplesNacional::MeEpp,
+            regimeApuracaoSN: \PhpNfseNacional\Enums\RegimeApuracaoSimplesNacional::FederaisPorSnMunicipalPorNfse,
+        );
+        $builder = new DpsBuilder(new Config($prestador, Ambiente::Homologacao));
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $posOp     = strpos($xml, '<opSimpNac>');
+        $posRegAp  = strpos($xml, '<regApTribSN>');
+        $posRegEsp = strpos($xml, '<regEspTrib>');
+
+        self::assertNotFalse($posOp);
+        self::assertNotFalse($posRegAp);
+        self::assertNotFalse($posRegEsp);
+        self::assertLessThan($posRegAp, $posOp);
+        self::assertLessThan($posRegEsp, $posRegAp);
+    }
+
     public function test_prestador_ordem_dos_filhos_segue_schema(): void
     {
         // Schema do <prest> exige ordem: CNPJ → IM → fone → email → regTrib.
