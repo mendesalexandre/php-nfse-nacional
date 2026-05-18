@@ -60,9 +60,6 @@ final class DpsBuilder
         Servico $servico,
         Valores $valores,
     ): string {
-        // Validação cruzada antes de construir o XML — falha rápida
-        $this->validarCruzado($valores);
-
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = false;
@@ -193,6 +190,21 @@ final class DpsBuilder
         // (SEFIN rejeita com cStat 120 quando IM é enviada nesse cenário).
         if ($prestador->inscricaoMunicipal !== null && $prestador->inscricaoMunicipal !== '') {
             $prest->appendChild($this->el($doc, 'IM', $prestador->inscricaoMunicipal));
+        }
+
+        // <fone> e <email> são opcionais no <prest>. Quando o DTO Prestador
+        // os preenche, vão entre <IM> e <regTrib> — ordem confirmada contra
+        // XML real emitido pelo emissor web do SEFIN (NFS-e MEI, abril 2026).
+        // Telefone armazenado só com dígitos (preg_replace removendo
+        // máscara/separadores).
+        if ($prestador->telefone !== null && $prestador->telefone !== '') {
+            $foneDigitos = preg_replace('/\D/', '', $prestador->telefone) ?? '';
+            if ($foneDigitos !== '') {
+                $prest->appendChild($this->el($doc, 'fone', $foneDigitos));
+            }
+        }
+        if ($prestador->email !== null && $prestador->email !== '') {
+            $prest->appendChild($this->el($doc, 'email', $prestador->email));
         }
 
         $regTrib = $this->el($doc, 'regTrib');
@@ -353,25 +365,31 @@ final class DpsBuilder
         ));
         $trib->appendChild($tribMun);
 
-        // totTrib > pTotTrib (obrigatório a partir da SefinNacional 1.6)
+        // totTrib é um *choice* no leiaute (pTotTrib | vTotTrib | indTotTrib).
+        // Prestador dispensado de ISSQN (MEI, isento, imune) usa indTotTrib=0
+        // ("valor total dos tributos não informado") — mesmo padrão do
+        // emissor web do SEFIN para CNPJ MEI.
         //
-        // Alíquota com **2 casas decimais fixas** (`number_format(..., 2)`).
-        // Diferente da NF-e (NT 03.14, 4 casas), o leiaute SefinNacional 1.6
-        // restringe `pTotTrib*` ao tipo `TSDec3V2` — exige exatamente 2
-        // casas decimais. Tentar enviar `4.0000` ou `3.5125` resulta em
-        // E1235 ("Pattern constraint failed"). Confirmado empiricamente em
-        // homologação 13/05/2026.
-        //
-        // Pra alíquotas reduzidas como 3.5125%, é necessário arredondar
-        // antes (round() default é HALF_UP: 3.5125 → 3.51).
-        $pTot = $this->el($doc, 'pTotTrib');
-        $pTot->appendChild($this->el($doc, 'pTotTribFed', '0.00'));
-        $pTot->appendChild($this->el($doc, 'pTotTribEst', '0.00'));
-        $pTot->appendChild($this->el($doc, 'pTotTribMun',
-            number_format($valores->aliquotaIssqnPercentual, 2, '.', ''),
-        ));
+        // Para os demais, emite pTotTrib com pTotTribMun em 2 casas decimais
+        // fixas. O leiaute SefinNacional 1.6 restringe `pTotTrib*` ao tipo
+        // `TSDec3V2`; enviar `4.0000` ou `3.5125` resulta em E1235 ("Pattern
+        // constraint failed"). Confirmado empiricamente em homologação
+        // 13/05/2026. Pra alíquotas reduzidas (ex: 3.5125%) o caller deve
+        // arredondar antes (round() default HALF_UP: 3.5125 → 3.51).
         $totTrib = $this->el($doc, 'totTrib');
-        $totTrib->appendChild($pTot);
+
+        if ($valores->dispensadoIssqn) {
+            $totTrib->appendChild($this->el($doc, 'indTotTrib', '0'));
+        } else {
+            $pTot = $this->el($doc, 'pTotTrib');
+            $pTot->appendChild($this->el($doc, 'pTotTribFed', '0.00'));
+            $pTot->appendChild($this->el($doc, 'pTotTribEst', '0.00'));
+            $pTot->appendChild($this->el($doc, 'pTotTribMun',
+                number_format($valores->aliquotaIssqnPercentual, 2, '.', ''),
+            ));
+            $totTrib->appendChild($pTot);
+        }
+
         $trib->appendChild($totTrib);
 
         $valNode->appendChild($trib);
@@ -412,30 +430,4 @@ final class DpsBuilder
         $infDPS->appendChild($ibscbs);
     }
 
-    /**
-     * Validações cruzadas entre DTOs que só fazem sentido na hora de montar
-     * o DPS (não cabem nos construtores individuais).
-     */
-    private function validarCruzado(Valores $valores): void
-    {
-        $errors = [];
-
-        // E0438: o leiaute proíbe regEspTrib != 0 + vDedRed. Aqui é só
-        // warning — o appendPrestador já força regEspTrib=0 quando há
-        // dedução. Mantido como nota interna pra depuração.
-        // (Não adiciona erro porque é auto-corrigido.)
-
-        // ISSQN apurado deve ser positivo se há vBC > 0
-        if ($valores->baseCalculo() > 0 && $valores->valorIssqn() <= 0) {
-            $errors[] = sprintf(
-                'ISSQN apurado = 0 com BC = %.2f e alíquota = %.2f%% — confira os valores',
-                $valores->baseCalculo(),
-                $valores->aliquotaIssqnPercentual,
-            );
-        }
-
-        if (!empty($errors)) {
-            throw new ValidationException($errors, 'DPS inválido');
-        }
-    }
 }

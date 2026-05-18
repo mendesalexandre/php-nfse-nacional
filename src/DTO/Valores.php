@@ -61,6 +61,20 @@ final class Valores
         public readonly float $aliquotaIssqnPercentual,
         public readonly bool $issqnRetido = false,
         public readonly float $descontoIncondicionado = 0.0,
+        /**
+         * Prestador é dispensado do ISSQN apurado (MEI, isento, imune).
+         *
+         * Quando true, o grupo `<totTrib>` é emitido como
+         * `<indTotTrib>0</indTotTrib>` (valor total dos tributos NÃO
+         * informado) em vez de `<pTotTrib>` — mesmo padrão que o emissor
+         * web do SEFIN utiliza para CNPJ MEI. Ambos são opções válidas do
+         * *choice* TSTotTrib no leiaute SefinNacional 1.6.
+         *
+         * Os demais campos (`aliquotaIssqnPercentual`, etc.) continuam
+         * exigidos para os cálculos internos da convenção "ISSQN por
+         * dentro", mas não vão ao XML quando esta flag está ativa.
+         */
+        public readonly bool $dispensadoIssqn = false,
     ) {
         $errors = [];
 
