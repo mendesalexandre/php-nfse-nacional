@@ -922,6 +922,376 @@ final class DpsBuilderTest extends TestCase
         );
     }
 
+    public function test_infoCompl_omitido_quando_servico_nao_seta(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        self::assertStringNotContainsString('<infoCompl>', $xml);
+    }
+
+    public function test_infoCompl_emite_xInfComp_quando_setado(): void
+    {
+        $servico = new Servico(
+            discriminacao: 'Servico com observacoes',
+            codigoMunicipioPrestacao: '3550308',
+            infoCompl: new \PhpNfseNacional\DTO\InformacoesComplementares(
+                xInfComp: 'Pedido #12345 - cliente VIP - pagamento à vista',
+            ),
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:serv/n:infoCompl')->length);
+        self::assertSame(
+            'Pedido #12345 - cliente VIP - pagamento à vista',
+            $xpath->query('//n:serv/n:infoCompl/n:xInfComp')->item(0)?->nodeValue,
+        );
+    }
+
+    public function test_infoCompl_ordem_filhos_idDocTec_docRef_xInfComp(): void
+    {
+        $servico = new Servico(
+            discriminacao: 'Servico com tres campos info compl',
+            codigoMunicipioPrestacao: '3550308',
+            infoCompl: new \PhpNfseNacional\DTO\InformacoesComplementares(
+                xInfComp: 'Observação',
+                idDocTec: 'DOC-TEC-001',
+                docRef: 'NFE 35012345678901234567890123456789012345678123',
+            ),
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $posIdDocTec = strpos($xml, '<idDocTec>');
+        $posDocRef = strpos($xml, '<docRef>');
+        $posXInfComp = strpos($xml, '<xInfComp>');
+
+        self::assertNotFalse($posIdDocTec);
+        self::assertNotFalse($posDocRef);
+        self::assertNotFalse($posXInfComp);
+        self::assertLessThan($posDocRef, $posIdDocTec);
+        self::assertLessThan($posXInfComp, $posDocRef);
+    }
+
+    public function test_infoCompl_DTO_rejeita_xInfComp_acima_de_2000(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('xInfComp muito longo');
+
+        new \PhpNfseNacional\DTO\InformacoesComplementares(
+            xInfComp: str_repeat('a', 2001),
+        );
+    }
+
+    public function test_infoCompl_DTO_rejeita_campos_vazios_use_null(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('xInfComp vazio');
+
+        new \PhpNfseNacional\DTO\InformacoesComplementares(xInfComp: '');
+    }
+
+    public function test_infoCompl_temConteudo(): void
+    {
+        $vazio = new \PhpNfseNacional\DTO\InformacoesComplementares();
+        self::assertFalse($vazio->temConteudo());
+
+        $comTexto = new \PhpNfseNacional\DTO\InformacoesComplementares(xInfComp: 'x');
+        self::assertTrue($comTexto->temConteudo());
+    }
+
+    public function test_documentoDeducao_emite_grupo_documentos_em_vez_de_vDR(): void
+    {
+        $doc = new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Materiais,
+            dataEmissaoDocumento: new \DateTimeImmutable('2026-05-01'),
+            valorDedutivel: 50.00,
+            valorDeducao: 30.00,
+            chaveNfe: str_repeat('1', 44),
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00, // ZERO! choice com documentos
+                aliquotaIssqnPercentual: 4.00,
+                documentosDeducao: [$doc],
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        // Tem <documentos> mas não <vDR>
+        self::assertSame(1, $xpath->query('//n:vDedRed/n:documentos')->length);
+        self::assertSame(0, $xpath->query('//n:vDedRed/n:vDR')->length);
+        // Conteúdo do docDedRed
+        self::assertSame(str_repeat('1', 44), $xpath->query('//n:documentos/n:docDedRed/n:chNFe')->item(0)?->nodeValue);
+        self::assertSame('02', $xpath->query('//n:documentos/n:docDedRed/n:tpDedRed')->item(0)?->nodeValue);
+        self::assertSame('2026-05-01', $xpath->query('//n:documentos/n:docDedRed/n:dtEmiDoc')->item(0)?->nodeValue);
+        self::assertSame('50.00', $xpath->query('//n:documentos/n:docDedRed/n:vDedutivelRedutivel')->item(0)?->nodeValue);
+        self::assertSame('30.00', $xpath->query('//n:documentos/n:docDedRed/n:vDeducaoReducao')->item(0)?->nodeValue);
+    }
+
+    public function test_documentoDeducao_aceita_chave_nfse(): void
+    {
+        $chave = str_repeat('1', 50);
+        $doc = new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Servicos,
+            dataEmissaoDocumento: new \DateTimeImmutable('2026-04-15'),
+            valorDedutivel: 100.00,
+            valorDeducao: 100.00,
+            chaveNfse: $chave,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(200.00, 0.00, 4.00, documentosDeducao: [$doc]),
+        );
+
+        self::assertStringContainsString("<chNFSe>{$chave}</chNFSe>", $xml);
+    }
+
+    public function test_documentoDeducao_aceita_numero_documento_livre(): void
+    {
+        $doc = new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::ReembolsoDespesas,
+            dataEmissaoDocumento: new \DateTimeImmutable('2026-04-20'),
+            valorDedutivel: 100.00,
+            valorDeducao: 50.00,
+            numeroDocumento: 'RECIBO-123/2026',
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(200.00, 0.00, 4.00, documentosDeducao: [$doc]),
+        );
+
+        self::assertStringContainsString('<nDoc>RECIBO-123/2026</nDoc>', $xml);
+    }
+
+    public function test_documentoDeducao_DTO_rejeita_sem_identificador(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('ao menos um identificador');
+
+        new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Materiais,
+            dataEmissaoDocumento: new \DateTimeImmutable(),
+            valorDedutivel: 100.00,
+            valorDeducao: 50.00,
+        );
+    }
+
+    public function test_documentoDeducao_DTO_rejeita_dois_identificadores(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('apenas UM identificador');
+
+        new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Materiais,
+            dataEmissaoDocumento: new \DateTimeImmutable(),
+            valorDedutivel: 100.00,
+            valorDeducao: 50.00,
+            chaveNfse: str_repeat('1', 50),
+            chaveNfe: str_repeat('2', 44),
+        );
+    }
+
+    public function test_documentoDeducao_DTO_rejeita_deducao_maior_que_dedutivel(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('valorDeducao');
+        $this->expectExceptionMessage('maior que valorDedutivel');
+
+        new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Materiais,
+            dataEmissaoDocumento: new \DateTimeImmutable(),
+            valorDedutivel: 100.00,
+            valorDeducao: 150.00,
+            chaveNfe: str_repeat('1', 44),
+        );
+    }
+
+    public function test_documentoDeducao_DTO_Outras_exige_descricao(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('descricaoOutraDeducao é obrigatória');
+
+        new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Outras,
+            dataEmissaoDocumento: new \DateTimeImmutable(),
+            valorDedutivel: 100.00,
+            valorDeducao: 50.00,
+            chaveNfe: str_repeat('1', 44),
+        );
+    }
+
+    public function test_valores_rejeita_vDR_e_documentos_juntos(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('choice no schema');
+
+        $doc = new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Materiais,
+            dataEmissaoDocumento: new \DateTimeImmutable(),
+            valorDedutivel: 50.00,
+            valorDeducao: 30.00,
+            chaveNfe: str_repeat('1', 44),
+        );
+
+        new Valores(
+            valorServicos: 100.00,
+            deducoesReducoes: 20.00, // tem vDR
+            aliquotaIssqnPercentual: 4.00,
+            documentosDeducao: [$doc], // E tem documentos — INVÁLIDO
+        );
+    }
+
+    public function test_tribFed_omitido_quando_sem_piscofins_e_sem_retencoes(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        self::assertStringNotContainsString('<tribFed>', $xml);
+    }
+
+    public function test_tribFed_emite_piscofins_completo(): void
+    {
+        $pc = new \PhpNfseNacional\DTO\TributacaoPisCofins(
+            cst: \PhpNfseNacional\Enums\CstPisCofins::OperacaoTributavelAliquotaBasica,
+            valorBaseCalculo: 1000.00,
+            aliquotaPis: 0.65,
+            aliquotaCofins: 3.00,
+            valorPis: 6.50,
+            valorCofins: 30.00,
+            tipoRetencao: \PhpNfseNacional\Enums\TipoRetencaoPisCofins::Retido,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(1000.00, 0.00, 4.00, tributacaoPisCofins: $pc),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('01', $xpath->query('//n:piscofins/n:CST')->item(0)?->nodeValue);
+        self::assertSame('1000.00', $xpath->query('//n:piscofins/n:vBCPisCofins')->item(0)?->nodeValue);
+        self::assertSame('0.65', $xpath->query('//n:piscofins/n:pAliqPis')->item(0)?->nodeValue);
+        self::assertSame('30.00', $xpath->query('//n:piscofins/n:vCofins')->item(0)?->nodeValue);
+        self::assertSame('1', $xpath->query('//n:piscofins/n:tpRetPisCofins')->item(0)?->nodeValue);
+    }
+
+    public function test_tribFed_emite_retencoes_federais_sem_piscofins(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 1000.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                valorRetidoIrrf: 15.00,
+                valorRetidoCp: 11.00,
+                valorRetidoCsll: 10.00,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:tribFed')->length);
+        self::assertSame(0, $xpath->query('//n:tribFed/n:piscofins')->length);
+        self::assertSame('11.00', $xpath->query('//n:tribFed/n:vRetCP')->item(0)?->nodeValue);
+        self::assertSame('15.00', $xpath->query('//n:tribFed/n:vRetIRRF')->item(0)?->nodeValue);
+        self::assertSame('10.00', $xpath->query('//n:tribFed/n:vRetCSLL')->item(0)?->nodeValue);
+    }
+
+    public function test_tribFed_piscofins_so_com_CST_quando_sem_incidencia(): void
+    {
+        // Cenário "sem incidência" — só CST=08, sem valores
+        $pc = new \PhpNfseNacional\DTO\TributacaoPisCofins(
+            cst: \PhpNfseNacional\Enums\CstPisCofins::OperacaoSemIncidenciaContribuicao,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00, tributacaoPisCofins: $pc),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('08', $xpath->query('//n:piscofins/n:CST')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:piscofins/n:vBCPisCofins')->length);
+    }
+
+    public function test_tributacaoPisCofins_DTO_rejeita_aliquota_negativa(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('aliquotaPis');
+
+        new \PhpNfseNacional\DTO\TributacaoPisCofins(
+            cst: \PhpNfseNacional\Enums\CstPisCofins::OperacaoTributavelAliquotaBasica,
+            aliquotaPis: -1.0,
+        );
+    }
+
     public function test_intermediario_DTO_rejeita_email_invalido(): void
     {
         $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);

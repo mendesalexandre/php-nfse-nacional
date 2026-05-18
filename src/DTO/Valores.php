@@ -124,6 +124,33 @@ final class Valores
          * `<pTotTribMun>` (declaratória, Lei 12.741/2012).
          */
         public readonly ?float $aliquotaMunicipal = null,
+        /**
+         * Lista de documentos referenciados pra dedução/redução
+         * (`<vDedRed>/<documentos>` no DPS). Quando preenchido, emite
+         * `<documentos>` no lugar de `<vDR>` (são choice no schema).
+         *
+         * Útil para construção civil (deduzir materiais/subempreitada
+         * de NF-es de fornecedor), agências de turismo (repasses), etc.
+         * Para deduções simples (sem doc referenciado), use o campo
+         * `$deducoesReducoes` (float) que vai como `<vDR>` puro.
+         *
+         * Limite do schema: 1-1000 documentos por DPS.
+         *
+         * @var array<int, DocumentoDeducao>
+         */
+        public readonly array $documentosDeducao = [],
+        /**
+         * Grupo `<piscofins>` dentro de `<tribFed>` — opcional. Quando
+         * presente, o builder emite `<tribFed><piscofins>...</piscofins>`
+         * com os campos correspondentes.
+         */
+        public readonly ?TributacaoPisCofins $tributacaoPisCofins = null,
+        /** Valor retido de IRRF — vai em `<tribFed><vRetIRRF>`. */
+        public readonly ?float $valorRetidoIrrf = null,
+        /** Valor retido de Contribuição Previdenciária — `<tribFed><vRetCP>`. */
+        public readonly ?float $valorRetidoCp = null,
+        /** Valor retido de CSLL — `<tribFed><vRetCSLL>`. */
+        public readonly ?float $valorRetidoCsll = null,
     ) {
         $errors = [];
 
@@ -147,6 +174,27 @@ final class Valores
         }
         if ($aliquotaMunicipal !== null && ($aliquotaMunicipal < 0 || $aliquotaMunicipal > 10)) {
             $errors[] = "aliquotaMunicipal inválida: {$aliquotaMunicipal}% (esperado entre 0 e 10)";
+        }
+        if (count($documentosDeducao) > 0 && $deducoesReducoes > 0) {
+            $errors[] = 'Use $deducoesReducoes (vDR) OU $documentosDeducao (documentos) — '
+                . 'são choice no schema, não podem coexistir';
+        }
+        if (count($documentosDeducao) > 1000) {
+            $errors[] = 'Máximo de 1000 documentos por DPS (limite do schema)';
+        }
+        foreach ($documentosDeducao as $i => $doc) {
+            if (!$doc instanceof DocumentoDeducao) {
+                $errors[] = "documentosDeducao[{$i}] não é DocumentoDeducao";
+            }
+        }
+        foreach ([
+            'valorRetidoIrrf' => $valorRetidoIrrf,
+            'valorRetidoCp' => $valorRetidoCp,
+            'valorRetidoCsll' => $valorRetidoCsll,
+        ] as $campo => $v) {
+            if ($v !== null && $v < 0) {
+                $errors[] = "{$campo} não pode ser negativo (recebeu {$v})";
+            }
         }
 
         if (!empty($errors)) {
