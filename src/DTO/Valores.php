@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\DTO;
 
+use PhpNfseNacional\Enums\TipoImunidadeIssqn;
+use PhpNfseNacional\Enums\TipoTributacaoIssqn;
 use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
@@ -75,6 +77,53 @@ final class Valores
          * dentro", mas não vão ao XML quando esta flag está ativa.
          */
         public readonly bool $dispensadoIssqn = false,
+        /**
+         * Tipo de tributação do ISSQN — campo `<tribISSQN>`. Default
+         * null → emite `1` (Operação Tributável). Para imunidade, exportação
+         * ou não-incidência, passe o case correspondente.
+         *
+         * Quando `Imunidade`, considere também preencher `$imunidade`
+         * (`<tpImunidade>` opcional dentro de `<tribMun>`).
+         * Quando `ExportacaoServico`, preencha `$codigoPaisResultado`
+         * (`<cPaisResult>` com código ISO 2 chars).
+         */
+        public readonly ?TipoTributacaoIssqn $tributacaoIssqn = null,
+        /**
+         * Código ISO (2 chars) do país onde se verificou o resultado da
+         * prestação. Aplicável quando `$tributacaoIssqn = ExportacaoServico`.
+         * Vai em `<cPaisResult>` dentro de `<tribMun>`.
+         */
+        public readonly ?string $codigoPaisResultado = null,
+        /**
+         * Grupo `<BM>` (Benefício Municipal) dentro de `<tribMun>`.
+         * Quando informado, o DPS referencia o `nBM` cadastrado pelo
+         * município no Sistema Nacional. Default null = sem benefício.
+         */
+        public readonly ?BeneficioMunicipal $beneficioMunicipal = null,
+        /**
+         * Grupo `<exigSusp>` (Exigibilidade Suspensa) dentro de `<tribMun>`.
+         * Quando informado, o ISSQN tem cobrança suspensa por processo
+         * judicial ou administrativo.
+         */
+        public readonly ?ExigibilidadeSuspensa $exigibilidadeSuspensa = null,
+        /**
+         * Tipo de imunidade do ISSQN — `<tpImunidade>` dentro de `<tribMun>`.
+         * Aplicável quando `$tributacaoIssqn = Imunidade`.
+         */
+        public readonly ?TipoImunidadeIssqn $imunidade = null,
+        /**
+         * Alíquota efetiva do ISSQN no município de incidência —
+         * `<pAliq>` dentro de `<tribMun>` (linha 266 do leiaute).
+         *
+         * Necessária apenas quando o município **não pertence** ao Sistema
+         * Nacional NFS-e (sem cadastro tributário no portal). Para
+         * municípios conveniados, o SEFIN aplica a alíquota cadastrada
+         * (`<pAliqAplic>`) ignorando o `pAliq` informado.
+         *
+         * NÃO confundir com `$aliquotaIssqnPercentual`, que vai pra
+         * `<pTotTribMun>` (declaratória, Lei 12.741/2012).
+         */
+        public readonly ?float $aliquotaMunicipal = null,
     ) {
         $errors = [];
 
@@ -92,6 +141,12 @@ final class Valores
         }
         if ($descontoIncondicionado < 0) {
             $errors[] = 'descontoIncondicionado não pode ser negativo';
+        }
+        if ($codigoPaisResultado !== null && !preg_match('/^[A-Z]{2}$/', $codigoPaisResultado)) {
+            $errors[] = "codigoPaisResultado inválido: '{$codigoPaisResultado}' (esperado 2 letras maiúsculas, código ISO)";
+        }
+        if ($aliquotaMunicipal !== null && ($aliquotaMunicipal < 0 || $aliquotaMunicipal > 10)) {
+            $errors[] = "aliquotaMunicipal inválida: {$aliquotaMunicipal}% (esperado entre 0 e 10)";
         }
 
         if (!empty($errors)) {

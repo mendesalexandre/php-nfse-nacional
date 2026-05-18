@@ -369,10 +369,63 @@ final class DpsBuilder
             $valNode->appendChild($vDedRed);
         }
 
-        // trib > tribMun (obrigatório)
+        // trib > tribMun (obrigatório).
+        //
+        // Ordem dos filhos do <tribMun> conforme leiaute V1.00.02
+        // (linhas 256-267):
+        //   tribISSQN → cPaisResult? → BM? → exigSusp? → tpImunidade?
+        //     → pAliq? → tpRetISSQN
+        //
+        // Trocar a ordem dá E1235 ("invalid child element").
         $trib = $this->el($doc, 'trib');
         $tribMun = $this->el($doc, 'tribMun');
-        $tribMun->appendChild($this->el($doc, 'tribISSQN', '1')); // 1 = Operação Tributável
+
+        $tribIssqn = $valores->tributacaoIssqn?->value ?? 1; // 1 = Operação Tributável default
+        $tribMun->appendChild($this->el($doc, 'tribISSQN', (string) $tribIssqn));
+
+        if ($valores->codigoPaisResultado !== null) {
+            $tribMun->appendChild($this->el($doc, 'cPaisResult', $valores->codigoPaisResultado));
+        }
+
+        if ($valores->beneficioMunicipal !== null) {
+            $bm = $this->el($doc, 'BM');
+            $bm->appendChild($this->el($doc, 'nBM', $valores->beneficioMunicipal->nBM));
+            // Choice: vRedBCBM | pRedBCBM (xor validado no DTO)
+            if ($valores->beneficioMunicipal->valorReducaoBc !== null) {
+                $bm->appendChild($this->el($doc, 'vRedBCBM',
+                    number_format($valores->beneficioMunicipal->valorReducaoBc, 2, '.', ''),
+                ));
+            } elseif ($valores->beneficioMunicipal->percentualReducaoBc !== null) {
+                $bm->appendChild($this->el($doc, 'pRedBCBM',
+                    number_format($valores->beneficioMunicipal->percentualReducaoBc, 2, '.', ''),
+                ));
+            }
+            $tribMun->appendChild($bm);
+        }
+
+        if ($valores->exigibilidadeSuspensa !== null) {
+            $es = $this->el($doc, 'exigSusp');
+            $es->appendChild($this->el($doc, 'tpSusp',
+                (string) $valores->exigibilidadeSuspensa->tipo->value,
+            ));
+            $es->appendChild($this->el($doc, 'nProcesso',
+                $valores->exigibilidadeSuspensa->numeroProcesso,
+            ));
+            $tribMun->appendChild($es);
+        }
+
+        if ($valores->imunidade !== null) {
+            $tribMun->appendChild($this->el($doc, 'tpImunidade',
+                (string) $valores->imunidade->value,
+            ));
+        }
+
+        if ($valores->aliquotaMunicipal !== null) {
+            $tribMun->appendChild($this->el($doc, 'pAliq',
+                number_format($valores->aliquotaMunicipal, 2, '.', ''),
+            ));
+        }
+
         $tribMun->appendChild($this->el($doc, 'tpRetISSQN',
             (string) ($valores->issqnRetido ? 2 : 1),
         ));

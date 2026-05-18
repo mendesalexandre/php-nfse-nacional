@@ -17,6 +17,9 @@ namespace PhpNfseNacional\Enums;
  */
 enum TipoImunidadeIssqn: int
 {
+    /** Imunidade sem tipo informado na nota de origem (uso atípico). */
+    case NaoInformado = 0;
+
     /** CF 150 VI "a" — patrimônio, renda ou serviços entre entes federativos. */
     case PatrimonioRendaServicosEntes = 1;
 
