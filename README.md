@@ -18,12 +18,15 @@ coisa com PHP 8.1+ e suporte a PSR-3/PSR-18.
 ## Status
 
 Ciclo de vida da NFS-e completo: **emissão, consulta, cancelamento, substituição,
-manifestação, download, DANFSe NT 008/2026 e Distribuição de DFe (caixa postal
-do CNPJ)**. Cobertura do `<tribMun>` completa conforme leiaute V1.00.02
-(imunidade, exportação, benefício municipal, exigibilidade suspensa). Retry
-automático com backoff no download do DANFSe. PHPStan level 8 limpo, **219 testes
-verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 — API pode sofrer
-ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
+manifestação, download (com retry), DANFSe NT 008/2026 e Distribuição de DFe
+(caixa postal do CNPJ)**. Cobertura ampla do DPS conforme leiaute V1.00.02:
+**Intermediário** (`<interm>`), **Informações Complementares** (`<infoCompl>`),
+**Deduções com documentos referenciados** (`<docDedRed>`),
+**PIS/COFINS e retenções federais** (`<tribFed>`), `<tribMun>` completo
+(imunidade, exportação, benefício municipal, exigibilidade suspensa).
+**XSDs oficiais** versionados em `docs/schemas/`. PHPStan level 8 limpo,
+**267 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
+API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
 
@@ -34,11 +37,20 @@ ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 - Tabelas oficiais como enums tipados: `ListaServicosNacional` (335 cases da
   LC 116/2003) e `ListaNbs` (917 cases)
 - Sem dependência de framework — funciona em Laravel, Symfony, projetos vanilla
-- Distribuição de DFe paginada (caixa postal do CNPJ no SEFIN)
+- **Intermediário** (`<interm>`) — marketplaces, plataformas de delivery,
+  agências de turismo
+- **Deduções com documentos** (`<docDedRed>`) — construção civil
+  (materiais/subempreitada), repasses, reembolsos
+- **PIS/COFINS + retenções federais** (`<tribFed>`) — CST configurável
+  + retenções de IRRF/CP/CSLL
+- **Distribuição de DFe paginada** (caixa postal do CNPJ no SEFIN), com
+  helpers `chavesCanceladas`, `statusPorChave`, `agruparPorChave`, etc.
+- **Detecção de cancelamento** via `$nfse->estaCancelada($chave)` (forma
+  canônica — `consultar()` retorna cStat=100 mesmo após cancelar)
 - Retry automático com backoff exponencial no download de DANFSe (502/503/504)
 - Verificação idempotente de DPS (`HEAD /dps/{id}`) antes de emitir
 - Tipagem forte (PHPStan level 8)
-- Testes desde o dia 1 — 219 testes verdes em CI (PHP 8.1–8.5)
+- Testes desde o dia 1 — **267 testes verdes** em CI (PHP 8.1–8.5)
 
 ## Requisitos
 
@@ -200,6 +212,89 @@ echo $servico->cTribNac;                                 // '010101'
 echo ListaServicosNacional::S010101->descricao();        // 'Análise e desenvolvimento...'
 ```
 
+**Intermediário (marketplace / plataforma):**
+
+```php
+use PhpNfseNacional\DTO\Intermediario;
+
+$intermediario = new Intermediario(
+    documento: '12345678000195',
+    nome: 'MARKETPLACE EXEMPLO LTDA',
+    endereco: $endereco,        // opcional
+    inscricaoMunicipal: '987654',
+    email: 'fiscal@marketplace.com',
+);
+
+$nfse->emitir(
+    identificacao: $id,
+    tomador: $tomador,
+    servico: $servico,
+    valores: $valores,
+    intermediario: $intermediario,
+);
+```
+
+**Informações complementares na NFS-e:**
+
+```php
+use PhpNfseNacional\DTO\InformacoesComplementares;
+
+$servico = new Servico(
+    discriminacao: 'Serviço prestado',
+    codigoMunicipioPrestacao: '...',
+    infoCompl: new InformacoesComplementares(
+        xInfComp: 'Pedido #12345 - pagamento à vista - cliente VIP',
+    ),
+);
+```
+
+**Deduções com documentos (construção civil, repasses):**
+
+```php
+use PhpNfseNacional\DTO\DocumentoDeducao;
+use PhpNfseNacional\Enums\TipoDeducaoReducao;
+
+$deducao = new DocumentoDeducao(
+    tipo: TipoDeducaoReducao::Materiais,
+    dataEmissaoDocumento: new DateTimeImmutable('2026-05-01'),
+    valorDedutivel: 5000.00,
+    valorDeducao: 4500.00,
+    chaveNfe: '35012345...',  // ou chaveNfse / numeroDocumento
+);
+
+$valores = new Valores(
+    valorServicos: 10000.00,
+    deducoesReducoes: 0.00,           // ZERO! choice no schema
+    aliquotaIssqnPercentual: 4.00,
+    documentosDeducao: [$deducao],
+);
+```
+
+**PIS/COFINS retido + IRRF/CP/CSLL:**
+
+```php
+use PhpNfseNacional\DTO\TributacaoPisCofins;
+use PhpNfseNacional\Enums\{CstPisCofins, TipoRetencaoPisCofins};
+
+$valores = new Valores(
+    valorServicos: 1000.00,
+    deducoesReducoes: 0.00,
+    aliquotaIssqnPercentual: 4.00,
+    tributacaoPisCofins: new TributacaoPisCofins(
+        cst: CstPisCofins::OperacaoTributavelAliquotaBasica,
+        valorBaseCalculo: 1000.00,
+        aliquotaPis: 0.65,
+        aliquotaCofins: 3.00,
+        valorPis: 6.50,
+        valorCofins: 30.00,
+        tipoRetencao: TipoRetencaoPisCofins::Retido,
+    ),
+    valorRetidoIrrf: 15.00,
+    valorRetidoCp: 11.00,
+    valorRetidoCsll: 10.00,
+);
+```
+
 ### Idempotência: verificar antes de emitir
 
 Pra evitar dupla emissão (sequencial DPS reutilizado, retry agressivo do
@@ -354,10 +449,17 @@ src/
 - [x] CI no GitHub Actions (PHP 8.1 – 8.5)
 - [x] Validação ponta-a-ponta em homologação SEFIN
 - [x] Examples completos do ciclo de vida
+- [x] **`<interm>`** (Intermediário) — v0.12.0
+- [x] **`<serv/infoCompl>`** (Informações Complementares) — v0.13.0
+- [x] **`<vDedRed/documentos>/<docDedRed>`** (Deduções com docs referenciados) — v0.13.0
+- [x] **`<trib/tribFed>/<piscofins>`** + retenções federais — v0.13.0
+- [x] **`<BM>` + `<exigSusp>` + `<tpImunidade>`** dentro de `<tribMun>` — v0.10.0
+- [x] XSDs oficiais versionados em `docs/schemas/` — v0.12.0
 - [ ] BC-break v1.0.0: `Valores::$issqnRetido` (bool) → `TipoRetencaoIssqn` (enum)
-- [ ] Cobertura ampliada — `<comExt>` (exportação), `<obra>` (construção civil),
-      `<interm>` (intermediário), `<vDedRed/documentos>` (deduções por NF de origem)
+- [ ] **Onda 5**: `<comExt>` (exportação), `<obra>` (construção civil),
+      `<atvEvento>` (eventos), `<explRod>` (rodovia)
 - [ ] Endereço internacional (`endExt`) em prest/toma/interm/obra
+- [ ] Grupo `<fornec>` dentro de `<docDedRed>` (fornecedor do documento de dedução)
 
 ## Licença
 
