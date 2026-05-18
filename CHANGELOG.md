@@ -5,6 +5,33 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **Enums de tabelas oficiais e cobertura tributária.** Seis novos enums em
+  `PhpNfseNacional\Enums\`, sem alterações no `DpsBuilder` ainda (uso
+  opcional pelo caller; o wiring no XML virá em PR separado para evitar
+  BC-break):
+  - `ListaServicosNacional` (335 cases) — códigos `cTribNac` da LC 116/2003
+    com `descricao()` íntegra + parsers `item()` / `subitem()` / `desdobro()`.
+    Tabela adaptada do projeto MIT [gildonei/nfse-nacional] (atribuição no
+    cabeçalho do arquivo).
+  - `ListaNbs` (917 cases) — códigos `cNBS` da Nomenclatura Brasileira de
+    Serviços, com `descricao()` + parsers `secao()` / `divisao()` / `grupo()`
+    / `classe()` / `subclasse()`. Mesma origem MIT.
+  - `TipoBeneficioMunicipal` (4 cases: Isenção, RedBC%, RedBCValor,
+    AlíquotaDiferenciada) — campo `tpBM` do grupo `<benef>` no DPS.
+  - `TipoImunidadeIssqn` (5 cases referentes a CF 150 VI a/b/c/d/e) —
+    campo `tpImunidade` do grupo `<tribImunidade>`.
+  - `RegimeApuracaoSimplesNacional` (3 cases) — campo `regApTribSN`,
+    obrigatório quando `opSimpNac ∈ {2,3}` (MEI/ME/EPP).
+  - `TipoRetencaoIssqn` (3 cases: NaoRetido, RetidoTomador,
+    RetidoIntermediario) — substituirá o atual `bool $issqnRetido` em
+    futura versão maior (BC-break).
+
+  10 testes novos validando `from()`, `descricao()`, parsers e contagem
+  mínima. Suite total: 172 testes / 491 asserts.
+
+  [gildonei/nfse-nacional]: https://github.com/gildonei/nfse-nacional
+
 ## [0.7.0] — 2026-05-18
 
 ### Removido
