@@ -389,4 +389,156 @@ final class DpsBuilderTest extends TestCase
         $prestBlock = substr($xml, strpos($xml, '<prest>'), strpos($xml, '</prest>') - strpos($xml, '<prest>'));
         self::assertStringContainsString('<IM>12345</IM>', $prestBlock);
     }
+
+    public function test_dispensadoIssqn_emite_indTotTrib_no_lugar_de_pTotTrib(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 800.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+                dispensadoIssqn: true,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:totTrib/n:indTotTrib')->length);
+        self::assertSame('0', $xpath->query('//n:totTrib/n:indTotTrib')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:totTrib/n:pTotTrib')->length);
+    }
+
+    public function test_aceita_BC_com_aliquota_zero_sem_validacao_fiscal(): void
+    {
+        // Validação fiscal (BC vs ISSQN apurado) é responsabilidade do SEFIN,
+        // não da lib. O builder deve aceitar e montar o XML; quem decide se a
+        // operação é válida fiscalmente é o portal — regras mudam (MEI,
+        // isenções, novos cTribNac) e variam por município.
+        $builder = new DpsBuilder($this->configPadrao());
+
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 800.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+            ),
+        );
+
+        self::assertNotEmpty($xml);
+    }
+
+    public function test_sem_dispensadoIssqn_emite_pTotTrib_normalmente(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:totTrib/n:pTotTrib/n:pTotTribMun')->length);
+        self::assertSame('4.00', $xpath->query('//n:totTrib/n:pTotTrib/n:pTotTribMun')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:totTrib/n:indTotTrib')->length);
+    }
+
+    public function test_prestador_emite_fone_e_email_quando_preenchidos(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
+            endereco: $endereco,
+            email: 'contato@exemplo.com.br',
+            telefone: '(11) 99999-8888',
+        );
+        $builder = new DpsBuilder(new Config($prestador, Ambiente::Homologacao));
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('11999998888', $xpath->query('//n:prest/n:fone')->item(0)?->nodeValue);
+        self::assertSame('contato@exemplo.com.br', $xpath->query('//n:prest/n:email')->item(0)?->nodeValue);
+    }
+
+    public function test_prestador_omite_fone_e_email_quando_ausentes(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(0, $xpath->query('//n:prest/n:fone')->length);
+        self::assertSame(0, $xpath->query('//n:prest/n:email')->length);
+    }
+
+    public function test_prestador_ordem_dos_filhos_segue_schema(): void
+    {
+        // Schema do <prest> exige ordem: CNPJ → IM → fone → email → regTrib.
+        // Confirmado contra XML real do emissor web SEFIN (MEI, abril 2026).
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
+            endereco: $endereco,
+            email: 'contato@exemplo.com.br',
+            telefone: '1199999888',
+        );
+        $builder = new DpsBuilder(new Config($prestador, Ambiente::Homologacao));
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $posCnpj  = strpos($xml, '<CNPJ>');
+        $posIm    = strpos($xml, '<IM>');
+        $posFone  = strpos($xml, '<fone>');
+        $posEmail = strpos($xml, '<email>');
+        $posReg   = strpos($xml, '<regTrib>');
+
+        self::assertNotFalse($posCnpj);
+        self::assertNotFalse($posIm);
+        self::assertNotFalse($posFone);
+        self::assertNotFalse($posEmail);
+        self::assertNotFalse($posReg);
+        self::assertLessThan($posIm, $posCnpj);
+        self::assertLessThan($posFone, $posIm);
+        self::assertLessThan($posEmail, $posFone);
+        self::assertLessThan($posReg, $posEmail);
+    }
 }

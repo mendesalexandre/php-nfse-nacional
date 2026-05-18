@@ -5,6 +5,37 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-18
+
+### Removido
+- **Validação cruzada `"ISSQN apurado = 0 com BC > 0"` no `DpsBuilder`.**
+  Validar regra fiscal é responsabilidade do SEFIN, não da lib —
+  cenários válidos (MEI dispensado, isenções, novos cTribNac) variam
+  por município e mudam com o tempo. A lib agora aceita o cenário e
+  monta o XML; quem decide se a operação é fiscalmente válida é o
+  portal. O método privado `validarCruzado` foi removido inteiro.
+
+### Adicionado
+- **`Valores::$dispensadoIssqn` (default `false`).** Quando `true`, o
+  grupo `<totTrib>` é emitido como `<indTotTrib>0</indTotTrib>` em vez
+  de `<pTotTrib>` — mesmo padrão que o emissor web do SEFIN utiliza
+  para CNPJ MEI. Ambos são opções válidas do *choice* TSTotTrib no
+  leiaute SefinNacional 1.6. `pTotTrib` declara as alíquotas
+  aproximadas (Lei 12.741/2012); `indTotTrib=0` indica que o valor
+  total dos tributos NÃO foi informado — posição correta para
+  prestador dispensado.
+
+  Não é BC-break: o default mantém o comportamento atual (pTotTrib).
+  3 testes novos em `DpsBuilderTest` cobrem o switch.
+
+- **`<fone>` e `<email>` no grupo `<prest>`.** Quando `Prestador::$telefone`
+  ou `Prestador::$email` estão preenchidos, o `DpsBuilder` os emite entre
+  `<IM>` e `<regTrib>` — ordem confirmada contra XML real do emissor web
+  do SEFIN (NFS-e MEI, abril 2026). Telefone é normalizado (só dígitos),
+  email vai como informado. Os campos do DTO existiam desde antes mas não
+  iam para o XML, omissão sistemática que ficou evidente no smoke MEI.
+  3 testes novos cobrem presença, ausência e ordem dos filhos.
+
 ## [0.6.0] — 2026-05-13
 
 ### Alterado (BC-break)
