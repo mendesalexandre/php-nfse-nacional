@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-05-18
+
 ### Adicionado
 - **`Servico::cTribNac` e `Servico::cNBS` aceitam enum.** O construtor
   agora aceita `ListaServicosNacional|string` e `ListaNbs|string` —
