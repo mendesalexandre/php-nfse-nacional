@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-05-18
+
 ### Adicionado
 
 - **Retry automático com backoff exponencial em `baixarPdf()`.** O endpoint
