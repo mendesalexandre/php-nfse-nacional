@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido
+- **`DanfseLayout::tipoTributacaoIssqn()` — labels `tribISSQN` 2/3/4 invertidos.**
+  Spec oficial (Anexo IV V1.00.02, linha 256) define:
+  `1 = Tributável, 2 = Imunidade, 3 = Exportação, 4 = Não Incidência`.
+  Tínhamos `2 = Exportação`, `3 = Não Incidência`, `4 = Imunidade` —
+  inversão herdada de presunção sem fonte. Bug latente até hoje porque
+  todas as emissões reais até v0.9.0 usavam `tribISSQN=1` (Tributável);
+  qualquer NFS-e com imunidade/exportação no DANFSe mostrava texto
+  errado. Docblock do `TipoImunidadeIssqn` também corrigido (aplicável
+  quando `tribISSQN=2`, não `=4`).
+
 ## [0.9.0] — 2026-05-18
 
 ### Adicionado

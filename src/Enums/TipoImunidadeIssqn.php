@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace PhpNfseNacional\Enums;
 
 /**
- * Tipo de imunidade do ISSQN — campo `tpImunidade` do grupo
- * `<tribImunidade>` no DPS (leiaute SefinNacional 1.6), aplicável
- * quando `tribISSQN = 4` (Imunidade).
+ * Tipo de imunidade do ISSQN — elemento `<tpImunidade>` dentro de
+ * `<tribMun>` no DPS (leiaute SefinNacional V1.00.02, linha 265),
+ * aplicável quando `tribISSQN = 2` (Imunidade).
  *
  * Referência: CF/88 art. 150, VI (imunidades tributárias).
+ *
+ * Nota: a spec oficial define `tpImunidade` como elemento simples
+ * (não grupo), opcional dentro de `<tribMun>`, posicionado depois
+ * de `<BM>`/`<exigSusp>` e antes de `<pAliq>`.
  */
 enum TipoImunidadeIssqn: int
 {
