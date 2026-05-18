@@ -5,6 +5,36 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **Cobertura completa do `<tribMun>` conforme spec V1.00.02.** O grupo
+  passa a aceitar todos os elementos opcionais entre `<tribISSQN>` e
+  `<tpRetISSQN>`:
+  - **`Enums\TipoTributacaoIssqn`** (4 cases) — substitui o `tribISSQN`
+    hardcoded em `1`. Default permanece Operação Tributável.
+  - **`Enums\TipoExigibilidadeSuspensa`** (Judicial=1 / Administrativa=2)
+    — campo `<tpSusp>` do `<exigSusp>`.
+  - **`DTO\BeneficioMunicipal`** — grupo `<BM>` com `nBM` (14 dig)
+    + *choice* `vRedBCBM | pRedBCBM`. Validação XOR no construtor.
+  - **`DTO\ExigibilidadeSuspensa`** — grupo `<exigSusp>` com
+    `tpSusp` + `nProcesso` (até 30 chars).
+  - **`Enums\TipoImunidadeIssqn::NaoInformado = 0`** adicionado para
+    casar com a spec completa (0–5).
+- **Novos campos opcionais em `Valores`** (defaults null, sem BC-break):
+  - `?TipoTributacaoIssqn $tributacaoIssqn` → `<tribISSQN>`
+  - `?string $codigoPaisResultado` → `<cPaisResult>` (2 chars ISO, p/
+    exportação)
+  - `?BeneficioMunicipal $beneficioMunicipal` → `<BM>`
+  - `?ExigibilidadeSuspensa $exigibilidadeSuspensa` → `<exigSusp>`
+  - `?TipoImunidadeIssqn $imunidade` → `<tpImunidade>` (use junto com
+    `tributacaoIssqn = Imunidade`)
+  - `?float $aliquotaMunicipal` → `<pAliq>` (necessário só p/ município
+    NÃO conveniado ao Sistema Nacional NFS-e — não confundir com
+    `aliquotaIssqnPercentual` que vai pra `<pTotTribMun>`)
+- **`DpsBuilder::appendValores`** emite todos os elementos novos na
+  ordem oficial do schema: `tribISSQN → cPaisResult? → BM? → exigSusp?
+  → tpImunidade? → pAliq? → tpRetISSQN`. Validado contra spec V1.00.02
+  (Anexo IV, linhas 256-267).
+
 ### Corrigido
 - **`DanfseLayout::tipoTributacaoIssqn()` — labels `tribISSQN` 2/3/4 invertidos.**
   Spec oficial (Anexo IV V1.00.02, linha 256) define:

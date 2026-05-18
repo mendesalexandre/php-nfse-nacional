@@ -607,6 +607,227 @@ final class DpsBuilderTest extends TestCase
         self::assertLessThan($posRegEsp, $posRegAp);
     }
 
+    public function test_tribISSQN_default_eh_um_quando_nao_setado(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('1', $xpath->query('//n:tribMun/n:tribISSQN')->item(0)?->nodeValue);
+    }
+
+    public function test_tribISSQN_aceita_enum_imunidade_e_imunidade_grupo(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+                tributacaoIssqn: \PhpNfseNacional\Enums\TipoTributacaoIssqn::Imunidade,
+                imunidade: \PhpNfseNacional\Enums\TipoImunidadeIssqn::TemplosQualquerCulto,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('2', $xpath->query('//n:tribMun/n:tribISSQN')->item(0)?->nodeValue);
+        self::assertSame('2', $xpath->query('//n:tribMun/n:tpImunidade')->item(0)?->nodeValue);
+    }
+
+    public function test_tribISSQN_exportacao_aceita_cPaisResult(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 0.00,
+                tributacaoIssqn: \PhpNfseNacional\Enums\TipoTributacaoIssqn::ExportacaoServico,
+                codigoPaisResultado: 'US',
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('3', $xpath->query('//n:tribMun/n:tribISSQN')->item(0)?->nodeValue);
+        self::assertSame('US', $xpath->query('//n:tribMun/n:cPaisResult')->item(0)?->nodeValue);
+    }
+
+    public function test_beneficioMunicipal_emite_BM_com_nBM_e_pRedBCBM(): void
+    {
+        $bm = new \PhpNfseNacional\DTO\BeneficioMunicipal(
+            nBM: '51079090100001',
+            percentualReducaoBc: 50.00,
+        );
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                beneficioMunicipal: $bm,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('51079090100001', $xpath->query('//n:tribMun/n:BM/n:nBM')->item(0)?->nodeValue);
+        self::assertSame('50.00', $xpath->query('//n:tribMun/n:BM/n:pRedBCBM')->item(0)?->nodeValue);
+        self::assertSame(0, $xpath->query('//n:tribMun/n:BM/n:vRedBCBM')->length);
+    }
+
+    public function test_beneficioMunicipal_choice_xor_lança_quando_ambos_informados(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('valorReducaoBc OU percentualReducaoBc');
+
+        new \PhpNfseNacional\DTO\BeneficioMunicipal(
+            nBM: '51079090100001',
+            valorReducaoBc: 100.00,
+            percentualReducaoBc: 50.00,
+        );
+    }
+
+    public function test_beneficioMunicipal_nBM_deve_ter_14_digitos(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('nBM inválido');
+
+        new \PhpNfseNacional\DTO\BeneficioMunicipal(nBM: '123');
+    }
+
+    public function test_exigibilidadeSuspensa_emite_grupo_completo(): void
+    {
+        $es = new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(
+            tipo: \PhpNfseNacional\Enums\TipoExigibilidadeSuspensa::ProcessoJudicial,
+            numeroProcesso: '5001234-56.2026.8.11.0037',
+        );
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                exigibilidadeSuspensa: $es,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('1', $xpath->query('//n:tribMun/n:exigSusp/n:tpSusp')->item(0)?->nodeValue);
+        self::assertSame('5001234-56.2026.8.11.0037', $xpath->query('//n:tribMun/n:exigSusp/n:nProcesso')->item(0)?->nodeValue);
+    }
+
+    public function test_aliquotaMunicipal_emite_pAliq(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                aliquotaMunicipal: 3.50,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('3.50', $xpath->query('//n:tribMun/n:pAliq')->item(0)?->nodeValue);
+    }
+
+    public function test_tribMun_ordem_dos_filhos_segue_schema(): void
+    {
+        // Schema obriga: tribISSQN → cPaisResult? → BM? → exigSusp? →
+        // tpImunidade? → pAliq? → tpRetISSQN. Trocar dá E1235.
+        $bm = new \PhpNfseNacional\DTO\BeneficioMunicipal(
+            nBM: '51079090100001',
+            percentualReducaoBc: 25.00,
+        );
+        $es = new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(
+            tipo: \PhpNfseNacional\Enums\TipoExigibilidadeSuspensa::ProcessoAdministrativo,
+            numeroProcesso: 'PA-001/2026',
+        );
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                tributacaoIssqn: \PhpNfseNacional\Enums\TipoTributacaoIssqn::ExportacaoServico,
+                codigoPaisResultado: 'US',
+                beneficioMunicipal: $bm,
+                exigibilidadeSuspensa: $es,
+                imunidade: \PhpNfseNacional\Enums\TipoImunidadeIssqn::PatrimonioRendaServicosEntes,
+                aliquotaMunicipal: 4.00,
+            ),
+        );
+
+        // Pega só o bloco tribMun pra evitar ruído de outros elementos
+        $tribMunStart = strpos($xml, '<tribMun>');
+        $tribMunEnd   = strpos($xml, '</tribMun>');
+        self::assertNotFalse($tribMunStart);
+        self::assertNotFalse($tribMunEnd);
+        $block = substr($xml, $tribMunStart, $tribMunEnd - $tribMunStart);
+
+        $posTrib   = strpos($block, '<tribISSQN>');
+        $posPais   = strpos($block, '<cPaisResult>');
+        $posBM     = strpos($block, '<BM>');
+        $posExig   = strpos($block, '<exigSusp>');
+        $posImun   = strpos($block, '<tpImunidade>');
+        $posAliq   = strpos($block, '<pAliq>');
+        $posRet    = strpos($block, '<tpRetISSQN>');
+
+        self::assertLessThan($posPais, $posTrib);
+        self::assertLessThan($posBM,   $posPais);
+        self::assertLessThan($posExig, $posBM);
+        self::assertLessThan($posImun, $posExig);
+        self::assertLessThan($posAliq, $posImun);
+        self::assertLessThan($posRet,  $posAliq);
+    }
+
     public function test_prestador_ordem_dos_filhos_segue_schema(): void
     {
         // Schema do <prest> exige ordem: CNPJ → IM → fone → email → regTrib.

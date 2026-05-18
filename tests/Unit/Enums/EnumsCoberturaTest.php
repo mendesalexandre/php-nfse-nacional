@@ -60,7 +60,8 @@ final class EnumsCoberturaTest extends TestCase
 
     public function test_tipo_imunidade_issqn_cases(): void
     {
-        self::assertCount(5, TipoImunidadeIssqn::cases());
+        self::assertCount(6, TipoImunidadeIssqn::cases());
+        self::assertSame(0, TipoImunidadeIssqn::NaoInformado->value);
         self::assertSame(2, TipoImunidadeIssqn::TemplosQualquerCulto->value);
         self::assertSame(4, TipoImunidadeIssqn::LivrosJornaisPeriodicosPapel->value);
     }
