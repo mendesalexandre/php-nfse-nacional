@@ -29,12 +29,14 @@ Para histórico de versões, ver [CHANGELOG.md](CHANGELOG.md).
    - [DANFSe local](#danfse-local) — `$nfse->danfseLocal()`
 4. [Tipos de retorno](#tipos-de-retorno)
    - [`SefinResposta`](#sefinresposta)
+   - [`RespostaDfe` + `ItemDfe`](#respostadfe--itemdfe) — caixa postal CNPJ
 5. [DTOs de entrada](#dtos-de-entrada)
    - [`Identificacao`](#identificacao)
    - [`Tomador`](#tomador)
-   - [`Servico`](#servico)
-   - [`Valores`](#valores)
-6. [Enums](#enums)
+   - [`Intermediario`](#intermediario) — marketplace/plataforma
+   - [`Servico`](#servico) + grupos opcionais (`comExt`, `obra`, `atvEvento`, `infoCompl`)
+   - [`Valores`](#valores) + grupos opcionais (`<tribMun>`, `<tribFed/piscofins>`, deduções com docs)
+6. [Enums](#enums) — 20+ enums tipados (LC 116, NBS, retenção, tributação, etc.)
 7. [Exceções](#exceções)
 8. [Eventos customizados](#eventos-customizados) — extensibilidade
 9. [Emissão retroativa (~contingência)](#emissão-retroativa-contingência)
@@ -622,6 +624,73 @@ final class SefinResposta
 
 Imutável. `xmlRetorno` é útil pra arquivar em S3; `rawResponse` é só pra debug.
 
+> ⚠️ **`$nfse->consultar($chave)->cancelada()` NÃO detecta cancelamento de NFS-e.** O método verifica `cStat ∈ {101, 102, 135, 155}` — mas o `consultar()` retorna sempre cStat=100 (autorizada) mesmo após o cancelamento, porque o cancelamento é um EVENTO separado, não muda o cStat da NFS-e original.
+>
+> Para detectar cancelamento de uma NFS-e específica, use [`$nfse->estaCancelada($chave)`](#listagem-de-eventos-por-nfs-e) (busca eventos no ADN) ou [`$resp->foiCancelada($chave)`](#respostadfe--itemdfe) sobre um lote DFe.
+
+### `RespostaDfe` + `ItemDfe`
+
+Retornados por [`$nfse->sincronizarDfe()`](#distribuição-dfe-caixa-postal). Representam o lote agregado da caixa postal do CNPJ.
+
+```php
+namespace PhpNfseNacional\Sefin;
+
+final class ItemDfe
+{
+    public function __construct(
+        public readonly int     $nsu,
+        public readonly ?string $tipoDocumento,   // "NFSE" | "EVENTO"
+        public readonly ?string $chaveAcesso,
+        public readonly ?string $tipoEvento,      // "CANCELAMENTO" | "CONFIRMACAO_PRESTADOR" | ...
+        public readonly ?int    $sequencialEvento,
+        public readonly ?string $dataHora,        // ISO 8601 (`DataHoraGeracao`)
+        public readonly ?string $arquivoXmlGzipB64, // XML completo embutido
+        public readonly array   $bruto,           // payload raw do ADN
+    );
+
+    public function arquivoXmlDecodificado(): ?string;  // descomprime gzip+base64 sob demanda
+}
+
+final class RespostaDfe
+{
+    public const STATUS_EMITIDA = 'EMITIDA';
+    public const STATUS_CANCELADA = 'CANCELADA';
+    public const STATUS_SUBSTITUIDA = 'SUBSTITUIDA';
+    public const STATUS_CONFIRMADA = 'CONFIRMADA';
+    public const STATUS_REJEITADA = 'REJEITADA';
+
+    public function __construct(
+        public readonly array  $itens,         // ItemDfe[]
+        public readonly int    $ultimoNsu,     // persistir pra próxima sincronização
+        public readonly ?string $statusProcessamento, // "DOCUMENTOS_LOCALIZADOS" | "NenhumDocumentoLocalizado"
+        public readonly bool   $temMais,       // true se atingiu maxPaginas
+    );
+
+    public function vazio(): bool;
+    public function quantidade(): int;
+
+    // Filtros por tipo
+    public function itensNfse(): array;        // só NFSE
+    public function itensEvento(): array;      // só EVENTO
+
+    // Listas por status (operam sobre o lote em memória, zero HTTP)
+    public function chavesCanceladas(): array;    // chaves c/ evento CANCELAMENTO
+    public function chavesSubstituidas(): array;
+    public function chavesConfirmadas(): array;
+    public function chavesRejeitadas(): array;
+
+    // Lookup por chave
+    public function foiCancelada(string $chave): bool;
+    public function eventosDaChave(string $chave): array;  // ItemDfe[] dos eventos
+    public function statusPorChave(string $chave): ?string; // hierarquia: SUBSTITUIDA > CANCELADA > REJEITADA > CONFIRMADA > EMITIDA
+
+    // Agregação
+    public function agruparPorChave(): array;  // ['chave' => ['CANCELAMENTO', ...]]
+}
+```
+
+> **Importante: o `ArquivoXml` vem embutido em cada item** (gzip+base64). Use `$item->arquivoXmlDecodificado()` para obter o XML completo sem chamar `baixarXml()` separadamente — economiza N round-trips ao processar lote.
+
 ---
 
 ## DTOs de entrada
@@ -672,14 +741,25 @@ final class Tomador
 final class Servico
 {
     public function __construct(
-        public readonly string $discriminacao,             // 10..2000 chars
-        public readonly string $codigoMunicipioPrestacao,  // IBGE 7 dígitos
-        public readonly string $cTribNac = '210101',       // LC 116 — default = serviços notariais
-        public readonly string $cNBS = '113040000',
+        public readonly string $discriminacao,                     // 10..2000 chars
+        public readonly string $codigoMunicipioPrestacao,          // IBGE 7 dígitos
+        ListaServicosNacional|string $cTribNac = '210101',         // LC 116 — aceita enum ou string
+        ListaNbs|string $cNBS = '113040000',                       // NBS — aceita enum ou string
         public readonly string $cIndOp = '100301',
+        public readonly ?InformacoesComplementares $infoCompl = null, // <serv/infoCompl>
+        public readonly ?ComercioExterior $comExt = null,          // <serv/comExt> — obrigatório em exportação
+        public readonly ?InformacaoObra $obra = null,              // <serv/obra> — construção civil
+        public readonly ?AtividadeEvento $atvEvento = null,        // <serv/atvEvento> — shows, conferências
     );
 }
 ```
+
+#### Grupos opcionais (v0.13.0+)
+
+- **`infoCompl`** → `<infoCompl>` com `xInfComp`, `idDocTec`, `docRef`. Posicionado como ÚLTIMO filho de `<serv>`. Veja [InformacoesComplementares](#informacoescomplementares).
+- **`comExt`** → `<comExt>` (Comércio Exterior). **OBRIGATÓRIO quando `Valores::$tributacaoIssqn = ExportacaoServico`** (sem ele dá cStat=330). Veja [ComercioExterior](#comercioexterior).
+- **`obra`** → `<obra>` para serviços de construção civil. Choice entre `cObra` (CNO/CEI), `cCIB` ou endereço. Veja [InformacaoObra](#informacaoobra).
+- **`atvEvento`** → `<atvEvento>` para shows, conferências, eventos. Veja [AtividadeEvento](#atividadeevento).
 
 #### Códigos de tributação por segmento
 
@@ -703,6 +783,165 @@ A tabela completa está no [Anexo II do leiaute SefinNacional 1.6](https://www.g
 
 > **Cartório de Sinop:** sempre `'210101'`. NUNCA `'140101'` (lubrificação/limpeza — bug histórico já corrigido).
 
+### `Intermediario`
+
+```php
+final class Intermediario
+{
+    public function __construct(
+        string $documento,                       // CPF (11) ou CNPJ (14)
+        public readonly string $nome,            // 1..150 chars
+        public readonly ?Endereco $endereco = null,
+        public readonly ?string $email = null,
+        public readonly ?string $telefone = null,
+        public readonly ?string $inscricaoMunicipal = null,
+    );
+}
+```
+
+Marketplaces, plataformas de delivery, agências de turismo. Passado como parâmetro opcional em `$nfse->emitir(..., intermediario: $i)`. Grupo `<interm>` é posicionado entre `<toma>` e `<serv>`.
+
+### `InformacoesComplementares`
+
+```php
+final class InformacoesComplementares
+{
+    public function __construct(
+        public readonly ?string $xInfComp = null,   // texto livre, até 2000 chars
+        public readonly ?string $idDocTec = null,   // ART/RRT/DRT, até 40 chars
+        public readonly ?string $docRef = null,     // ref a doc externo, até 255 chars
+    );
+}
+```
+
+Passada como `Servico::$infoCompl`. Pelo menos 1 campo deve estar preenchido (vazios são rejeitados — use `null`).
+
+### `ComercioExterior`
+
+```php
+final class ComercioExterior
+{
+    public function __construct(
+        public readonly ModoPrestacao $modoPrestacao,
+        public readonly VinculoEntrePartes $vinculoEntrePartes,
+        public readonly string $codigoMoeda,         // 3 dígitos BACEN: 220=USD, 978=EUR, 790=BRL
+        public readonly float $valorServicoMoeda,    // valor na moeda estrangeira
+        public readonly MecanismoFomentoPrestador $mecanismoFomentoPrestador,
+        public readonly MecanismoFomentoTomador $mecanismoFomentoTomador,
+        public readonly MovimentacaoTemporariaBens $movimentacaoTemporariaBens,
+        public readonly EnvioMdic $envioMdic = EnvioMdic::NaoEnviar,
+        public readonly ?string $numeroDeclaracaoImportacao = null,
+        public readonly ?string $numeroRegistroExportacao = null,
+    );
+}
+```
+
+**Obrigatório quando `Valores::$tributacaoIssqn = ExportacaoServico`** — sem `<comExt>` SEFIN devolve cStat=330.
+
+> **⚠ Achado importante: `codigoMoeda` exige código BACEN numérico**, não ISO 4217 alfa. USD = `'220'` (não `'USD'`). Pattern XSD `TSCodMoeda` é `[0-9]{3}`. Tentar `'USD'` causa cStat=1235.
+
+### `InformacaoObra`
+
+```php
+final class InformacaoObra
+{
+    public function __construct(
+        public readonly ?string $inscricaoImobiliariaFiscal = null,
+        // choice obrigatório:
+        public readonly ?string $codigoObra = null,   // CNO ou CEI legacy
+        public readonly ?string $codigoCib = null,    // Cadastro Imobiliário Brasileiro
+        public readonly ?Endereco $endereco = null,
+    );
+}
+```
+
+Choice (XOR) entre `codigoObra`, `codigoCib` ou `endereco` — exatamente 1 obrigatório.
+
+### `AtividadeEvento`
+
+```php
+final class AtividadeEvento
+{
+    public function __construct(
+        public readonly string $nome,                  // descrição do evento, até 255 chars
+        public readonly DateTimeImmutable $dataInicio,
+        public readonly DateTimeImmutable $dataFim,    // >= dataInicio
+        // choice obrigatório:
+        public readonly ?string $idAtividadeEvento = null,  // código da Administração Municipal
+        public readonly ?Endereco $endereco = null,
+    );
+}
+```
+
+### `BeneficioMunicipal`
+
+```php
+final class BeneficioMunicipal
+{
+    public function __construct(
+        public readonly string $nBM,                       // 14 dígitos — ID parametrizado pelo município
+        public readonly ?float $valorReducaoBc = null,     // choice: monetário ou percentual
+        public readonly ?float $percentualReducaoBc = null,
+    );
+}
+```
+
+Composição do `nBM` (14 dígitos): 7 dig IBGE município + 2 dig tipo (01-04) + 5 dig sequencial. Use `valorReducaoBc` OU `percentualReducaoBc` (XOR).
+
+### `ExigibilidadeSuspensa`
+
+```php
+final class ExigibilidadeSuspensa
+{
+    public function __construct(
+        public readonly TipoExigibilidadeSuspensa $tipo,   // ProcessoJudicial | ProcessoAdministrativo
+        public readonly string $numeroProcesso,            // EXATAMENTE 30 dígitos (XSD [0-9]{30})
+    );
+}
+```
+
+> **⚠ Achado: `numeroProcesso` exige 30 dígitos**, não CNJ (20) nem Receita Federal (17). Confirmado contra `docs/schemas/1.01/tiposSimples_v1.01.xsd` — pattern `TSNumProcExigSuspensa = [0-9]{30}`. Convenção comum: CNJ + 10 zeros de padding.
+
+### `DocumentoDeducao`
+
+```php
+final class DocumentoDeducao
+{
+    public function __construct(
+        public readonly TipoDeducaoReducao $tipo,                 // 9 cases (Materiais, Subempreitada, etc.)
+        public readonly DateTimeImmutable $dataEmissaoDocumento,
+        public readonly float $valorDedutivel,                    // valor total do documento
+        public readonly float $valorDeducao,                      // <= valorDedutivel
+        // choice obrigatório:
+        public readonly ?string $chaveNfse = null,                // 50 dígitos
+        public readonly ?string $chaveNfe = null,                 // 44 dígitos
+        public readonly ?string $numeroDocumento = null,          // texto livre até 255
+        public readonly ?string $descricaoOutraDeducao = null,    // obrigatório se tipo=Outras
+    );
+}
+```
+
+Usado em `Valores::$documentosDeducao` (array). **Choice com `$deducoesReducoes`** no schema — não use ambos.
+
+### `TributacaoPisCofins`
+
+```php
+final class TributacaoPisCofins
+{
+    public function __construct(
+        public readonly CstPisCofins $cst,                       // CST 00-09
+        public readonly ?float $valorBaseCalculo = null,
+        public readonly ?float $aliquotaPis = null,              // 0-100
+        public readonly ?float $aliquotaCofins = null,
+        public readonly ?float $valorPis = null,
+        public readonly ?float $valorCofins = null,
+        public readonly ?TipoRetencaoPisCofins $tipoRetencao = null, // Retido | NaoRetido
+    );
+}
+```
+
+Usado em `Valores::$tributacaoPisCofins`. Para serviço sem incidência PIS/COFINS, basta passar `cst: CstPisCofins::OperacaoSemIncidenciaContribuicao` e omitir os demais.
+
 ### `Valores`
 
 ```php
@@ -710,16 +949,49 @@ final class Valores
 {
     public function __construct(
         public readonly float $valorServicos,                // > 0
-        public readonly float $deducoesReducoes,             // 0 .. valorServicos
-        public readonly float $aliquotaIssqnPercentual,      // 0..10
-        public readonly bool  $issqnRetido = false,
+        public readonly float $deducoesReducoes,             // 0 .. valorServicos (choice c/ $documentosDeducao)
+        public readonly float $aliquotaIssqnPercentual,      // 0..10 — vai pra <pTotTribMun>
+        public readonly TipoRetencaoIssqn $tipoRetencaoIssqn = TipoRetencaoIssqn::NaoRetido,
         public readonly float $descontoIncondicionado = 0.0,
+        public readonly ?MotivoDispensaIssqn $motivoDispensaIssqn = null,
+        // <tribMun>
+        public readonly ?TipoTributacaoIssqn $tributacaoIssqn = null,    // <tribISSQN> — default 1 (Tributável)
+        public readonly ?string $codigoPaisResultado = null,             // <cPaisResult> — exportação
+        public readonly ?BeneficioMunicipal $beneficioMunicipal = null,  // <BM>
+        public readonly ?ExigibilidadeSuspensa $exigibilidadeSuspensa = null, // <exigSusp>
+        public readonly ?TipoImunidadeIssqn $imunidade = null,           // <tpImunidade>
+        public readonly ?float $aliquotaMunicipal = null,                // <pAliq> — municípios não-conveniados
+        // <vDedRed>
+        public readonly array $documentosDeducao = [],                   // <documentos><docDedRed>... (choice c/ $deducoesReducoes)
+        // <tribFed>
+        public readonly ?TributacaoPisCofins $tributacaoPisCofins = null, // <tribFed/piscofins>
+        public readonly ?float $valorRetidoIrrf = null,                  // <vRetIRRF>
+        public readonly ?float $valorRetidoCp = null,                    // <vRetCP>
+        public readonly ?float $valorRetidoCsll = null,                  // <vRetCSLL>
     );
 
     public function baseCalculo(): float;   // valorServicos − descIncond − deducoesReducoes
     public function valorIssqn(): float;    // baseCalculo × alíquota / 100, arredondado 2 casas
 }
 ```
+
+#### Campos novos (resumo desde v0.10)
+
+| Campo | Vai pra | Notas |
+|---|---|---|
+| `$tipoRetencaoIssqn` | `<tpRetISSQN>` | enum 3 estados: NaoRetido, RetidoPeloTomador, RetidoPeloIntermediario. **BC-break v0.14.0** (era `bool $issqnRetido`) |
+| `$motivoDispensaIssqn` | `<indTotTrib>0</indTotTrib>` | enum 4 cases pra justificar dispensa. Null = sem dispensa (emite `<pTotTrib>`). **BC-break v0.14.0** (era `bool $dispensadoIssqn`). Aceito só pra optantes SN — Não Optante recebe cStat=713 |
+| `$tributacaoIssqn` | `<tribISSQN>` | 1=Tributável (default), 2=Imunidade, 3=Exportação, 4=NãoIncidência |
+| `$imunidade` | `<tpImunidade>` | Aplicável quando `tributacaoIssqn=2`. Enum 6 cases (CF 150 VI) |
+| `$codigoPaisResultado` | `<cPaisResult>` | 2 chars ISO. Aplicável quando `tributacaoIssqn=3` |
+| `$beneficioMunicipal` | `<BM>` | DTO com `nBM` (14 dig) + choice `vRedBCBM\|pRedBCBM` |
+| `$exigibilidadeSuspensa` | `<exigSusp>` | Suspensão judicial/administrativa. `numeroProcesso` exige `[0-9]{30}` (XSD `TSNumProcExigSuspensa`) |
+| `$aliquotaMunicipal` | `<pAliq>` | Alíquota efetiva. Só necessário em municípios NÃO conveniados |
+| `$documentosDeducao` | `<documentos>/<docDedRed>` | Array de `DocumentoDeducao`. **Choice com `$deducoesReducoes`** — XOR validado |
+| `$tributacaoPisCofins` | `<tribFed/piscofins>` | CST + BC + alíquotas PIS/COFINS + indicação de retenção |
+| `$valorRetidoIrrf` | `<vRetIRRF>` | Retenção federal flat |
+| `$valorRetidoCp` | `<vRetCP>` | Contribuição Previdenciária retida |
+| `$valorRetidoCsll` | `<vRetCSLL>` | CSLL retida |
 
 > **ISSQN "por dentro":** o leiaute SefinNacional computa `vBC = vServ − vDR`. Para a base bater com a real, `deducoesReducoes` precisa **incluir o ISSQN** (= soma de taxas + ISSQN arredondado). É contraintuitivo mas é regra do leiaute. Calcule no cliente antes de instanciar.
 
@@ -781,6 +1053,169 @@ enum SituacaoSimplesNacional: int {
     case MEI        = 2;
     case MeEpp      = 3;
 }
+
+enum RegimeApuracaoSimplesNacional: int {
+    case FederaisEMunicipalPorSN          = 1;  // MEI: tudo via DAS
+    case FederaisPorSnMunicipalPorNfse    = 2;
+    case FederaisEMunicipalPorNfse        = 3;
+}
+
+// ─── Tributação ISSQN (`<tribMun>`) ───
+
+enum TipoTributacaoIssqn: int {
+    case OperacaoTributavel = 1;   // default
+    case Imunidade          = 2;
+    case ExportacaoServico  = 3;
+    case NaoIncidencia      = 4;
+}
+
+enum TipoImunidadeIssqn: int {
+    case NaoInformado                          = 0;
+    case PatrimonioRendaServicosEntes          = 1; // CF 150 VI a
+    case TemplosQualquerCulto                  = 2; // CF 150 VI b
+    case PartidosSindicatosEducacaoAssistencia = 3; // CF 150 VI c
+    case LivrosJornaisPeriodicosPapel          = 4; // CF 150 VI d
+    case FonogramasVideofonogramasMusicaisBR   = 5; // CF 150 VI e
+}
+
+enum TipoRetencaoIssqn: int {
+    case NaoRetido                = 1;  // default
+    case RetidoPeloTomador        = 2;
+    case RetidoPeloIntermediario  = 3;
+}
+
+enum MotivoDispensaIssqn: string {
+    case OptanteSimplesNacional = 'OPTANTE_SIMPLES_NACIONAL';
+    case OperacaoImune          = 'OPERACAO_IMUNE';
+    case OperacaoIsenta         = 'OPERACAO_ISENTA';
+    case Outros                 = 'OUTROS';
+}
+
+enum TipoExigibilidadeSuspensa: int {
+    case ProcessoJudicial       = 1;
+    case ProcessoAdministrativo = 2;
+}
+
+enum TipoBeneficioMunicipal: int {
+    case Isencao              = 1;
+    case ReducaoBcPercentual  = 2;
+    case ReducaoBcValor       = 3;
+    case AliquotaDiferenciada = 4;
+}
+
+// ─── Deduções / Tributação Federal ───
+
+enum TipoDeducaoReducao: string {
+    case AlimentacaoBebidasFrigobar = '01';
+    case Materiais                  = '02';
+    case ProducaoExterna            = '03';
+    case ReembolsoDespesas          = '04';
+    case RepasseConsorciado         = '05';
+    case RepassePlanoSaude          = '06';
+    case Servicos                   = '07';
+    case SubempreitadaMaoObra       = '08';
+    case Outras                     = '99';  // exige descricaoOutraDeducao
+}
+
+enum CstPisCofins: string {
+    case Nenhum                                          = '00';
+    case OperacaoTributavelAliquotaBasica                = '01';
+    case OperacaoTributavelAliquotaDiferenciada          = '02';
+    case OperacaoTributavelAliquotaPorUnidadeMedida      = '03';
+    case OperacaoTributavelMonofasicaRevendaAliquotaZero = '04';
+    case OperacaoTributavelSubstituicaoTributaria        = '05';
+    case OperacaoTributavelAliquotaZero                  = '06';
+    case OperacaoTributavelContribuicao                  = '07';
+    case OperacaoSemIncidenciaContribuicao               = '08';
+    case OperacaoComSuspensaoContribuicao                = '09';
+}
+
+enum TipoRetencaoPisCofins: int {
+    case Retido    = 1;
+    case NaoRetido = 2;
+}
+
+// ─── Comércio Exterior (`<comExt>`) ───
+
+enum ModoPrestacao: int {
+    case Desconhecido                       = 0;
+    case Transfronteirico                   = 1;
+    case ConsumoNoBrasil                    = 2;
+    case MovimentoTemporarioPessoasFisicas  = 3;
+    case ConsumoNoExterior                  = 4;
+}
+
+enum VinculoEntrePartes: int {
+    case SemVinculo       = 0;
+    case Controlada       = 1;
+    case Controladora     = 2;
+    case Coligada         = 3;
+    case Matriz           = 4;
+    case FilialOuSucursal = 5;
+    case OutroVinculo     = 6;
+    case Desconhecido     = 9;
+}
+
+enum MecanismoFomentoPrestador: string {
+    case Desconhecido         = '00';
+    case Nenhum               = '01';
+    case Acc                  = '02';  // Adiantamento sobre Contrato de Câmbio
+    case Ace                  = '03';  // Adiantamento sobre Cambiais Entregues
+    case BndesEximPosEmbarque = '04';
+    case BndesEximPreEmbarque = '05';
+    case Fge                  = '06';  // Fundo de Garantia à Exportação
+    case ProexEqualizacao     = '07';
+    case ProexFinanciamento   = '08';
+}
+
+enum MecanismoFomentoTomador: string {
+    // 26 cases — RECINE, RECOPA, REIDI, ZPE, etc.
+    // Quando em dúvida: Nenhum = '01'
+    case Nenhum = '01';
+    // ... ver Enums/MecanismoFomentoTomador.php pra lista completa
+}
+
+enum MovimentacaoTemporariaBens: int {
+    case Desconhecido                  = 0;
+    case Nao                           = 1;
+    case VinculadaDeclaracaoImportacao = 2;
+    case VinculadaDeclaracaoExportacao = 3;
+}
+
+enum EnvioMdic: int {
+    case NaoEnviar = 0;
+    case Enviar    = 1;
+}
+
+// ─── Tabelas oficiais (LC 116 + NBS) ───
+
+enum ListaServicosNacional: string {
+    // 335 cases — códigos cTribNac de 6 dígitos (item LC 116 + subitem + desdobro)
+    case S010101 = '010101';  // Análise e desenvolvimento de sistemas
+    case S010201 = '010201';  // Programação
+    case S210101 = '210101';  // Serviços notariais e de registro
+    // ... ver Enums/ListaServicosNacional.php
+
+    public function descricao(): string;     // texto completo do serviço
+    public function item(): string;          // dígitos 1-2 (grupo LC 116)
+    public function subitem(): string;       // dígitos 3-4
+    public function desdobro(): string;      // dígitos 5-6
+}
+
+enum ListaNbs: string {
+    // 917 cases — códigos cNBS de 9 dígitos (S.DDGG.CC.SS)
+    case N113040000 = '113040000';
+    // ... ver Enums/ListaNbs.php
+
+    public function descricao(): string;
+    public function secao(): string;         // dígito 1
+    public function divisao(): string;       // dígitos 2-3
+    public function grupo(): string;         // dígitos 4-5
+    public function classe(): string;        // dígitos 6-7
+    public function subclasse(): string;     // dígitos 8-9
+}
+
+// ─── DTO/Enums já existentes (mantidos para referência) ───
 
 namespace PhpNfseNacional\DTO;
 
