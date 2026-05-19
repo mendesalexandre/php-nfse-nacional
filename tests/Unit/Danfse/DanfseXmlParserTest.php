@@ -73,6 +73,23 @@ final class DanfseXmlParserTest extends TestCase
         self::assertSame(0.92, $dados->valorTotal['issqn_apurado']);
     }
 
+    public function test_reducao_aliquota_ibs_cbs_extraida_dos_campos_pRedAliq(): void
+    {
+        // NT 008/2026 item 2.1.10 — DANFSe deve exibir "Reduções da Alíquota
+        // do IBS / Reduções da Alíquota da CBS". XSD V1.01 define os campos
+        // `pRedAliqUF`, `pRedAliqMun` e `pRedAliqCBS` em
+        // `infNFSe/IBSCBS/valores/{uf,mun,fed}`.
+        //
+        // Antes do fix, o `DanfseGenerator` hardcodava "- / -" porque o parser
+        // não extraía esses campos. Este teste protege contra regressão.
+        $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
+
+        $i = $dados->tributacaoIbsCbs;
+        self::assertSame(10.00, $i['p_red_aliq_uf']);
+        self::assertSame(20.00, $i['p_red_aliq_mun']);
+        self::assertSame(5.00, $i['p_red_aliq_cbs']);
+    }
+
     public function test_total_ibscbs_eh_soma_de_vIBSTot_mais_vCBS_nao_vTotNF(): void
     {
         // Regressão: o parser usava `totCIBS/vTotNF` como total do IBS/CBS,
