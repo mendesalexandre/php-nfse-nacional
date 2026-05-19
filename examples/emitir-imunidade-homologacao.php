@@ -89,7 +89,7 @@ $servico = new Servico(
 // tribISSQN=2 (Imunidade) + tpImunidade=2 (Templos de qualquer culto).
 // Em imunidade não há ISSQN a apurar; alíquota declaratória zero.
 //
-// IMPORTANTE: `dispensadoIssqn=true` (que emite <indTotTrib>0</indTotTrib>)
+// IMPORTANTE: `motivoDispensaIssqn` (que emite <indTotTrib>0</indTotTrib>)
 // é EXCLUSIVO para optantes do Simples Nacional (MEI/ME/EPP). Para Não
 // Optante (como cartório), o SEFIN exige <pTotTrib> mesmo em cenário de
 // imunidade — rejeita com cStat=713 caso contrário. Por isso aqui passa

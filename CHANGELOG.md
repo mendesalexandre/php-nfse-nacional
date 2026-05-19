@@ -5,6 +5,63 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-05-18
+
+### Alterado (BC-break) — caminho para v1.0.0
+
+**Pré-1.0 SemVer permite breaking changes em minor bumps.** Esta release
+substitui dois booleans do `Valores` por enums que cobrem todos os
+estados reais do leiaute.
+
+- **`Valores::$issqnRetido` (bool) → `Valores::$tipoRetencaoIssqn`
+  (`TipoRetencaoIssqn`)**. O campo agora cobre os 3 estados do leiaute
+  (XSD `tpRetISSQN`):
+  - `TipoRetencaoIssqn::NaoRetido` (1) — default, equivale a `false` antigo
+  - `TipoRetencaoIssqn::RetidoPeloTomador` (2) — equivale a `true` antigo
+  - `TipoRetencaoIssqn::RetidoPeloIntermediario` (3) — caso novo
+- **`Valores::$dispensadoIssqn` (bool) → `Valores::$motivoDispensaIssqn`
+  (`?MotivoDispensaIssqn`)**. O bool antigo só dizia "dispensado ou não"
+  — o novo enum captura o **motivo** semanticamente (auditoria + log):
+  - `null` — default, sem dispensa (emite `<pTotTrib>`)
+  - `MotivoDispensaIssqn::OptanteSimplesNacional` — MEI/ME/EPP
+  - `MotivoDispensaIssqn::OperacaoImune` — CF 150 VI
+  - `MotivoDispensaIssqn::OperacaoIsenta` — isenção municipal
+  - `MotivoDispensaIssqn::Outros` — não-incidência, suspensão, etc.
+
+  O valor emitido no XML continua `<indTotTrib>0</indTotTrib>` para
+  qualquer case — o motivo é metadado/contexto pra rastreabilidade.
+
+### Migração (consumidores)
+
+```diff
++use PhpNfseNacional\Enums\TipoRetencaoIssqn;
++use PhpNfseNacional\Enums\MotivoDispensaIssqn;
+
+ $valores = new Valores(
+     valorServicos: 100.00,
+     deducoesReducoes: 20.00,
+     aliquotaIssqnPercentual: 4.00,
+-    issqnRetido: false,
+-    dispensadoIssqn: true,
++    tipoRetencaoIssqn: TipoRetencaoIssqn::NaoRetido,            // ou omitir (default)
++    motivoDispensaIssqn: MotivoDispensaIssqn::OptanteSimplesNacional, // MEI dispensado
+ );
+```
+
+Mapeamento mecânico:
+- `issqnRetido: false` → omitir (default) ou `tipoRetencaoIssqn: NaoRetido`
+- `issqnRetido: true` → `tipoRetencaoIssqn: RetidoPeloTomador`
+- `dispensadoIssqn: false` → omitir (default null)
+- `dispensadoIssqn: true` (cenário típico MEI) → `motivoDispensaIssqn: OptanteSimplesNacional`
+
+### Adicionado
+- **Enum `MotivoDispensaIssqn`** (4 cases) — documenta o motivo da
+  emissão de `<indTotTrib>0</indTotTrib>` para auditoria.
+
+### Testes
+- 5 testes novos cobrindo os 3 estados de `tipoRetencaoIssqn` + os 4
+  cases de `motivoDispensaIssqn`. Suite total: 272/272 OK.
+
 ## [0.13.0] — 2026-05-18
 
 ### Adicionado — Onda 2 (parte 2/2): infoCompl, deduções, PIS/COFINS
