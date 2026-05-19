@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-05-18
+
 ### Corrigido — `dCompet` saltava pro dia seguinte na virada do dia em SP
 
 - `DpsBuilder` calculava `dhEmi` como `now() - 60s` em `America/Sao_Paulo` e
