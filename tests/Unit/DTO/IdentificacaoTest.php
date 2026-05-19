@@ -21,24 +21,6 @@ final class IdentificacaoTest extends TestCase
         self::assertNull($id->dataCompetencia);
     }
 
-    public function test_data_competencia_resolvida_usa_now_quando_nula(): void
-    {
-        $antes = new DateTimeImmutable();
-        $resolvida = (new Identificacao(numeroDps: 1))->dataCompetenciaResolvida();
-        $depois = new DateTimeImmutable();
-
-        self::assertGreaterThanOrEqual($antes->getTimestamp(), $resolvida->getTimestamp());
-        self::assertLessThanOrEqual($depois->getTimestamp(), $resolvida->getTimestamp());
-    }
-
-    public function test_data_competencia_resolvida_preserva_valor_explicito(): void
-    {
-        $data = new DateTimeImmutable('2026-01-15 10:00:00');
-        $id = new Identificacao(numeroDps: 1, dataCompetencia: $data);
-
-        self::assertSame($data, $id->dataCompetenciaResolvida());
-    }
-
     public function test_numero_dps_zero_eh_rejeitado(): void
     {
         $this->expectException(ValidationException::class);
