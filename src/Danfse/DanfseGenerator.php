@@ -627,7 +627,8 @@ final class DanfseGenerator
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Base de Cálculo Após Exclusões e Reduções',
             DanfseLayout::formatarMoeda($i['vbc_apos_exclusoes'] ?? null));
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Red. Alíquota IBS / Red. Alíquota CBS',
-            '- / -');
+            DanfseLayout::formatarPercentual($this->reducaoAliquotaIbs($i)) . ' / '
+            . DanfseLayout::formatarPercentual($i['p_red_aliq_cbs'] ?? null));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Alíquota - IBS UF / IBS Mun',
             DanfseLayout::formatarPercentual($i['p_ibs_uf'] ?? null) . ' / '
             . DanfseLayout::formatarPercentual($i['p_ibs_mun'] ?? null));
@@ -654,6 +655,27 @@ final class DanfseGenerator
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Valor Total Apurado - CBS',
             DanfseLayout::formatarMoeda($i['v_cbs'] ?? null));
         $this->cursorY += $h;
+    }
+
+    /**
+     * Reduçao de alíquota IBS pra exibição no DANFSe (NT 008/2026 item 2.1.10).
+     *
+     * NFS-e é tributo municipal — a redução relevante é a IBS Municipal.
+     * Em cenários mistos com componente estadual (raro em serviço puro), o
+     * fallback usa a redução UF se Mun não foi informada. Retornando null
+     * quando nenhuma das duas foi declarada, pra `formatarPercentual` exibir
+     * "-".
+     *
+     * @param array<string, scalar|null> $i
+     */
+    private function reducaoAliquotaIbs(array $i): ?float
+    {
+        $mun = $i['p_red_aliq_mun'] ?? null;
+        if ($mun !== null && $mun !== 0.0) {
+            return (float) $mun;
+        }
+        $uf = $i['p_red_aliq_uf'] ?? null;
+        return $uf !== null ? (float) $uf : (is_numeric($mun) ? (float) $mun : null);
     }
 
     // ================================================================

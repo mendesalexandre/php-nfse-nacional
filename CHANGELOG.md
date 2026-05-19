@@ -5,6 +5,22 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido — DANFSe `Red. Alíquota IBS / Red. Alíquota CBS` hardcoded como `- / -`
+
+- **Parser (`DanfseXmlParser`)** — passa a extrair `pRedAliqUF`, `pRedAliqMun`
+  e `pRedAliqCBS` de `infNFSe/IBSCBS/valores/{uf,mun,fed}` (XSD V1.01).
+- **Gerador (`DanfseGenerator`)** — célula "Red. Alíquota IBS / Red. Alíquota
+  CBS" do bloco TRIBUTAÇÃO IBS/CBS agora exibe os valores reais. NFS-e é
+  tributo municipal, então o lado IBS prioriza `pRedAliqMun` (fallback
+  `pRedAliqUF`); CBS usa `pRedAliqCBS` diretamente. Quando nenhum dos dois
+  é informado, mantém `"-"` formatado pra cada lado.
+- **Conformidade NT 008/2026 item 2.1.10** — fecha o último gap do checkup
+  contra a Nota Técnica que padroniza o DANFSe (API SEFIN de geração será
+  descontinuada em 01/jul/2026). Demais requisitos da NT já estavam
+  implementados (marca d'água "NFS-e SEM VALIDADE JURÍDICA" em homologação,
+  "CANCELADA" e "SUBSTITUÍDA" diagonais, QR Code com texto auxiliar
+  apontando pro Portal Nacional, bloco IBS/CBS completo).
+
 ## [0.16.0] — 2026-05-18
 
 ### Adicionado — Endereço internacional (`<endExt>`)

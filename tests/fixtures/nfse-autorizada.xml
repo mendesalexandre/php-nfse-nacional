@@ -38,6 +38,43 @@
       <vISSQN>0.92</vISSQN>
       <vLiq>32.97</vLiq>
     </valores>
+    <IBSCBS>
+      <cLocalidadeIncid>3550308</cLocalidadeIncid>
+      <xLocalidadeIncid>Cidade Exemplo</xLocalidadeIncid>
+      <valores>
+        <vBC>23.08</vBC>
+        <uf>
+          <pIBSUF>1.00</pIBSUF>
+          <pRedAliqUF>10.00</pRedAliqUF>
+          <pAliqEfetUF>0.90</pAliqEfetUF>
+        </uf>
+        <mun>
+          <pIBSMun>4.50</pIBSMun>
+          <pRedAliqMun>20.00</pRedAliqMun>
+          <pAliqEfetMun>3.60</pAliqEfetMun>
+        </mun>
+        <fed>
+          <pCBS>8.50</pCBS>
+          <pRedAliqCBS>5.00</pRedAliqCBS>
+          <pAliqEfetCBS>8.07</pAliqEfetCBS>
+        </fed>
+      </valores>
+      <totCIBS>
+        <gIBS>
+          <gIBSUFTot>
+            <vIBSUF>0.21</vIBSUF>
+          </gIBSUFTot>
+          <gIBSMunTot>
+            <vIBSMun>0.83</vIBSMun>
+          </gIBSMunTot>
+          <vIBSTot>1.04</vIBSTot>
+        </gIBS>
+        <gCBS>
+          <vCBS>1.86</vCBS>
+        </gCBS>
+        <vTotNF>32.97</vTotNF>
+      </totCIBS>
+    </IBSCBS>
     <DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01">
       <infDPS Id="DPS3501234500001234567890123000010000000000001000">
         <tpAmb>2</tpAmb>
