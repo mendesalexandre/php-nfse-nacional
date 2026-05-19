@@ -8,8 +8,11 @@ use DateTimeImmutable;
 use DOMDocument;
 use DOMElement;
 use PhpNfseNacional\Config;
+use PhpNfseNacional\DTO\AtividadeEvento;
+use PhpNfseNacional\DTO\ComercioExterior;
 use PhpNfseNacional\DTO\DocumentoDeducao;
 use PhpNfseNacional\DTO\Identificacao;
+use PhpNfseNacional\DTO\InformacaoObra;
 use PhpNfseNacional\DTO\Intermediario;
 use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
@@ -412,6 +415,18 @@ final class DpsBuilder
         $cServ->appendChild($this->el($doc, 'cNBS', $servico->cNBS));
         $serv->appendChild($cServ);
 
+        // Ordem oficial em <serv> conforme TCServ (XSD V1.01 linhas 1273-1312):
+        //   locPrest → cServ → comExt? → obra? → atvEvento? → infoCompl?
+        if ($servico->comExt !== null) {
+            $serv->appendChild($this->montarComExt($doc, $servico->comExt));
+        }
+        if ($servico->obra !== null) {
+            $serv->appendChild($this->montarObra($doc, $servico->obra));
+        }
+        if ($servico->atvEvento !== null) {
+            $serv->appendChild($this->montarAtvEvento($doc, $servico->atvEvento));
+        }
+
         // <infoCompl> é o ÚLTIMO filho de <serv> conforme TCServ
         // (tiposComplexos_v1.01.xsd linhas 1304-1311). Emite apenas se
         // o DTO foi passado e tem pelo menos 1 campo preenchido.
@@ -722,6 +737,112 @@ final class DpsBuilder
             number_format($dd->valorDeducao, 2, '.', ''),
         ));
 
+        return $node;
+    }
+
+    /**
+     * Monta o grupo `<comExt>` conforme TCComExterior (XSD V1.01 linhas
+     * 1364-1484). Ordem obrigatória dos filhos:
+     *   mdPrestacao → vincPrest → tpMoeda → vServMoeda →
+     *   mecAFComexP → mecAFComexT → movTempBens →
+     *   nDI? → nRE? → mdic
+     */
+    private function montarComExt(\DOMDocument $doc, ComercioExterior $ce): DOMElement
+    {
+        $node = $this->el($doc, 'comExt');
+        $node->appendChild($this->el($doc, 'mdPrestacao', (string) $ce->modoPrestacao->value));
+        $node->appendChild($this->el($doc, 'vincPrest', (string) $ce->vinculoEntrePartes->value));
+        $node->appendChild($this->el($doc, 'tpMoeda', $ce->codigoMoeda));
+        $node->appendChild($this->el($doc, 'vServMoeda',
+            number_format($ce->valorServicoMoeda, 2, '.', ''),
+        ));
+        $node->appendChild($this->el($doc, 'mecAFComexP', $ce->mecanismoFomentoPrestador->value));
+        $node->appendChild($this->el($doc, 'mecAFComexT', $ce->mecanismoFomentoTomador->value));
+        $node->appendChild($this->el($doc, 'movTempBens',
+            (string) $ce->movimentacaoTemporariaBens->value,
+        ));
+        if ($ce->numeroDeclaracaoImportacao !== null) {
+            $node->appendChild($this->el($doc, 'nDI', $ce->numeroDeclaracaoImportacao));
+        }
+        if ($ce->numeroRegistroExportacao !== null) {
+            $node->appendChild($this->el($doc, 'nRE', $ce->numeroRegistroExportacao));
+        }
+        $node->appendChild($this->el($doc, 'mdic', (string) $ce->envioMdic->value));
+        return $node;
+    }
+
+    /**
+     * Monta o grupo `<obra>` conforme TCInfoObra (XSD V1.01 linhas
+     * 1517-1549). Estrutura:
+     *   inscImobFisc? → choice(cObra | cCIB | end)
+     */
+    private function montarObra(\DOMDocument $doc, InformacaoObra $obra): DOMElement
+    {
+        $node = $this->el($doc, 'obra');
+        if ($obra->inscricaoImobiliariaFiscal !== null) {
+            $node->appendChild($this->el($doc, 'inscImobFisc',
+                $obra->inscricaoImobiliariaFiscal,
+            ));
+        }
+        // choice (XOR validado no DTO)
+        if ($obra->codigoObra !== null) {
+            $node->appendChild($this->el($doc, 'cObra', $obra->codigoObra));
+        } elseif ($obra->codigoCib !== null) {
+            $node->appendChild($this->el($doc, 'cCIB', $obra->codigoCib));
+        } elseif ($obra->endereco !== null) {
+            $node->appendChild($this->montarEnderecoSimples($doc, $obra->endereco));
+        }
+        return $node;
+    }
+
+    /**
+     * Monta o grupo `<atvEvento>` conforme TCAtvEvento (XSD V1.01 linhas
+     * 1486-1516). Estrutura:
+     *   xNome → dtIni → dtFim → choice(idAtvEvt | end)
+     */
+    private function montarAtvEvento(\DOMDocument $doc, AtividadeEvento $ev): DOMElement
+    {
+        $node = $this->el($doc, 'atvEvento');
+        $node->appendChild($this->el($doc, 'xNome',
+            TextoSanitizador::paraNFSe($ev->nome, 255),
+        ));
+        $node->appendChild($this->el($doc, 'dtIni', $ev->dataInicio->format('Y-m-d')));
+        $node->appendChild($this->el($doc, 'dtFim', $ev->dataFim->format('Y-m-d')));
+        // choice (XOR validado no DTO)
+        if ($ev->idAtividadeEvento !== null) {
+            $node->appendChild($this->el($doc, 'idAtvEvt', $ev->idAtividadeEvento));
+        } elseif ($ev->endereco !== null) {
+            $node->appendChild($this->montarEnderecoSimples($doc, $ev->endereco));
+        }
+        return $node;
+    }
+
+    /**
+     * Monta um endereço simples (sem nação) — usado em `<obra>/<end>` e
+     * `<atvEvento>/<end>`. Estrutura mínima: xLgr → nro → xCpl? → xBairro
+     * → cMun → CEP (TCEnderecoSimples/TCEnderObraEvento).
+     */
+    private function montarEnderecoSimples(\DOMDocument $doc, \PhpNfseNacional\DTO\Endereco $end): DOMElement
+    {
+        $node = $this->el($doc, 'end');
+        $node->appendChild($this->el($doc, 'xLgr',
+            TextoSanitizador::paraNFSe($end->logradouro, 255),
+        ));
+        $node->appendChild($this->el($doc, 'nro',
+            TextoSanitizador::paraNFSe($end->numero, 60) ?: 'S/N',
+        ));
+        if ($end->complemento !== null && $end->complemento !== '') {
+            $node->appendChild($this->el($doc, 'xCpl',
+                TextoSanitizador::paraNFSe($end->complemento, 156),
+            ));
+        }
+        $node->appendChild($this->el($doc, 'xBairro',
+            TextoSanitizador::paraNFSe($end->bairro, 60),
+        ));
+        $node->appendChild($this->el($doc, 'cMun', $end->codigoMunicipioIbge));
+        $node->appendChild($this->el($doc, 'CEP',
+            preg_replace('/\D/', '', $end->cep) ?? '',
+        ));
         return $node;
     }
 }
