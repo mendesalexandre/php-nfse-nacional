@@ -1362,52 +1362,79 @@ $resp   = $sefinClient->postEvento(
 
 O SefinNacional 1.6 **não tem flag dedicada de contingência** (diferente da NF-e). Cenários offline são resolvidos enviando o `dhEmi` no passado, com `dCompet` acompanhando.
 
-### Como usar
+### As duas datas do DPS
 
-Passe `dataEmissao` no `Identificacao` (e `dataCompetencia` igual ou anterior — NÃO pode ser posterior, senão E0015):
+| Campo XML | O que significa | Quem gera |
+|---|---|---|
+| `<dhEmi>` | Data/hora em que **a DPS foi gerada** pelo emissor (datetime ISO 8601 com timezone) | Você (o caller) |
+| `<dCompet>` | Data de **competência fiscal** do serviço — em que mês/dia entra na apuração do ISSQN | Você (o caller) |
+| `<dhProc>` | Data/hora em que **o SEFIN processou** a DPS (resposta) | SEFIN, não é enviado |
+
+Regra cruzada: `dCompet ≤ dhEmi.date`. Se violar, SEFIN rejeita com `cStat=15`.
+
+### Cenários práticos
+
+| Cenário | `dataEmissao` (DTO) | `dataCompetencia` (DTO) | Resultado no XML |
+|---|---|---|---|
+| **Emissão online normal** | omitido (null) | omitido (null) | `dhEmi = now() − 60s` em SP, `dCompet` derivado do mesmo dia |
+| **Cobrança da competência do mês anterior, emitida hoje** | omitido (null) | `2026-04-30` | `dhEmi = now() − 60s` (hoje), `dCompet = 2026-04-30` |
+| **Contingência: DPS gerada offline ontem 14:30, enviada hoje** | `'yesterday 14:30' SP` | omitido (null) | `dhEmi` = ontem 14:30, `dCompet` derivado = data de ontem (deriva do `dhEmi` automaticamente) |
+| **Backfill com competência diferente do dhEmi** | `'2026-05-10 09:00' SP` | `'2026-04-30' SP` | `dhEmi` e `dCompet` ambos do passado, independentes |
 
 ```php
 use PhpNfseNacional\DTO\Identificacao;
 
 $tz = new DateTimeZone('America/Sao_Paulo');
-$ontem = new DateTimeImmutable('yesterday 14:30', $tz);
 
-$identificacao = new Identificacao(
+// Cenário "competência anterior, emissão hoje" — caso comum em cobrança mensal
+$idCobranca = new Identificacao(
     numeroDps: 12345,
-    dataCompetencia: $ontem,
-    dataEmissao: $ontem,
+    dataCompetencia: new DateTimeImmutable('2026-04-30', $tz),
+    // dataEmissao omitido — SDK usa now() − 60s
 );
-$resp = $nfse->emitir($identificacao, $tomador, $servico, $valores);
+
+// Cenário "contingência" — DPS gerada ontem, enviada hoje
+$ontem = new DateTimeImmutable('yesterday 14:30', $tz);
+$idContingencia = new Identificacao(
+    numeroDps: 12346,
+    dataEmissao: $ontem,
+    // dataCompetencia omitido — SDK deriva da data do dhEmi (= ontem)
+);
+
+$resp = $nfse->emitir($idContingencia, $tomador, $servico, $valores);
 ```
 
-Sem `dataEmissao`, o SDK gera `dhEmi` em `now()` SP recuado 60s (default).
+> Importante: quando `dataCompetencia` é `null`, o SDK deriva o `<dCompet>` da mesma data resolvida do `<dhEmi>`. Isso evita uma classe de bug que aparecia na virada do dia em SP (entre `00:00:00` e `00:00:59`) — a margem de `-60s` jogava o `dhEmi` pro dia anterior enquanto um `new DateTimeImmutable()` independente para o `dCompet` ficava no dia novo, e SEFIN rejeitava com E0015. Fix em **v0.17.0**.
 
 ### Limites empíricos
 
-Não há limite "fixo" de dias. O SEFIN aceita `dhEmi` retroativo **até onde o convênio do município E a parametrização tributária estavam vigentes naquela data**. Validado em homologação 13/05/2026 pro cartório de Sinop:
+Não há limite "fixo" de dias. O SEFIN aceita `dhEmi` retroativo **até onde o convênio do município E a parametrização tributária estavam vigentes naquela data**. Validado em homologação maio/2026:
 
 | `dhEmi` | Resultado | cStat | Causa |
 |---|---|---|---|
-| Hoje a -63d | ✅ EMITIDA | 100 | convênio + parametrização atuais (Sinop conveniou em 11/mar/2026) |
-| -64d (dedução) | ❌ rejeitada | 440 | `tipo de dedução não permitida pelo município de incidência` — parametrização daquela data não permitia `vDR` |
-| -65d em diante | ❌ rejeitada | 38 | `convênio do município emissor não estava ATIVO` |
-| -365d (1 ano) | ❌ rejeitada | 38 | idem |
+| Hoje a −63d | ✅ EMITIDA | 100 | convênio + parametrização atuais |
+| −64d (com dedução) | ❌ rejeitada | 440 | parametrização daquela data não permitia `vDR` |
+| −65d em diante | ❌ rejeitada | 38 | convênio do município emissor não estava ATIVO |
+| −365d (1 ano) | ❌ rejeitada | 38 | idem |
+
+O ponto de corte (−64d, −65d) é específico do município que testamos — varia por município conforme data em que conveniou ao Sistema Nacional.
 
 ### Erros comuns ao emitir retroativo
 
 | cStat | Mensagem | Como resolver |
 |---|---|---|
-| `15` | "data de competência informada na DPS não pode ser posterior à data de emissão" | Passe `dataCompetencia` igual ou anterior a `dataEmissao` |
+| `15` | "data de competência informada na DPS não pode ser posterior à data de emissão" | Passe `dataCompetencia` igual ou anterior a `dataEmissao`. Em v0.17.0+, omitir `dataCompetencia` é seguro mesmo na virada do dia. |
 | `38` | "situação do convênio do município emissor … deve ser ATIVO" | Município ainda não estava conveniado naquela data — não dá pra emitir |
 | `440` | "tipo de dedução/redução … não é permitida pelo município de incidência" | Parametrização tributária histórica não permitia o `vDR`/regime usado — verifique o cadastro vigente daquela data |
 
 ### Quando usar
 
-- DPS gerada em sistema offline e enviada quando a rede voltou
+- DPS gerada em sistema offline e enviada quando a rede voltou (contingência)
 - Replay de NFS-e que falhou em outro provedor
 - Backfill de período que ficou sem emissão (até o limite do convênio)
+- Cobrança de serviço prestado em competência anterior (caso clássico do mês fiscal — só passa `dataCompetencia`, deixa `dataEmissao` em `now()`)
 
-> **Atenção:** mesmo com retroativo, o `dhProc` (data de processamento na resposta) é a hora real do servidor SEFIN. Não dá pra "antedatar" a NFS-e oficialmente — só registrar quando a operação aconteceu (`dhEmi`/`dCompet`).
+> **Atenção:** mesmo com retroativo, o `dhProc` (data de processamento na resposta) é a hora real do servidor SEFIN. Não dá pra "antedatar" a NFS-e oficialmente — só registrar quando a operação aconteceu (`dhEmi`/`dCompet`). O DANFSe exibe os dois campos separadamente ("Data e Hora da emissão da DPS" e "Data e Hora da emissão da NFS-e") por exigência da NT 008/2026.
 
 ---
 
