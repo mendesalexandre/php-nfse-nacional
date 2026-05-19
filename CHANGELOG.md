@@ -5,6 +5,45 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-05-18
+
+### Adicionado — Endereço internacional (`<endExt>`)
+
+- **DTO `EnderecoExterior`** — endereço estrangeiro com `codigoPaisIso`
+  (2 letras maiúsculas, ex: `'US'`, `'PT'`, `'DE'`), `codigoEnderecamentoPostal`
+  (1-11 chars alfanuméricos), `cidade`, `estadoProvinciaRegiao` + os campos
+  comuns (logradouro, numero, complemento, bairro). Mapeia para o grupo
+  `<endExt>` dentro de `<end>` (XSD V1.01 TCEnderExt linhas 1191-1213).
+- **Union type `Endereco|EnderecoExterior`** em `Tomador::$endereco` e
+  `Intermediario::$endereco`. O `DpsBuilder` detecta o tipo e emite
+  `<endNac>` ou `<endExt>` automaticamente. Caller passa um ou outro.
+- **Helper interno `montarEnderecoTcEndereco`** no `DpsBuilder` —
+  refatora a montagem de endereço, substituindo a duplicação anterior
+  entre tomador e intermediário por uma única função que detecta tipo.
+
+### Casos de uso destravados
+
+- Tomador estrangeiro recebendo serviço (exportação)
+- Intermediário internacional (marketplace global)
+- Cenários com mistura de partes (prestador BR + tomador exterior + intermediário BR)
+
+### Não incluído (futuro)
+
+- `EnderecoExterior` em `Prestador` — caso raro (prestador estrangeiro
+  emitindo NFS-e brasileira); estrutura igual mas requer ajuste no DTO
+- `EnderecoExterior` em `obra.endereco` / `atvEvento.endereco` — esses
+  usam `TCEnderecoSimples` (sem nação), estrutura diferente do `<endExt>`
+
+### Testes
+
+5 testes novos cobrindo:
+- Tomador com endExt + assertions de cada campo
+- Tomador continua emitindo endNac quando passa Endereco nacional
+- Intermediário com endExt
+- Validações de codigoPaisIso (case) e codigoEnderecamentoPostal (length)
+
+Suite total: 286/286 OK. PHPStan level 8 limpo.
+
 ## [0.15.0] — 2026-05-18
 
 ### Adicionado — Onda 5 (parcial: 3 de 4 grupos do `<serv>`)

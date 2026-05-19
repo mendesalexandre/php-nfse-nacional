@@ -25,7 +25,11 @@ final class Intermediario
     public function __construct(
         string $documento,
         public readonly string $nome,
-        public readonly ?Endereco $endereco = null,
+        /**
+         * Endereço nacional ou estrangeiro (opcional). O `DpsBuilder`
+         * detecta o tipo e emite `<endNac>` ou `<endExt>` dentro de `<end>`.
+         */
+        public readonly Endereco|EnderecoExterior|null $endereco = null,
         public readonly ?string $email = null,
         public readonly ?string $telefone = null,
         /** Inscrição Municipal do intermediário (opcional). */
