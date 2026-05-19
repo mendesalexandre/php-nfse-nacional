@@ -390,7 +390,7 @@ final class DpsBuilderTest extends TestCase
         self::assertStringContainsString('<IM>12345</IM>', $prestBlock);
     }
 
-    public function test_dispensadoIssqn_emite_indTotTrib_no_lugar_de_pTotTrib(): void
+    public function test_motivoDispensaIssqn_emite_indTotTrib_no_lugar_de_pTotTrib(): void
     {
         $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
@@ -401,7 +401,7 @@ final class DpsBuilderTest extends TestCase
                 valorServicos: 800.00,
                 deducoesReducoes: 0.00,
                 aliquotaIssqnPercentual: 0.00,
-                dispensadoIssqn: true,
+                motivoDispensaIssqn: \PhpNfseNacional\Enums\MotivoDispensaIssqn::OptanteSimplesNacional,
             ),
         );
 
@@ -437,7 +437,7 @@ final class DpsBuilderTest extends TestCase
         self::assertNotEmpty($xml);
     }
 
-    public function test_sem_dispensadoIssqn_emite_pTotTrib_normalmente(): void
+    public function test_sem_motivoDispensaIssqn_emite_pTotTrib_normalmente(): void
     {
         $builder = new DpsBuilder($this->configPadrao());
         $xml = $builder->build(
@@ -1181,6 +1181,105 @@ final class DpsBuilderTest extends TestCase
             aliquotaIssqnPercentual: 4.00,
             documentosDeducao: [$doc], // E tem documentos — INVÁLIDO
         );
+    }
+
+    public function test_tipoRetencaoIssqn_default_eh_NaoRetido(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXml($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('1', $xpath->query('//n:tribMun/n:tpRetISSQN')->item(0)?->nodeValue);
+    }
+
+    public function test_tipoRetencaoIssqn_RetidoPeloTomador_emite_2(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                tipoRetencaoIssqn: \PhpNfseNacional\Enums\TipoRetencaoIssqn::RetidoPeloTomador,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXml($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('2', $xpath->query('//n:tribMun/n:tpRetISSQN')->item(0)?->nodeValue);
+    }
+
+    public function test_tipoRetencaoIssqn_RetidoPeloIntermediario_emite_3(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                valorServicos: 100.00,
+                deducoesReducoes: 0.00,
+                aliquotaIssqnPercentual: 4.00,
+                tipoRetencaoIssqn: \PhpNfseNacional\Enums\TipoRetencaoIssqn::RetidoPeloIntermediario,
+            ),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXml($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('3', $xpath->query('//n:tribMun/n:tpRetISSQN')->item(0)?->nodeValue);
+    }
+
+    public function test_motivoDispensaIssqn_default_null_emite_pTotTrib(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        self::assertStringContainsString('<pTotTrib>', $xml);
+        self::assertStringNotContainsString('<indTotTrib>', $xml);
+    }
+
+    public function test_motivoDispensaIssqn_qualquer_case_emite_indTotTrib_0(): void
+    {
+        foreach (\PhpNfseNacional\Enums\MotivoDispensaIssqn::cases() as $motivo) {
+            $builder = new DpsBuilder($this->configPadrao());
+            $xml = $builder->build(
+                new Identificacao(numeroDps: 1),
+                $this->tomadorPf(),
+                $this->servico(),
+                new Valores(
+                    valorServicos: 100.00,
+                    deducoesReducoes: 0.00,
+                    aliquotaIssqnPercentual: 0.00,
+                    motivoDispensaIssqn: $motivo,
+                ),
+            );
+
+            self::assertStringContainsString('<indTotTrib>0</indTotTrib>', $xml, "Falhou pra motivo={$motivo->value}");
+            self::assertStringNotContainsString('<pTotTrib>', $xml, "Falhou pra motivo={$motivo->value}");
+        }
     }
 
     public function test_tribFed_omitido_quando_sem_piscofins_e_sem_retencoes(): void

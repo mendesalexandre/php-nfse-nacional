@@ -541,7 +541,7 @@ final class DpsBuilder
         }
 
         $tribMun->appendChild($this->el($doc, 'tpRetISSQN',
-            (string) ($valores->issqnRetido ? 2 : 1),
+            (string) $valores->tipoRetencaoIssqn->value,
         ));
         $trib->appendChild($tribMun);
 
@@ -625,7 +625,7 @@ final class DpsBuilder
         // arredondar antes (round() default HALF_UP: 3.5125 → 3.51).
         $totTrib = $this->el($doc, 'totTrib');
 
-        if ($valores->dispensadoIssqn) {
+        if ($valores->motivoDispensaIssqn !== null) {
             $totTrib->appendChild($this->el($doc, 'indTotTrib', '0'));
         } else {
             $pTot = $this->el($doc, 'pTotTrib');

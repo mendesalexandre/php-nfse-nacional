@@ -25,7 +25,7 @@ manifestação, download (com retry), DANFSe NT 008/2026 e Distribuição de DFe
 **PIS/COFINS e retenções federais** (`<tribFed>`), `<tribMun>` completo
 (imunidade, exportação, benefício municipal, exigibilidade suspensa).
 **XSDs oficiais** versionados em `docs/schemas/`. PHPStan level 8 limpo,
-**267 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
+**272 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
 API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
@@ -50,7 +50,7 @@ API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 - Retry automático com backoff exponencial no download de DANFSe (502/503/504)
 - Verificação idempotente de DPS (`HEAD /dps/{id}`) antes de emitir
 - Tipagem forte (PHPStan level 8)
-- Testes desde o dia 1 — **267 testes verdes** em CI (PHP 8.1–8.5)
+- Testes desde o dia 1 — **272 testes verdes** em CI (PHP 8.1–8.5)
 
 ## Requisitos
 
@@ -150,7 +150,7 @@ $resposta = $nfse->cancelar(
 
 ```php
 use PhpNfseNacional\DTO\Valores;
-use PhpNfseNacional\Enums\SituacaoSimplesNacional;
+use PhpNfseNacional\Enums\{SituacaoSimplesNacional, MotivoDispensaIssqn};
 
 $prestador = new Prestador(
     /* ... */
@@ -162,7 +162,22 @@ $valores = new Valores(
     valorServicos: 800.00,
     deducoesReducoes: 0.00,
     aliquotaIssqnPercentual: 0.00,
-    dispensadoIssqn: true, // emite <indTotTrib>0</indTotTrib> em vez de <pTotTrib>
+    motivoDispensaIssqn: MotivoDispensaIssqn::OptanteSimplesNacional,
+    // emite <indTotTrib>0</indTotTrib> em vez de <pTotTrib>
+);
+```
+
+**Retenção do ISSQN (3 estados):**
+
+```php
+use PhpNfseNacional\Enums\TipoRetencaoIssqn;
+
+$valores = new Valores(
+    valorServicos: 1000.00,
+    deducoesReducoes: 0.00,
+    aliquotaIssqnPercentual: 4.00,
+    tipoRetencaoIssqn: TipoRetencaoIssqn::RetidoPeloTomador, // tomador retém ISSQN
+    // alternativas: NaoRetido (default), RetidoPeloIntermediario
 );
 ```
 
@@ -455,7 +470,7 @@ src/
 - [x] **`<trib/tribFed>/<piscofins>`** + retenções federais — v0.13.0
 - [x] **`<BM>` + `<exigSusp>` + `<tpImunidade>`** dentro de `<tribMun>` — v0.10.0
 - [x] XSDs oficiais versionados em `docs/schemas/` — v0.12.0
-- [ ] BC-break v1.0.0: `Valores::$issqnRetido` (bool) → `TipoRetencaoIssqn` (enum)
+- [x] BC-break v0.14.0: `Valores::$issqnRetido` (bool) → `tipoRetencaoIssqn` (enum 3 estados) + `$dispensadoIssqn` (bool) → `$motivoDispensaIssqn` (enum 4 cases)
 - [ ] **Onda 5**: `<comExt>` (exportação), `<obra>` (construção civil),
       `<atvEvento>` (eventos), `<explRod>` (rodovia)
 - [ ] Endereço internacional (`endExt`) em prest/toma/interm/obra
