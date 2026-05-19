@@ -127,8 +127,8 @@ final class DanfseXmlParserTest extends TestCase
               <vLiq>{$vLiq}</vLiq>
             </valores>
             <IBSCBS>
-              <cLocalidadeIncid>5107909</cLocalidadeIncid>
-              <xLocalidadeIncid>Sinop</xLocalidadeIncid>
+              <cLocalidadeIncid>3550308</cLocalidadeIncid>
+              <xLocalidadeIncid>Cidade Exemplo</xLocalidadeIncid>
               <valores>
                 <vBC>96.80</vBC>
                 <uf><pIBSUF>0.10</pIBSUF><pAliqEfetUF>0.10</pAliqEfetUF></uf>
@@ -152,8 +152,8 @@ final class DanfseXmlParserTest extends TestCase
                 <serie>1</serie>
                 <nDPS>1</nDPS>
                 <dCompet>2026-05-12</dCompet>
-                <prest><CNPJ>00179028000138</CNPJ><IM>11408</IM></prest>
-                <toma><CPF>44208855134</CPF><xNome>X</xNome></toma>
+                <prest><CNPJ>12345678000195</CNPJ><IM>12345</IM></prest>
+                <toma><CPF>12345678909</CPF><xNome>X</xNome></toma>
                 <serv><cServ><cTribNac>210101</cTribNac><xDescServ>X</xDescServ><cNBS>113040000</cNBS></cServ></serv>
                 <valores><vServPrest><vServ>{$vLiq}</vServ></vServPrest></valores>
               </infDPS>

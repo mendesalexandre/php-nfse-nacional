@@ -679,7 +679,7 @@ final class DpsBuilderTest extends TestCase
     public function test_beneficioMunicipal_emite_BM_com_nBM_e_pRedBCBM(): void
     {
         $bm = new \PhpNfseNacional\DTO\BeneficioMunicipal(
-            nBM: '51079090100001',
+            nBM: '35503080100001',
             percentualReducaoBc: 50.00,
         );
         $builder = new DpsBuilder($this->configPadrao());
@@ -700,7 +700,7 @@ final class DpsBuilderTest extends TestCase
         $xpath = new DOMXPath($dom);
         $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
 
-        self::assertSame('51079090100001', $xpath->query('//n:tribMun/n:BM/n:nBM')->item(0)?->nodeValue);
+        self::assertSame('35503080100001', $xpath->query('//n:tribMun/n:BM/n:nBM')->item(0)?->nodeValue);
         self::assertSame('50.00', $xpath->query('//n:tribMun/n:BM/n:pRedBCBM')->item(0)?->nodeValue);
         self::assertSame(0, $xpath->query('//n:tribMun/n:BM/n:vRedBCBM')->length);
     }
@@ -711,7 +711,7 @@ final class DpsBuilderTest extends TestCase
         $this->expectExceptionMessage('valorReducaoBc OU percentualReducaoBc');
 
         new \PhpNfseNacional\DTO\BeneficioMunicipal(
-            nBM: '51079090100001',
+            nBM: '35503080100001',
             valorReducaoBc: 100.00,
             percentualReducaoBc: 50.00,
         );
@@ -1781,7 +1781,7 @@ final class DpsBuilderTest extends TestCase
         // Schema obriga: tribISSQN → cPaisResult? → BM? → exigSusp? →
         // tpImunidade? → pAliq? → tpRetISSQN. Trocar dá E1235.
         $bm = new \PhpNfseNacional\DTO\BeneficioMunicipal(
-            nBM: '51079090100001',
+            nBM: '35503080100001',
             percentualReducaoBc: 25.00,
         );
         $es = new \PhpNfseNacional\DTO\ExigibilidadeSuspensa(

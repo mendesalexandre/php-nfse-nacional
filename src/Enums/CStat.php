@@ -115,7 +115,7 @@ enum CStat: int
      * Pedido de Registro de Evento de Cancelamento por Substituição (e105102)
      * não aceito via POST /nfse/{chave}/eventos. Indica que o evento exige
      * outro endpoint ou parametrização específica do município.
-     * Validado em homologação SEFIN 13/05/2026 (Sinop).
+     * Validado em homologação SEFIN 13/05/2026 (Cidade Exemplo).
      */
     case AdnSubstNaoAceitaViaEventos   = 1861;
 

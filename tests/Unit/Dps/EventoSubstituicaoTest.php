@@ -11,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 final class EventoSubstituicaoTest extends TestCase
 {
-    private const CHAVE_A = '51079092200179028000138000000000005726057774456203';
-    private const CHAVE_B = '51079092200179028000138000000000005826057774456204';
+    private const CHAVE_A = '35503082212345678000195000000000005726057774456203';
+    private const CHAVE_B = '35503082212345678000195000000000005826057774456204';
 
     public function test_evento_valido(): void
     {
@@ -74,7 +74,7 @@ final class EventoSubstituicaoTest extends TestCase
     public function test_chaves_aceitam_mascaras(): void
     {
         // Espaços, hífens, etc. são limpos antes da validação
-        $a = '51079092200179028000138000000000005726057774456203';
+        $a = '35503082212345678000195000000000005726057774456203';
         $b = ' 5107 9092 2001 7902 8000 0138 0000 0000 0058 26057 77445 6204 ';
 
         $e = new EventoSubstituicao(

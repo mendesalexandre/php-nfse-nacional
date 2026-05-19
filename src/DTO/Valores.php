@@ -42,11 +42,11 @@ use PhpNfseNacional\Exceptions\ValidationException;
  *   A alíquota real é determinada pelo cadastro tributário do município
  *   no SEFIN (cruzando `cTribNac` × `cClassTrib`) e vem na resposta como
  *   `<pAliqAplic>`. Validado empiricamente: enviando `pTotTribMun=3.56`
- *   pro cartório de Sinop, SEFIN devolveu `pAliqAplic=4.00` (alíquota
+ *   pro emissor de exemplo, SEFIN devolveu `pAliqAplic=4.00` (alíquota
  *   oficial cadastrada) e calculou o ISSQN sobre 4%.
  *
  *   Em outras palavras: passe uma estimativa razoável da carga total.
- *   Em cartório de RI de Sinop fica `4.00`. Pra outros municípios/segmentos,
+ *   Em emissor PJ/serviço fica `4.00`. Pra outros municípios/segmentos,
  *   consulte a alíquota cadastrada pela prefeitura.
  *
  * Arredondamento:

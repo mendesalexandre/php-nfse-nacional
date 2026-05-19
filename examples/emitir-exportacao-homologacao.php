@@ -83,7 +83,7 @@ $nfse = NFSe::create($config, $cert);
 // CPF nacional como placeholder. A imunidade real de exportação depende
 // do tomador ser no exterior — em produção precisará de endExt (Onda 4).
 $tomador = new Tomador(
-    documento: getenv('TOMADOR_DOC') ?: '44208855134',
+    documento: getenv('TOMADOR_DOC') ?: '12345678909',
     nome: getenv('TOMADOR_NOME') ?: 'TOMADOR ESTRANGEIRO DE TESTE',
     endereco: new Endereco(
         logradouro: 'Rua Teste',
@@ -120,7 +120,7 @@ $valores = new Valores(
     aliquotaIssqnPercentual: 0.00,
     tributacaoIssqn: TipoTributacaoIssqn::ExportacaoServico,
     codigoPaisResultado: 'US',
-    // motivoDispensaIssqn omitido — cartório é Não Optante, SEFIN
+    // motivoDispensaIssqn omitido — emissor é Não Optante, SEFIN
     // exige <pTotTrib> mesmo em cenário de exportação (cStat=713).
 );
 

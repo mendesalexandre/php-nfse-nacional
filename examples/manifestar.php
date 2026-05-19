@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Manifesta uma NFS-e (Confirmação, Rejeição ou Anulação) em homologação.
  *
- * Como o cert que temos é do PRESTADOR (cartório), só dá pra testar como
+ * O cert utilizado é do PRESTADOR, só dá pra testar como
  * autor=Prestador (códigos e202201/e202205/e205208). Pra testar como
  * Tomador/Intermediário precisaria do cert deles.
  *
