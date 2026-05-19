@@ -144,22 +144,24 @@ final class DpsBuilder
             return;
         }
 
+        $dhEmiSP = $this->resolverDhEmi($id->dataEmissao);
+
         $infDPS->appendChild($this->el($doc, 'tpAmb', (string) $this->config->ambiente->value));
-        $infDPS->appendChild($this->el($doc, 'dhEmi', $this->gerarDhEmi($id->dataEmissao)));
+        $infDPS->appendChild($this->el($doc, 'dhEmi', $dhEmiSP->format('Y-m-d\TH:i:sP')));
         $infDPS->appendChild($this->el($doc, 'verAplic', $this->config->versaoAplicacao));
         $infDPS->appendChild($this->el($doc, 'serie', $id->serie));
         $infDPS->appendChild($this->el($doc, 'nDPS', (string) $id->numeroDps));
-        // dCompet formatado na mesma timezone do dhEmi (-03:00). SEFIN compara
-        // as duas e rejeita E0015 quando dCompet > dhEmi.date — em horário de
-        // virada (00:00..03:00 UTC), formatar dCompet com timezone default
-        // (UTC ou outro) pode jogar a data pro dia seguinte enquanto o dhEmi
-        // (já em SP) ainda está no dia anterior.
+        // dCompet derivado do dhEmi quando não foi informado explicitamente.
+        // SEFIN rejeita E0015 quando dCompet > dhEmi.date. Em horário de
+        // virada do dia (00:00:00..00:00:59 SP), `now() - 60s` joga o dhEmi
+        // pro dia anterior; se o dCompet usasse um `new DateTimeImmutable()`
+        // independente, ficaria no dia seguinte e rejeitaria. Reaproveitar
+        // o mesmo timestamp resolvido elimina a janela de bug.
+        $dCompetSrc = $id->dataCompetencia ?? $dhEmiSP;
         $infDPS->appendChild($this->el(
             $doc,
             'dCompet',
-            $id->dataCompetenciaResolvida()
-                ->setTimezone(new \DateTimeZone(Config::TIMEZONE_DPS))
-                ->format('Y-m-d'),
+            $dCompetSrc->setTimezone(new \DateTimeZone(Config::TIMEZONE_DPS))->format('Y-m-d'),
         ));
         $infDPS->appendChild($this->el($doc, 'tpEmit', (string) $id->tipoEmissao->value));
         $infDPS->appendChild($this->el($doc, 'cLocEmi', $this->config->prestador->endereco->codigoMunicipioIbge));
@@ -176,15 +178,14 @@ final class DpsBuilder
      *     emissão "tipo contingência" (DPS gerada offline e enviada
      *     depois) ou pra replays/testes.
      */
-    private function gerarDhEmi(?DateTimeImmutable $override = null): string
+    private function resolverDhEmi(?DateTimeImmutable $override = null): DateTimeImmutable
     {
         $tz = new \DateTimeZone(Config::TIMEZONE_DPS);
         if ($override !== null) {
-            return $override->setTimezone($tz)->format('Y-m-d\TH:i:sP');
+            return $override->setTimezone($tz);
         }
-        $now = (new DateTimeImmutable('now', $tz))
+        return (new DateTimeImmutable('now', $tz))
             ->modify('-' . self::DH_EMI_MARGEM_SEGUNDOS . ' seconds');
-        return $now->format('Y-m-d\TH:i:sP');
     }
 
     private function appendPrestador(DOMElement $infDPS, Valores $valores): void
