@@ -5,6 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido — `dCompet` saltava pro dia seguinte na virada do dia em SP
+
+- `DpsBuilder` calculava `dhEmi` como `now() - 60s` em `America/Sao_Paulo` e
+  `dCompet` via `new DateTimeImmutable()` independente. Na janela
+  `00:00:00..00:00:59 SP`, a margem jogava o `dhEmi` pro dia anterior
+  enquanto o `dCompet` recém-criado ficava no dia novo — SEFIN rejeitava
+  com **E0015** (`dCompet > dhEmi.date`).
+- Fix: `dCompet` agora é derivado do mesmo timestamp resolvido do `dhEmi`
+  quando `Identificacao::$dataCompetencia` é null. Quando informado
+  explicitamente, o override mantém precedência (cenário comum: cobrança
+  de competência do mês anterior emitida no início do mês corrente).
+- **BC-break (pré-1.0):** `Identificacao::dataCompetenciaResolvida()`
+  removido. Era usado só pelo `DpsBuilder` internamente; consumidores que
+  chamavam direto precisam ler `Identificacao::$dataCompetencia`.
+- Dois testes de regressão novos no `DpsBuilderTest`:
+  `test_dCompet_derivado_de_dhEmi_quando_dataCompetencia_nula` simula a
+  virada (`dataEmissao=23:59:30 SP`, sem dataCompetencia) e
+  `test_dCompet_explicito_independe_do_dhEmi` valida que override toma
+  precedência.
+
 ### Segurança — Sanitização de dados reais em fixtures e exemplos
 
 - Substituídos por valores fictícios (`12345678000195`, IM `12345`, CPF

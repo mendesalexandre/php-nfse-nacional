@@ -115,6 +115,7 @@ Service classes ficam em `PhpNfseNacional\Services\` — pra DI granular (Symfon
 
 ## Bug history (cuidado em refactors)
 
+- `dCompet` calculado independente do `dhEmi` (`new DateTimeImmutable()` em vez de reaproveitar o timestamp já resolvido em SP -60s): na janela 00:00:00..00:00:59 SP, `dCompet` salta pro dia novo enquanto `dhEmi.date` ainda está no dia anterior → cStat=15 (E0015) — corrigido v0.17.0
 - DANFSe local: 4 inconsistências de grid (cabeçalho, BLOCO 2 altura/largura, Telefone fora da col 4, Regime SN fora das cols 3-4) — corrigido v0.10.1 alinhando à NT 008 página 17
 - `DanfseLayout::tipoTributacaoIssqn()`: labels 2/3/4 invertidos (era Exportação/NãoIncid/Imunidade — oficial é Imunidade/Exportação/NãoIncid) — corrigido v0.9.1
 - `DpsBuilder::validarCruzado` validava regra fiscal (BC>0 + ISSQN=0) — removido v0.7.0 (escopo é sintaxe XML, não regra fiscal — quem decide é o SEFIN)

@@ -234,6 +234,68 @@ final class DpsBuilderTest extends TestCase
         }
     }
 
+    public function test_dCompet_derivado_de_dhEmi_quando_dataCompetencia_nula(): void
+    {
+        // Regressão: SDK calculava dCompet via `new DateTimeImmutable()` separado
+        // do dhEmi. Na virada de dia em SP (now em 00:00:00..00:00:59), a margem
+        // de -60s jogava o dhEmi pro dia anterior enquanto o dCompet recém-criado
+        // ficava no dia novo → SEFIN rejeitava E0015 (dCompet > dhEmi.date).
+        //
+        // Invariante validada aqui: quando dataCompetencia=null, dCompet sempre
+        // coincide com a data do dhEmi. Simula a janela de bug passando um
+        // dataEmissao em 23:59:30 SP (que é o resultado de `now()-60s` quando
+        // o relógio bate 00:00:30 SP do dia seguinte).
+        $tz = new \DateTimeZone('America/Sao_Paulo');
+        $viraDeDia = new \DateTimeImmutable('2026-05-18 23:59:30', $tz);
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1, dataEmissao: $viraDeDia),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+        $dhEmi = $xpath->query('//n:dhEmi')->item(0)?->nodeValue ?? '';
+        $dCompet = $xpath->query('//n:dCompet')->item(0)?->nodeValue ?? '';
+
+        self::assertSame('2026-05-18T23:59:30-03:00', $dhEmi);
+        self::assertSame('2026-05-18', $dCompet);
+        self::assertSame(substr($dhEmi, 0, 10), $dCompet);
+    }
+
+    public function test_dCompet_explicito_independe_do_dhEmi(): void
+    {
+        // Reverso do test acima: quando o caller informa dataCompetencia, ela
+        // tem precedência sobre dhEmi. Cenário comum: cobrança de competência
+        // do mês anterior emitida no início do mês corrente.
+        $tz = new \DateTimeZone('America/Sao_Paulo');
+        $emissaoMaio = new \DateTimeImmutable('2026-05-03 09:00:00', $tz);
+        $competAbril = new \DateTimeImmutable('2026-04-30 23:59:59', $tz);
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(
+                numeroDps: 1,
+                dataCompetencia: $competAbril,
+                dataEmissao: $emissaoMaio,
+            ),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('2026-04-30', $xpath->query('//n:dCompet')->item(0)?->nodeValue);
+        self::assertSame('2026-05-03T09:00:00-03:00', $xpath->query('//n:dhEmi')->item(0)?->nodeValue);
+    }
+
     public function test_omite_IBSCBS_por_padrao(): void
     {
         // Default: incluirIbsCbs=false. SEFIN aceita DPS sem o bloco.

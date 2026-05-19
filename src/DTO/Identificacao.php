@@ -50,9 +50,4 @@ final class Identificacao
             throw new ValidationException($errors, 'Identificação do DPS inválida');
         }
     }
-
-    public function dataCompetenciaResolvida(): DateTimeImmutable
-    {
-        return $this->dataCompetencia ?? new DateTimeImmutable();
-    }
 }
