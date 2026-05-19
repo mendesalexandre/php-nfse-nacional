@@ -20,7 +20,12 @@ final class Tomador
     public function __construct(
         string $documento,
         public readonly string $nome,
-        public readonly Endereco $endereco,
+        /**
+         * Endereço nacional (`Endereco`) ou estrangeiro (`EnderecoExterior`).
+         * O `DpsBuilder` detecta o tipo e emite `<endNac>` ou `<endExt>`
+         * dentro de `<end>` conforme TCEndereco (XSD V1.01).
+         */
+        public readonly Endereco|EnderecoExterior $endereco,
         public readonly ?string $email = null,
         public readonly ?string $telefone = null,
         /**
