@@ -705,13 +705,14 @@ final class Identificacao
         public readonly string              $serie = '1',          // 1-5 chars
         public readonly ?DateTimeImmutable  $dataCompetencia = null,
         public readonly TipoEmissaoDps      $tipoEmissao = TipoEmissaoDps::Normal,
+        public readonly ?DateTimeImmutable  $dataEmissao = null,   // override de dhEmi
     );
-
-    public function dataCompetenciaResolvida(): DateTimeImmutable;  // null → now()
 }
 ```
 
 `numeroDps` é gerado pela aplicação cliente (geralmente formato `AANNNNNN` = ano + 6 sequenciais). Não há gerador automático no SDK.
+
+Quando `dataCompetencia` é `null`, o `DpsBuilder` deriva o `<dCompet>` da mesma data resolvida do `<dhEmi>` (em `America/Sao_Paulo`). Isso evita uma classe de bug que aparecia na virada do dia em SP, em que `dCompet` saltava pro dia novo enquanto o `dhEmi` recuado em -60s (margem de drift) ainda ficava no dia anterior — SEFIN rejeitava com `cStat=15` (`dCompet > dhEmi.date`). Fix em v0.17.0.
 
 ### `Tomador`
 
