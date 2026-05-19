@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Tests\Unit\Dps;
 
+use DateTimeImmutable;
 use DOMDocument;
 use DOMXPath;
 use PhpNfseNacional\Config;
@@ -1280,6 +1281,244 @@ final class DpsBuilderTest extends TestCase
             self::assertStringContainsString('<indTotTrib>0</indTotTrib>', $xml, "Falhou pra motivo={$motivo->value}");
             self::assertStringNotContainsString('<pTotTrib>', $xml, "Falhou pra motivo={$motivo->value}");
         }
+    }
+
+    // ──────── Onda 5: comExt / obra / atvEvento ────────
+
+    public function test_comExt_emite_grupo_completo_obrigatorios(): void
+    {
+        $ce = new \PhpNfseNacional\DTO\ComercioExterior(
+            modoPrestacao: \PhpNfseNacional\Enums\ModoPrestacao::ConsumoNoExterior,
+            vinculoEntrePartes: \PhpNfseNacional\Enums\VinculoEntrePartes::SemVinculo,
+            codigoMoeda: '220',
+            valorServicoMoeda: 200.50,
+            mecanismoFomentoPrestador: \PhpNfseNacional\Enums\MecanismoFomentoPrestador::Nenhum,
+            mecanismoFomentoTomador: \PhpNfseNacional\Enums\MecanismoFomentoTomador::Nenhum,
+            movimentacaoTemporariaBens: \PhpNfseNacional\Enums\MovimentacaoTemporariaBens::Nao,
+        );
+
+        $servico = new Servico(
+            discriminacao: 'Serviço exportado para os EUA',
+            codigoMunicipioPrestacao: '3550308',
+            comExt: $ce,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('4', $xpath->query('//n:comExt/n:mdPrestacao')->item(0)?->nodeValue);
+        self::assertSame('0', $xpath->query('//n:comExt/n:vincPrest')->item(0)?->nodeValue);
+        self::assertSame('220', $xpath->query('//n:comExt/n:tpMoeda')->item(0)?->nodeValue);  // BACEN USD
+        self::assertSame('200.50', $xpath->query('//n:comExt/n:vServMoeda')->item(0)?->nodeValue);
+        self::assertSame('01', $xpath->query('//n:comExt/n:mecAFComexP')->item(0)?->nodeValue);
+        self::assertSame('01', $xpath->query('//n:comExt/n:mecAFComexT')->item(0)?->nodeValue);
+        self::assertSame('1', $xpath->query('//n:comExt/n:movTempBens')->item(0)?->nodeValue);
+        self::assertSame('0', $xpath->query('//n:comExt/n:mdic')->item(0)?->nodeValue);
+        // Opcionais omitidos
+        self::assertSame(0, $xpath->query('//n:comExt/n:nDI')->length);
+        self::assertSame(0, $xpath->query('//n:comExt/n:nRE')->length);
+    }
+
+    public function test_comExt_emite_opcionais_nDI_nRE_quando_setados(): void
+    {
+        $ce = new \PhpNfseNacional\DTO\ComercioExterior(
+            modoPrestacao: \PhpNfseNacional\Enums\ModoPrestacao::Transfronteirico,
+            vinculoEntrePartes: \PhpNfseNacional\Enums\VinculoEntrePartes::SemVinculo,
+            codigoMoeda: '978',
+            valorServicoMoeda: 1000.00,
+            mecanismoFomentoPrestador: \PhpNfseNacional\Enums\MecanismoFomentoPrestador::Nenhum,
+            mecanismoFomentoTomador: \PhpNfseNacional\Enums\MecanismoFomentoTomador::Nenhum,
+            movimentacaoTemporariaBens: \PhpNfseNacional\Enums\MovimentacaoTemporariaBens::Nao,
+            numeroDeclaracaoImportacao: 'DI-12345',
+            numeroRegistroExportacao: 'RE-67890',
+        );
+
+        $servico = new Servico('Servico exportado', '3550308', comExt: $ce);
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        self::assertStringContainsString('<nDI>DI-12345</nDI>', $xml);
+        self::assertStringContainsString('<nRE>RE-67890</nRE>', $xml);
+    }
+
+    public function test_comExt_DTO_rejeita_codigoMoeda_invalido(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('codigoMoeda inválido');
+
+        new \PhpNfseNacional\DTO\ComercioExterior(
+            modoPrestacao: \PhpNfseNacional\Enums\ModoPrestacao::Transfronteirico,
+            vinculoEntrePartes: \PhpNfseNacional\Enums\VinculoEntrePartes::SemVinculo,
+            codigoMoeda: 'USD',  // alfa, não numérico
+            valorServicoMoeda: 100.00,
+            mecanismoFomentoPrestador: \PhpNfseNacional\Enums\MecanismoFomentoPrestador::Nenhum,
+            mecanismoFomentoTomador: \PhpNfseNacional\Enums\MecanismoFomentoTomador::Nenhum,
+            movimentacaoTemporariaBens: \PhpNfseNacional\Enums\MovimentacaoTemporariaBens::Nao,
+        );
+    }
+
+    public function test_obra_emite_cObra(): void
+    {
+        $obra = new \PhpNfseNacional\DTO\InformacaoObra(
+            inscricaoImobiliariaFiscal: 'IPTU-12345',
+            codigoObra: '12345678901',
+        );
+
+        $servico = new Servico('Construcao residencial', '3550308', obra: $obra);
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(50000.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('IPTU-12345', $xpath->query('//n:obra/n:inscImobFisc')->item(0)?->nodeValue);
+        self::assertSame('12345678901', $xpath->query('//n:obra/n:cObra')->item(0)?->nodeValue);
+    }
+
+    public function test_obra_emite_endereco_quando_sem_cObra_nem_cCIB(): void
+    {
+        $end = new Endereco('Rua da Obra', '999', 'Vila Nova', '01310100', '3550308', 'SP');
+        $obra = new \PhpNfseNacional\DTO\InformacaoObra(endereco: $end);
+
+        $servico = new Servico('Obra sem cadastro', '3550308', obra: $obra);
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(50000.00, 0.00, 4.00),
+        );
+
+        self::assertStringContainsString('<obra>', $xml);
+        self::assertStringContainsString('<xLgr>Rua da Obra</xLgr>', $xml);
+        self::assertStringNotContainsString('<cObra>', $xml);
+    }
+
+    public function test_obra_DTO_rejeita_sem_choice(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('choice obrigatório');
+
+        new \PhpNfseNacional\DTO\InformacaoObra();
+    }
+
+    public function test_atvEvento_emite_com_idAtvEvt(): void
+    {
+        $ev = new \PhpNfseNacional\DTO\AtividadeEvento(
+            nome: 'Show de Rock',
+            dataInicio: new DateTimeImmutable('2026-07-01'),
+            dataFim: new DateTimeImmutable('2026-07-03'),
+            idAtividadeEvento: 'EVT-2026-001',
+        );
+
+        $servico = new Servico('Servico evento', '3550308', atvEvento: $ev);
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(5000.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('Show de Rock', $xpath->query('//n:atvEvento/n:xNome')->item(0)?->nodeValue);
+        self::assertSame('2026-07-01', $xpath->query('//n:atvEvento/n:dtIni')->item(0)?->nodeValue);
+        self::assertSame('2026-07-03', $xpath->query('//n:atvEvento/n:dtFim')->item(0)?->nodeValue);
+        self::assertSame('EVT-2026-001', $xpath->query('//n:atvEvento/n:idAtvEvt')->item(0)?->nodeValue);
+    }
+
+    public function test_atvEvento_DTO_rejeita_dataFim_antes_de_dataInicio(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('dataFim antes de dataInicio');
+
+        new \PhpNfseNacional\DTO\AtividadeEvento(
+            nome: 'Evento invertido',
+            dataInicio: new DateTimeImmutable('2026-07-10'),
+            dataFim: new DateTimeImmutable('2026-07-01'),
+            idAtividadeEvento: 'X',
+        );
+    }
+
+    public function test_serv_ordem_dos_grupos_segue_schema(): void
+    {
+        // TCServ: locPrest → cServ → comExt? → obra? → atvEvento? → infoCompl?
+        $ce = new \PhpNfseNacional\DTO\ComercioExterior(
+            modoPrestacao: \PhpNfseNacional\Enums\ModoPrestacao::ConsumoNoExterior,
+            vinculoEntrePartes: \PhpNfseNacional\Enums\VinculoEntrePartes::SemVinculo,
+            codigoMoeda: '220',
+            valorServicoMoeda: 100.00,
+            mecanismoFomentoPrestador: \PhpNfseNacional\Enums\MecanismoFomentoPrestador::Nenhum,
+            mecanismoFomentoTomador: \PhpNfseNacional\Enums\MecanismoFomentoTomador::Nenhum,
+            movimentacaoTemporariaBens: \PhpNfseNacional\Enums\MovimentacaoTemporariaBens::Nao,
+        );
+        $obra = new \PhpNfseNacional\DTO\InformacaoObra(codigoObra: '99999');
+        $ev = new \PhpNfseNacional\DTO\AtividadeEvento(
+            nome: 'X',
+            dataInicio: new DateTimeImmutable('2026-07-01'),
+            dataFim: new DateTimeImmutable('2026-07-02'),
+            idAtividadeEvento: 'E1',
+        );
+        $infoCompl = new \PhpNfseNacional\DTO\InformacoesComplementares(xInfComp: 'obs');
+
+        $servico = new Servico(
+            'Servico completo com todos os grupos',
+            '3550308',
+            comExt: $ce,
+            obra: $obra,
+            atvEvento: $ev,
+            infoCompl: $infoCompl,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $posCServ = strpos($xml, '<cServ>');
+        $posComExt = strpos($xml, '<comExt>');
+        $posObra = strpos($xml, '<obra>');
+        $posAtvEv = strpos($xml, '<atvEvento>');
+        $posInfoCompl = strpos($xml, '<infoCompl>');
+
+        self::assertNotFalse($posCServ);
+        self::assertNotFalse($posComExt);
+        self::assertNotFalse($posObra);
+        self::assertNotFalse($posAtvEv);
+        self::assertNotFalse($posInfoCompl);
+        self::assertLessThan($posComExt, $posCServ);
+        self::assertLessThan($posObra, $posComExt);
+        self::assertLessThan($posAtvEv, $posObra);
+        self::assertLessThan($posInfoCompl, $posAtvEv);
     }
 
     public function test_tribFed_omitido_quando_sem_piscofins_e_sem_retencoes(): void

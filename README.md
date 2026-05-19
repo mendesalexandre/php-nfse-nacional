@@ -25,7 +25,7 @@ manifestação, download (com retry), DANFSe NT 008/2026 e Distribuição de DFe
 **PIS/COFINS e retenções federais** (`<tribFed>`), `<tribMun>` completo
 (imunidade, exportação, benefício municipal, exigibilidade suspensa).
 **XSDs oficiais** versionados em `docs/schemas/`. PHPStan level 8 limpo,
-**272 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
+**281 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
 API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
@@ -50,7 +50,11 @@ API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 - Retry automático com backoff exponencial no download de DANFSe (502/503/504)
 - Verificação idempotente de DPS (`HEAD /dps/{id}`) antes de emitir
 - Tipagem forte (PHPStan level 8)
-- Testes desde o dia 1 — **272 testes verdes** em CI (PHP 8.1–8.5)
+- **Comércio exterior** (`<comExt>`) — exportação de serviços + códigos
+  BACEN de moeda + mecanismos de fomento PROEX/BNDES-Exim
+- **Construção civil** (`<obra>`) — CNO/CIB ou endereço
+- **Eventos** (`<atvEvento>`) — shows, conferências, etc.
+- Testes desde o dia 1 — **281 testes verdes** em CI (PHP 8.1–8.5)
 
 ## Requisitos
 
@@ -471,8 +475,9 @@ src/
 - [x] **`<BM>` + `<exigSusp>` + `<tpImunidade>`** dentro de `<tribMun>` — v0.10.0
 - [x] XSDs oficiais versionados em `docs/schemas/` — v0.12.0
 - [x] BC-break v0.14.0: `Valores::$issqnRetido` (bool) → `tipoRetencaoIssqn` (enum 3 estados) + `$dispensadoIssqn` (bool) → `$motivoDispensaIssqn` (enum 4 cases)
-- [ ] **Onda 5**: `<comExt>` (exportação), `<obra>` (construção civil),
-      `<atvEvento>` (eventos), `<explRod>` (rodovia)
+- [x] **Onda 5**: `<comExt>` (exportação), `<obra>` (construção civil),
+      `<atvEvento>` (eventos) — v0.15.0. `<explRod>` e `<lsadppu>`
+      fora-de-escopo (removidos do leiaute entre v1.00 e v1.01)
 - [ ] Endereço internacional (`endExt`) em prest/toma/interm/obra
 - [ ] Grupo `<fornec>` dentro de `<docDedRed>` (fornecedor do documento de dedução)
 
