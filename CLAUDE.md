@@ -12,7 +12,7 @@ Cobre **ciclo de vida completo:** emissão, consulta, cancelamento, substituiç�
 
 - **Repo:** github.com/mendesalexandre/php-nfse-nacional
 - **Packagist:** `composer require mendesalexandre/php-nfse-nacional`
-- **Versão atual:** v0.11.0 (Onda 7 — retry/DFe/idempotência). Ver `CHANGELOG.md`
+- **Versão atual:** v0.16.0. Cobertura DPS quase completa — Ondas 1, 2, 5, 7 fechadas + endExt parcial + BC-break v0.14.0. Ver `CHANGELOG.md`
 - **Diretório local:** `/home/alexandre/code/sinop-nfse-nacional`
 - **Licença:** MIT
 
