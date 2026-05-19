@@ -34,6 +34,7 @@ use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
 use PhpNfseNacional\Enums\Ambiente;
 use PhpNfseNacional\Enums\RegimeEspecialTributacao;
+use PhpNfseNacional\Enums\MotivoDispensaIssqn;
 use PhpNfseNacional\Enums\TipoTributacaoIssqn;
 use PhpNfseNacional\NFSe;
 
@@ -98,7 +99,7 @@ $valores = new Valores(
     aliquotaIssqnPercentual: 0.00,
     tributacaoIssqn: TipoTributacaoIssqn::ExportacaoServico,
     codigoPaisResultado: 'US',
-    dispensadoIssqn: true,
+    motivoDispensaIssqn: MotivoDispensaIssqn::Outros, // exportação
 );
 
 $id = new Identificacao(numeroDps: (int) (getenv('NDPS') ?: time() % 1_000_000), serie: '1');

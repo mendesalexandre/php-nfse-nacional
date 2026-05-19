@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\DTO;
 
+use PhpNfseNacional\Enums\MotivoDispensaIssqn;
 use PhpNfseNacional\Enums\TipoImunidadeIssqn;
+use PhpNfseNacional\Enums\TipoRetencaoIssqn;
 use PhpNfseNacional\Enums\TipoTributacaoIssqn;
 use PhpNfseNacional\Exceptions\ValidationException;
 
@@ -61,22 +63,26 @@ final class Valores
         public readonly float $valorServicos,
         public readonly float $deducoesReducoes,
         public readonly float $aliquotaIssqnPercentual,
-        public readonly bool $issqnRetido = false,
+        /**
+         * Tipo de retenção do ISSQN — `<tpRetISSQN>` dentro de `<tribMun>`
+         * (3 estados: NaoRetido, RetidoPeloTomador, RetidoPeloIntermediario).
+         * Default `NaoRetido` mantém comportamento antigo (`issqnRetido=false`).
+         */
+        public readonly TipoRetencaoIssqn $tipoRetencaoIssqn = TipoRetencaoIssqn::NaoRetido,
         public readonly float $descontoIncondicionado = 0.0,
         /**
-         * Prestador é dispensado do ISSQN apurado (MEI, isento, imune).
+         * Motivo da dispensa de informação do total de tributos. Quando
+         * setado (≠ null), o grupo `<totTrib>` é emitido como
+         * `<indTotTrib>0</indTotTrib>` em vez de `<pTotTrib>`. Default null
+         * = sem dispensa (emite `<pTotTrib>` normal).
          *
-         * Quando true, o grupo `<totTrib>` é emitido como
-         * `<indTotTrib>0</indTotTrib>` (valor total dos tributos NÃO
-         * informado) em vez de `<pTotTrib>` — mesmo padrão que o emissor
-         * web do SEFIN utiliza para CNPJ MEI. Ambos são opções válidas do
-         * *choice* TSTotTrib no leiaute SefinNacional 1.6.
-         *
-         * Os demais campos (`aliquotaIssqnPercentual`, etc.) continuam
-         * exigidos para os cálculos internos da convenção "ISSQN por
-         * dentro", mas não vão ao XML quando esta flag está ativa.
+         * **Restrição empírica (cStat=713):** SEFIN só aceita
+         * `<indTotTrib>0</indTotTrib>` quando o prestador é Optante do
+         * Simples Nacional (`SituacaoSimplesNacional::MEI|MeEpp`). Para Não
+         * Optante imune/isento, deixe `null` e use `aliquotaIssqnPercentual=0`
+         * (emite `<pTotTrib>` com `pTotTribMun=0`).
          */
-        public readonly bool $dispensadoIssqn = false,
+        public readonly ?MotivoDispensaIssqn $motivoDispensaIssqn = null,
         /**
          * Tipo de tributação do ISSQN — campo `<tribISSQN>`. Default
          * null → emite `1` (Operação Tributável). Para imunidade, exportação
