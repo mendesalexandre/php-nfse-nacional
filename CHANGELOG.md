@@ -5,6 +5,55 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-05-18
+
+### Adicionado — Onda 5 (parcial: 3 de 4 grupos do `<serv>`)
+
+Implementa os 3 grupos opcionais de `<serv>` que existem no leiaute
+atual (XSD v1.01). Os outros 2 grupos do CSV V1.00.02 (`<explRod>` e
+`<lsadppu>`) foram **removidos do leiaute oficial entre v1.00 e v1.01**
+— declarados fora-de-escopo.
+
+- **`<comExt>` (Comércio Exterior)** — obrigatório quando
+  `tributacaoIssqn = ExportacaoServico` (caso contrário cStat=330):
+  - DTO `ComercioExterior` com 8 campos obrigatórios + 2 opcionais
+  - 6 enums novos: `ModoPrestacao` (5 cases), `VinculoEntrePartes` (8),
+    `MecanismoFomentoPrestador` (9), `MecanismoFomentoTomador` (26),
+    `MovimentacaoTemporariaBens` (4), `EnvioMdic` (2)
+  - `codigoMoeda` exige 3 dígitos numéricos BACEN (não ISO 4217 alfa):
+    USD=220, EUR=978, BRL=790. XSD `TSCodMoeda` pattern `[0-9]{3}`.
+  - **Smoke real validou**: NFS-e #142 emitida com cStat=100
+    (`tribISSQN=3 + cPaisResult=US + comExt completo`)
+- **`<obra>` (Informação de Obra)** — para serviços de construção civil:
+  - DTO `InformacaoObra` com `inscImobFisc?` (IPTU) + choice obrigatório
+    `cObra` (CNO/CEI) | `cCIB` | `endereco`
+- **`<atvEvento>` (Atividade de Evento)** — para shows, conferências:
+  - DTO `AtividadeEvento` com nome + período (dtIni/dtFim) + choice
+    `idAtividadeEvento` (código municipal) | `endereco`
+- **`Servico` ganha 3 parâmetros opcionais**: `$comExt`, `$obra`,
+  `$atvEvento`. Ordem oficial no XML: `locPrest → cServ → comExt?
+  → obra? → atvEvento? → infoCompl?` (TCServ XSD V1.01).
+- **Helper interno `montarEnderecoSimples`** no `DpsBuilder` —
+  endereço sem nação, usado em `<obra>/<end>` e `<atvEvento>/<end>`.
+
+### Não incluído
+
+- `<explRod>` (Exploração Rodoviária) — **removido do leiaute v1.01**,
+  fora-de-escopo
+- `<lsadppu>` (Locação/Sublocação para Particulares) — idem
+- Endereço internacional (`endExt`) em `obra/end` e `atvEvento/end` —
+  hoje só `endNac`. Onda 4 abrirá isso para todos os endereços.
+
+### Cobertura
+
+9 testes novos cobrindo:
+- comExt: emissão completa, opcionais nDI/nRE, validação de codigoMoeda
+- obra: cObra, endereço (choice), validação sem choice
+- atvEvento: idAtvEvt, validação dataFim < dataInicio
+- Ordem dos grupos em `<serv>` segue TCServ
+
+Suite total: 281/281 OK. PHPStan level 8 limpo.
+
 ## [0.14.0] — 2026-05-18
 
 ### Alterado (BC-break) — caminho para v1.0.0

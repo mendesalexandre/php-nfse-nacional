@@ -38,6 +38,22 @@ final class Servico
          * externo, identificador de documento técnico, etc.
          */
         public readonly ?InformacoesComplementares $infoCompl = null,
+        /**
+         * Grupo `<comExt>` (Comércio Exterior) — opcional. Obrigatório
+         * quando `Valores::$tributacaoIssqn = ExportacaoServico` (caso
+         * contrário SEFIN devolve cStat=330).
+         */
+        public readonly ?ComercioExterior $comExt = null,
+        /**
+         * Grupo `<obra>` (Informação de Obra) — opcional. Para serviços
+         * de construção civil vinculados a obra.
+         */
+        public readonly ?InformacaoObra $obra = null,
+        /**
+         * Grupo `<atvEvento>` (Atividade de Evento) — opcional. Para
+         * serviços vinculados a eventos artísticos/culturais/esportivos.
+         */
+        public readonly ?AtividadeEvento $atvEvento = null,
     ) {
         $this->cTribNac = $cTribNac instanceof ListaServicosNacional ? $cTribNac->value : $cTribNac;
         $this->cNBS = $cNBS instanceof ListaNbs ? $cNBS->value : $cNBS;

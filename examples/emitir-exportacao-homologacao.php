@@ -34,8 +34,15 @@ use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
 use PhpNfseNacional\Enums\Ambiente;
 use PhpNfseNacional\Enums\RegimeEspecialTributacao;
+use PhpNfseNacional\DTO\ComercioExterior;
+use PhpNfseNacional\Enums\EnvioMdic;
+use PhpNfseNacional\Enums\MecanismoFomentoPrestador;
+use PhpNfseNacional\Enums\MecanismoFomentoTomador;
+use PhpNfseNacional\Enums\ModoPrestacao;
 use PhpNfseNacional\Enums\MotivoDispensaIssqn;
+use PhpNfseNacional\Enums\MovimentacaoTemporariaBens;
 use PhpNfseNacional\Enums\TipoTributacaoIssqn;
+use PhpNfseNacional\Enums\VinculoEntrePartes;
 use PhpNfseNacional\NFSe;
 
 function getEnvOrDie(string $name): string
@@ -88,9 +95,23 @@ $tomador = new Tomador(
     ),
 );
 
+// Onda 5 v0.15.0: grupo <comExt> obrigatório quando tribISSQN=3
+// (caso contrário SEFIN devolve cStat=330).
+$comExt = new ComercioExterior(
+    modoPrestacao: ModoPrestacao::ConsumoNoExterior,
+    vinculoEntrePartes: VinculoEntrePartes::SemVinculo,
+    codigoMoeda: '220', // BACEN: USD=220, EUR=978, BRL=790
+    valorServicoMoeda: 25.00, // 100 BRL ~ 25 USD
+    mecanismoFomentoPrestador: MecanismoFomentoPrestador::Nenhum,
+    mecanismoFomentoTomador: MecanismoFomentoTomador::Nenhum,
+    movimentacaoTemporariaBens: MovimentacaoTemporariaBens::Nao,
+    envioMdic: EnvioMdic::NaoEnviar,
+);
+
 $servico = new Servico(
     discriminacao: 'TESTE EXPORTACAO — ' . date('Y-m-d H:i:s') . ' — SDK php-nfse-nacional',
     codigoMunicipioPrestacao: getEnvOrDie('PRESTADOR_CMUN'),
+    comExt: $comExt,
 );
 
 $valores = new Valores(
@@ -99,7 +120,8 @@ $valores = new Valores(
     aliquotaIssqnPercentual: 0.00,
     tributacaoIssqn: TipoTributacaoIssqn::ExportacaoServico,
     codigoPaisResultado: 'US',
-    motivoDispensaIssqn: MotivoDispensaIssqn::Outros, // exportação
+    // motivoDispensaIssqn omitido — cartório é Não Optante, SEFIN
+    // exige <pTotTrib> mesmo em cenário de exportação (cStat=713).
 );
 
 $id = new Identificacao(numeroDps: (int) (getenv('NDPS') ?: time() % 1_000_000), serie: '1');
