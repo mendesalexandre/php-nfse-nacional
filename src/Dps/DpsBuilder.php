@@ -11,6 +11,8 @@ use PhpNfseNacional\Config;
 use PhpNfseNacional\DTO\AtividadeEvento;
 use PhpNfseNacional\DTO\ComercioExterior;
 use PhpNfseNacional\DTO\DocumentoDeducao;
+use PhpNfseNacional\DTO\Endereco;
+use PhpNfseNacional\DTO\EnderecoExterior;
 use PhpNfseNacional\DTO\Identificacao;
 use PhpNfseNacional\DTO\InformacaoObra;
 use PhpNfseNacional\DTO\Intermediario;
@@ -278,31 +280,9 @@ final class DpsBuilder
             TextoSanitizador::paraNFSe($tomador->nome, 300),
         ));
 
-        // Endereço (endNac = nacional, único suportado nesse SDK)
-        $end = $this->el($doc, 'end');
-        $endNac = $this->el($doc, 'endNac');
-        $endNac->appendChild($this->el($doc, 'cMun', $tomador->endereco->codigoMunicipioIbge));
-        $endNac->appendChild($this->el($doc, 'CEP',
-            preg_replace('/\D/', '', $tomador->endereco->cep) ?? '',
-        ));
-        $end->appendChild($endNac);
-
-        $end->appendChild($this->el($doc, 'xLgr',
-            TextoSanitizador::paraNFSe($tomador->endereco->logradouro, 200),
-        ));
-        $end->appendChild($this->el($doc, 'nro',
-            TextoSanitizador::paraNFSe($tomador->endereco->numero, 30) ?: 'S/N',
-        ));
-        if ($tomador->endereco->complemento !== null && $tomador->endereco->complemento !== '') {
-            $end->appendChild($this->el($doc, 'xCpl',
-                TextoSanitizador::paraNFSe($tomador->endereco->complemento, 60),
-            ));
-        }
-        $end->appendChild($this->el($doc, 'xBairro',
-            TextoSanitizador::paraNFSe($tomador->endereco->bairro, 60),
-        ));
-
-        $toma->appendChild($end);
+        // Endereço — detecta union type Endereco vs EnderecoExterior
+        // e emite <endNac> ou <endExt> dentro de <end>.
+        $toma->appendChild($this->montarEnderecoTcEndereco($doc, $tomador->endereco));
 
         // fone e email vão APÓS o end (ordem TSDestinaDps B-45/B-46).
         if ($tomador->telefone !== null && $tomador->telefone !== '') {
@@ -352,30 +332,7 @@ final class DpsBuilder
         ));
 
         if ($intermediario->endereco !== null) {
-            $end = $this->el($doc, 'end');
-            $endNac = $this->el($doc, 'endNac');
-            $endNac->appendChild($this->el($doc, 'cMun', $intermediario->endereco->codigoMunicipioIbge));
-            $endNac->appendChild($this->el($doc, 'CEP',
-                preg_replace('/\D/', '', $intermediario->endereco->cep) ?? '',
-            ));
-            $end->appendChild($endNac);
-
-            $end->appendChild($this->el($doc, 'xLgr',
-                TextoSanitizador::paraNFSe($intermediario->endereco->logradouro, 255),
-            ));
-            $end->appendChild($this->el($doc, 'nro',
-                TextoSanitizador::paraNFSe($intermediario->endereco->numero, 60) ?: 'S/N',
-            ));
-            if ($intermediario->endereco->complemento !== null && $intermediario->endereco->complemento !== '') {
-                $end->appendChild($this->el($doc, 'xCpl',
-                    TextoSanitizador::paraNFSe($intermediario->endereco->complemento, 156),
-                ));
-            }
-            $end->appendChild($this->el($doc, 'xBairro',
-                TextoSanitizador::paraNFSe($intermediario->endereco->bairro, 60),
-            ));
-
-            $interm->appendChild($end);
+            $interm->appendChild($this->montarEnderecoTcEndereco($doc, $intermediario->endereco));
         }
 
         if ($intermediario->telefone !== null && $intermediario->telefone !== '') {
@@ -815,6 +772,63 @@ final class DpsBuilder
             $node->appendChild($this->montarEnderecoSimples($doc, $ev->endereco));
         }
         return $node;
+    }
+
+    /**
+     * Monta `<end>` com choice `<endNac>` ou `<endExt>` conforme tipo do DTO
+     * (TCEndereco do XSD V1.01). Usado em `<toma>`, `<interm>` e
+     * `<prest>`. Estrutura:
+     *
+     *   <end>
+     *     <choice><endNac>...</endNac> | <endExt>...</endExt></choice>
+     *     <xLgr>...</xLgr>
+     *     <nro>...</nro>
+     *     <xCpl>...</xCpl>?
+     *     <xBairro>...</xBairro>
+     *   </end>
+     */
+    private function montarEnderecoTcEndereco(\DOMDocument $doc, Endereco|EnderecoExterior $endereco): DOMElement
+    {
+        $end = $this->el($doc, 'end');
+
+        if ($endereco instanceof EnderecoExterior) {
+            $endExt = $this->el($doc, 'endExt');
+            $endExt->appendChild($this->el($doc, 'cPais', $endereco->codigoPaisIso));
+            $endExt->appendChild($this->el($doc, 'cEndPost',
+                TextoSanitizador::paraNFSe($endereco->codigoEnderecamentoPostal, 11),
+            ));
+            $endExt->appendChild($this->el($doc, 'xCidade',
+                TextoSanitizador::paraNFSe($endereco->cidade, 60),
+            ));
+            $endExt->appendChild($this->el($doc, 'xEstProvReg',
+                TextoSanitizador::paraNFSe($endereco->estadoProvinciaRegiao, 60),
+            ));
+            $end->appendChild($endExt);
+        } else {
+            $endNac = $this->el($doc, 'endNac');
+            $endNac->appendChild($this->el($doc, 'cMun', $endereco->codigoMunicipioIbge));
+            $endNac->appendChild($this->el($doc, 'CEP',
+                preg_replace('/\D/', '', $endereco->cep) ?? '',
+            ));
+            $end->appendChild($endNac);
+        }
+
+        $end->appendChild($this->el($doc, 'xLgr',
+            TextoSanitizador::paraNFSe($endereco->logradouro, 255),
+        ));
+        $end->appendChild($this->el($doc, 'nro',
+            TextoSanitizador::paraNFSe($endereco->numero, 60) ?: 'S/N',
+        ));
+        if ($endereco->complemento !== null && $endereco->complemento !== '') {
+            $end->appendChild($this->el($doc, 'xCpl',
+                TextoSanitizador::paraNFSe($endereco->complemento, 156),
+            ));
+        }
+        $end->appendChild($this->el($doc, 'xBairro',
+            TextoSanitizador::paraNFSe($endereco->bairro, 60),
+        ));
+
+        return $end;
     }
 
     /**

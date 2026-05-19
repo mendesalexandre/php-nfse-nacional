@@ -25,7 +25,7 @@ manifestação, download (com retry), DANFSe NT 008/2026 e Distribuição de DFe
 **PIS/COFINS e retenções federais** (`<tribFed>`), `<tribMun>` completo
 (imunidade, exportação, benefício municipal, exigibilidade suspensa).
 **XSDs oficiais** versionados em `docs/schemas/`. PHPStan level 8 limpo,
-**281 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
+**286 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
 API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
@@ -54,7 +54,9 @@ API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
   BACEN de moeda + mecanismos de fomento PROEX/BNDES-Exim
 - **Construção civil** (`<obra>`) — CNO/CIB ou endereço
 - **Eventos** (`<atvEvento>`) — shows, conferências, etc.
-- Testes desde o dia 1 — **281 testes verdes** em CI (PHP 8.1–8.5)
+- **Endereço internacional** (`<endExt>`) em Tomador e Intermediário —
+  exportação, marketplace global, tomador estrangeiro
+- Testes desde o dia 1 — **286 testes verdes** em CI (PHP 8.1–8.5)
 
 ## Requisitos
 
@@ -171,6 +173,27 @@ $valores = new Valores(
 );
 ```
 
+**Tomador estrangeiro (exportação de serviço):**
+
+```php
+use PhpNfseNacional\DTO\{Tomador, EnderecoExterior};
+
+$tomador = new Tomador(
+    documento: '12345678901',       // ou NIF estrangeiro (futuro)
+    nome: 'JOHN DOE',
+    endereco: new EnderecoExterior(
+        logradouro: '5th Avenue',
+        numero: '350',
+        bairro: 'Manhattan',
+        codigoPaisIso: 'US',            // 2 letras ISO
+        codigoEnderecamentoPostal: '10118',
+        cidade: 'New York',
+        estadoProvinciaRegiao: 'NY',
+    ),
+);
+// DpsBuilder detecta o tipo e emite <endExt> em vez de <endNac>
+```
+
 **Retenção do ISSQN (3 estados):**
 
 ```php
@@ -239,7 +262,7 @@ use PhpNfseNacional\DTO\Intermediario;
 $intermediario = new Intermediario(
     documento: '12345678000195',
     nome: 'MARKETPLACE EXEMPLO LTDA',
-    endereco: $endereco,        // opcional
+    endereco: $endereco,        // Endereco nacional OU EnderecoExterior — opcional
     inscricaoMunicipal: '987654',
     email: 'fiscal@marketplace.com',
 );
@@ -478,7 +501,8 @@ src/
 - [x] **Onda 5**: `<comExt>` (exportação), `<obra>` (construção civil),
       `<atvEvento>` (eventos) — v0.15.0. `<explRod>` e `<lsadppu>`
       fora-de-escopo (removidos do leiaute entre v1.00 e v1.01)
-- [ ] Endereço internacional (`endExt`) em prest/toma/interm/obra
+- [x] Endereço internacional (`endExt`) em Tomador e Intermediário — v0.16.0
+- [ ] Endereço internacional em Prestador (caso raro: prestador estrangeiro)
 - [ ] Grupo `<fornec>` dentro de `<docDedRed>` (fornecedor do documento de dedução)
 
 ## Licença

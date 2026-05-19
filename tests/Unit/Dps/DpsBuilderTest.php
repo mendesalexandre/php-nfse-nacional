@@ -1283,6 +1283,140 @@ final class DpsBuilderTest extends TestCase
         }
     }
 
+    // ──────── Endereço Internacional (endExt) ────────
+
+    public function test_tomador_com_enderecoExterior_emite_endExt(): void
+    {
+        $end = new \PhpNfseNacional\DTO\EnderecoExterior(
+            logradouro: '5th Avenue',
+            numero: '350',
+            bairro: 'Manhattan',
+            codigoPaisIso: 'US',
+            codigoEnderecamentoPostal: '10118',
+            cidade: 'New York',
+            estadoProvinciaRegiao: 'NY',
+            complemento: 'Suite 1000',
+        );
+        $tomador = new Tomador(
+            documento: '12345678901',
+            nome: 'JOHN DOE',
+            endereco: $end,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $tomador,
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        // <toma>/<end> tem <endExt> (não <endNac>)
+        self::assertSame(1, $xpath->query('//n:toma/n:end/n:endExt')->length);
+        self::assertSame(0, $xpath->query('//n:toma/n:end/n:endNac')->length);
+        self::assertSame('US', $xpath->query('//n:toma/n:end/n:endExt/n:cPais')->item(0)?->nodeValue);
+        self::assertSame('10118', $xpath->query('//n:toma/n:end/n:endExt/n:cEndPost')->item(0)?->nodeValue);
+        self::assertSame('New York', $xpath->query('//n:toma/n:end/n:endExt/n:xCidade')->item(0)?->nodeValue);
+        self::assertSame('NY', $xpath->query('//n:toma/n:end/n:endExt/n:xEstProvReg')->item(0)?->nodeValue);
+        // Campos comuns continuam fora do endExt
+        self::assertSame('5th Avenue', $xpath->query('//n:toma/n:end/n:xLgr')->item(0)?->nodeValue);
+        self::assertSame('350', $xpath->query('//n:toma/n:end/n:nro')->item(0)?->nodeValue);
+        self::assertSame('Suite 1000', $xpath->query('//n:toma/n:end/n:xCpl')->item(0)?->nodeValue);
+        self::assertSame('Manhattan', $xpath->query('//n:toma/n:end/n:xBairro')->item(0)?->nodeValue);
+    }
+
+    public function test_tomador_com_endereco_nacional_continua_emitindo_endNac(): void
+    {
+        // Garante que Endereco (nacional) continua funcionando
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xpath->query('//n:toma/n:end/n:endNac')->length);
+        self::assertSame(0, $xpath->query('//n:toma/n:end/n:endExt')->length);
+    }
+
+    public function test_intermediario_aceita_enderecoExterior(): void
+    {
+        $endExt = new \PhpNfseNacional\DTO\EnderecoExterior(
+            logradouro: 'Avenida da Liberdade',
+            numero: '100',
+            bairro: 'Centro',
+            codigoPaisIso: 'PT',
+            codigoEnderecamentoPostal: '1250-097',
+            cidade: 'Lisboa',
+            estadoProvinciaRegiao: 'Lisboa',
+        );
+        $intermediario = new \PhpNfseNacional\DTO\Intermediario(
+            documento: '12345678000195',
+            nome: 'PLATAFORMA EUROPEIA LTDA',
+            endereco: $endExt,
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 0.00, 4.00),
+            $intermediario,
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame('PT', $xpath->query('//n:interm/n:end/n:endExt/n:cPais')->item(0)?->nodeValue);
+        self::assertSame('Lisboa', $xpath->query('//n:interm/n:end/n:endExt/n:xCidade')->item(0)?->nodeValue);
+    }
+
+    public function test_enderecoExterior_DTO_rejeita_codigoPaisIso_invalido(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('codigoPaisIso inválido');
+
+        new \PhpNfseNacional\DTO\EnderecoExterior(
+            logradouro: 'Rua',
+            numero: '1',
+            bairro: 'Bairro',
+            codigoPaisIso: 'us',  // lowercase
+            codigoEnderecamentoPostal: '00000',
+            cidade: 'X',
+            estadoProvinciaRegiao: 'Y',
+        );
+    }
+
+    public function test_enderecoExterior_DTO_rejeita_cep_acima_de_11(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('codigoEnderecamentoPostal');
+
+        new \PhpNfseNacional\DTO\EnderecoExterior(
+            logradouro: 'Rua',
+            numero: '1',
+            bairro: 'Bairro',
+            codigoPaisIso: 'US',
+            codigoEnderecamentoPostal: '123456789012',  // 12 chars
+            cidade: 'X',
+            estadoProvinciaRegiao: 'Y',
+        );
+    }
+
     // ──────── Onda 5: comExt / obra / atvEvento ────────
 
     public function test_comExt_emite_grupo_completo_obrigatorios(): void
