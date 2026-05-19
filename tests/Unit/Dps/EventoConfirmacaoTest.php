@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class EventoConfirmacaoTest extends TestCase
 {
-    private const CHAVE = '51079092200179028000138000000000005826056662521939';
+    private const CHAVE = '35503082212345678000195000000000005826056662521939';
 
     public function test_codigos_por_autor(): void
     {

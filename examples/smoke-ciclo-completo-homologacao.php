@@ -36,7 +36,7 @@ $timestamp = date('YmdHis');
 echo "=== [1] EMITIR ===\n";
 
 $tomador = new Tomador(
-    documento: envOrDie('PRESTADOR_CMUN') === '5107909' ? '44208855134' : '12345678909',
+    documento: envOrDie('PRESTADOR_CMUN') === '3550308' ? '12345678909' : '12345678909',
     nome: 'TOMADOR SMOKE CICLO COMPLETO',
     endereco: new Endereco(
         logradouro: 'Rua Teste',

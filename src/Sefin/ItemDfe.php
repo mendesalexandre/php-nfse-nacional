@@ -12,7 +12,7 @@ namespace PhpNfseNacional\Sefin;
  * um cancelamento, uma substituição, etc.
  *
  * Estrutura validada empiricamente contra ADN homologação (18/mai/2026,
- * cartório de Sinop, 162 DFes consumidos).
+ * emissor de exemplo, 162 DFes consumidos).
  */
 final class ItemDfe
 {

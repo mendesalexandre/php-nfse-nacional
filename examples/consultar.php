@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Consulta status de uma NFS-e por chave de acesso.
  *
  * Uso:
- *   CHAVE=51079092200179028000138000000000005726057774456203 \
+ *   CHAVE=35503082212345678000195000000000005726057774456203 \
  *   php examples/consultar.php
  */
 

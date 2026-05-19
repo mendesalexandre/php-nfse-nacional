@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 
 final class DownloadServiceTest extends TestCase
 {
-    private const CHAVE = '51079092200179028000138000000000005726057774456203';
+    private const CHAVE = '35503082212345678000195000000000005726057774456203';
     private const CHAVE_INVALIDA = '123';
 
     public function test_pdfDanfse_retorna_bytes_quando_resposta_eh_pdf(): void
@@ -249,14 +249,14 @@ final class DownloadServiceTest extends TestCase
     private function buildService(Response|array|null $responses): DownloadService
     {
         $endereco = new Endereco('Av Exemplo', '100', 'Centro', '01310100', '3550308', 'SP');
-        $prestador = new Prestador('00179028000138', '11408', 'CARTORIO TESTE', $endereco);
+        $prestador = new Prestador('12345678000195', '12345', 'EMPRESA TESTE', $endereco);
         $config = new Config($prestador, Ambiente::Homologacao);
 
         $cert = new Certificate(
             privateKeyPem: 'DUMMY',
             certificatePem: 'DUMMY',
             validade: new \DateTimeImmutable('+1 year'),
-            cnpj: '00179028000138',
+            cnpj: '12345678000195',
             subjectCN: 'TESTE',
         );
 

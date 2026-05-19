@@ -24,8 +24,8 @@ use PHPUnit\Framework\TestCase;
 
 final class SubstituicaoServiceTest extends TestCase
 {
-    private const CHAVE_ORIG  = '51079092200179028000138000000000005726057774456203';
-    private const CHAVE_SUBST = '51079092200179028000138000000000005826057774456204';
+    private const CHAVE_ORIG  = '35503082212345678000195000000000005726057774456203';
+    private const CHAVE_SUBST = '35503082212345678000195000000000005826057774456204';
 
     public function test_aceita_resposta_envelope_gzip_como_sucesso(): void
     {
@@ -72,7 +72,7 @@ final class SubstituicaoServiceTest extends TestCase
     private function buildService(Response $response): SubstituicaoService
     {
         $endereco = new Endereco('Av X', '100', 'Centro', '01310100', '3550308', 'SP');
-        $prestador = new Prestador('00179028000138', '11408', 'CARTORIO TESTE', $endereco);
+        $prestador = new Prestador('12345678000195', '12345', 'EMPRESA TESTE', $endereco);
         $config = new Config($prestador, Ambiente::Homologacao);
         $endpoints = new SefinEndpoints(Ambiente::Homologacao);
 
@@ -80,7 +80,7 @@ final class SubstituicaoServiceTest extends TestCase
             privateKeyPem: 'DUMMY',
             certificatePem: 'DUMMY',
             validade: new \DateTimeImmutable('+1 year'),
-            cnpj: '00179028000138',
+            cnpj: '12345678000195',
             subjectCN: 'TESTE',
         );
 

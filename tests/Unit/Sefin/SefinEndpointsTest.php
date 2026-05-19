@@ -42,16 +42,16 @@ final class SefinEndpointsTest extends TestCase
     public function test_sincronizarDfe_inclui_cnpj_e_lote(): void
     {
         $ep = new SefinEndpoints(Ambiente::Homologacao);
-        $url = $ep->sincronizarDfe(42, '00179028000138', lote: true);
+        $url = $ep->sincronizarDfe(42, '12345678000195', lote: true);
         self::assertStringContainsString('/contribuintes/DFe/42', $url);
-        self::assertStringContainsString('cnpjConsulta=00179028000138', $url);
+        self::assertStringContainsString('cnpjConsulta=12345678000195', $url);
         self::assertStringContainsString('lote=true', $url);
     }
 
     public function test_sincronizarDfe_lote_false(): void
     {
         $ep = new SefinEndpoints(Ambiente::Homologacao);
-        $url = $ep->sincronizarDfe(0, '00179028000138', lote: false);
+        $url = $ep->sincronizarDfe(0, '12345678000195', lote: false);
         self::assertStringContainsString('lote=false', $url);
     }
 

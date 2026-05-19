@@ -9,7 +9,7 @@ declare(strict_types=1);
  * TemplosQualquerCulto. Saída esperada: cStat=100 (homologação aceita
  * qualquer cenário sintaticamente válido) OU rejeição com cStat
  * descritivo se SEFIN cruzar a imunidade com o perfil tributário
- * do prestador (cartório não é imune).
+ * do prestador (emissor não é imune).
  *
  * Uso (mesmo env do emitir-homologacao.php):
  *   OPENSSL_CONF=... PFX_PATH=... PFX_SENHA=... PRESTADOR_* \
@@ -69,7 +69,7 @@ $config = new Config(prestador: $prestador, ambiente: Ambiente::Homologacao);
 $nfse = NFSe::create($config, $cert);
 
 $tomador = new Tomador(
-    documento: getenv('TOMADOR_DOC') ?: '44208855134',
+    documento: getenv('TOMADOR_DOC') ?: '12345678909',
     nome: getenv('TOMADOR_NOME') ?: 'TOMADOR TESTE IMUNIDADE',
     endereco: new Endereco(
         logradouro: 'Rua Teste',
@@ -91,7 +91,7 @@ $servico = new Servico(
 //
 // IMPORTANTE: `motivoDispensaIssqn` (que emite <indTotTrib>0</indTotTrib>)
 // é EXCLUSIVO para optantes do Simples Nacional (MEI/ME/EPP). Para Não
-// Optante (como cartório), o SEFIN exige <pTotTrib> mesmo em cenário de
+// Optante (Não Optante), o SEFIN exige <pTotTrib> mesmo em cenário de
 // imunidade — rejeita com cStat=713 caso contrário. Por isso aqui passa
 // pTotTrib com pTotTribMun=0 (sem ISSQN apurado).
 $valores = new Valores(
