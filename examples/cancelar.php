@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Cancela uma NFS-e por chave de acesso.
  *
  * Uso (env vars do prestador idênticas ao emitir-homologacao.php +):
- *   CHAVE=51079092200179028000138000000000005726057774456203 \
+ *   CHAVE=35503082212345678000195000000000005726057774456203 \
  *   MOTIVO=1 \
  *   JUSTIFICATIVA='Erro na emissão — valor divergente do recibo' \
  *   php examples/cancelar.php

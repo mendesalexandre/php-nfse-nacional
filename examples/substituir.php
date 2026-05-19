@@ -10,8 +10,8 @@ declare(strict_types=1);
  * vínculo + cancelamento da original.
  *
  * Uso (env vars do prestador idênticas ao emitir-homologacao.php +):
- *   CHAVE_ORIGINAL=51079092...456203 \
- *   CHAVE_SUBSTITUTA=51079092...456204 \
+ *   CHAVE_ORIGINAL=35503082...456203 \
+ *   CHAVE_SUBSTITUTA=35503082...456204 \
  *   MOTIVO=1 \
  *   JUSTIFICATIVA='Reemissão por divergência de valor' \
  *   php examples/substituir.php

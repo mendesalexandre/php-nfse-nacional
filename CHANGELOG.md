@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Segurança — Sanitização de dados reais em fixtures e exemplos
+
+- Substituídos por valores fictícios (`12345678000195`, IM `12345`, CPF
+  `12345678909`, cMun `3550308`, "Cidade Exemplo", "RUA EXEMPLO", etc.) os
+  dados do emissor de smoke real que sobraram em `tests/Unit/**`,
+  `tests/fixtures/**` e `examples/**`. Sanitização anterior só cobriu o
+  `CHANGELOG.md`.
+- Novo `tests/Unit/SanitizacaoTest.php` — guarda que falha o CI se qualquer
+  dos padrões sensíveis reaparecer em `src/`, `tests/` ou `examples/`. Lista
+  é extensível.
+
 ### Corrigido — DANFSe `Red. Alíquota IBS / Red. Alíquota CBS` hardcoded como `- / -`
 
 - **Parser (`DanfseXmlParser`)** — passa a extrair `pRedAliqUF`, `pRedAliqMun`

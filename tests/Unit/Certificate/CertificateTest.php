@@ -26,7 +26,7 @@ final class CertificateTest extends TestCase
      * Gera PFX self-signed em memória pra testes.
      * @return array{pfx: string, cnpj: string, cn: string}
      */
-    private function gerarPfxSelfSigned(string $cnpj = '00179028000138', string $diasValidade = '+1 year'): array
+    private function gerarPfxSelfSigned(string $cnpj = '12345678000195', string $diasValidade = '+1 year'): array
     {
         $cn = "EMPRESA TESTE SDK:{$cnpj}";
 

@@ -10,13 +10,13 @@ use PHPUnit\Framework\TestCase;
 
 final class RespostaDfeTest extends TestCase
 {
-    private const CHAVE_A = '51079092200179028000138000000000000126036346526345';
-    private const CHAVE_B = '51079092200179028000138000000000005526051882737530';
-    private const CHAVE_C = '51079092200179028000138000000000007226050575727908';
-    private const CHAVE_D = '51079092200179028000138000000000007326050394544295';
+    private const CHAVE_A = '35503082212345678000195000000000000126036346526345';
+    private const CHAVE_B = '35503082212345678000195000000000005526051882737530';
+    private const CHAVE_C = '35503082212345678000195000000000007226050575727908';
+    private const CHAVE_D = '35503082212345678000195000000000007326050394544295';
 
     /**
-     * Fixture típica baseada no smoke real (cartório de Sinop, mai/2026):
+     * Fixture típica baseada no smoke real (emissor de exemplo, mai/2026):
      *
      *   A → NFSE + CANCELAMENTO
      *   B → NFSE + CANCELAMENTO
@@ -36,7 +36,7 @@ final class RespostaDfeTest extends TestCase
                 $this->evento(77, self::CHAVE_C, 'CONFIRMACAO_PRESTADOR'),
                 $this->nfse(78, self::CHAVE_D),
                 $this->evento(79, self::CHAVE_D, 'REJEICAO_PRESTADOR'),
-                $this->nfse(80, '51079092200179028000138000000000010026053624663742'),
+                $this->nfse(80, '35503082212345678000195000000000010026053624663742'),
             ],
             ultimoNsu: 80,
             statusProcessamento: 'NenhumDocumentoLocalizado',
@@ -133,7 +133,7 @@ final class RespostaDfeTest extends TestCase
     {
         $resp = $this->fixtureLote();
         self::assertFalse($resp->foiCancelada(self::CHAVE_C));
-        self::assertFalse($resp->foiCancelada('51079092200179028000138000000000010026053624663742'));
+        self::assertFalse($resp->foiCancelada('35503082212345678000195000000000010026053624663742'));
     }
 
     public function test_eventosDaChave_retorna_so_eventos_da_chave(): void
@@ -144,7 +144,7 @@ final class RespostaDfeTest extends TestCase
         self::assertSame('CANCELAMENTO', $eventos[0]->tipoEvento);
 
         // Chave sem evento → array vazio
-        self::assertSame([], $resp->eventosDaChave('51079092200179028000138000000000010026053624663742'));
+        self::assertSame([], $resp->eventosDaChave('35503082212345678000195000000000010026053624663742'));
     }
 
     public function test_statusPorChave_hierarquia_correta(): void
@@ -155,7 +155,7 @@ final class RespostaDfeTest extends TestCase
         self::assertSame(RespostaDfe::STATUS_REJEITADA, $resp->statusPorChave(self::CHAVE_D));
         self::assertSame(
             RespostaDfe::STATUS_EMITIDA,
-            $resp->statusPorChave('51079092200179028000138000000000010026053624663742'),
+            $resp->statusPorChave('35503082212345678000195000000000010026053624663742'),
         );
     }
 
@@ -188,7 +188,7 @@ final class RespostaDfeTest extends TestCase
         self::assertSame(['CONFIRMACAO_PRESTADOR'], $grupos[self::CHAVE_C]);
         self::assertSame(
             [],
-            $grupos['51079092200179028000138000000000010026053624663742'],
+            $grupos['35503082212345678000195000000000010026053624663742'],
         );
     }
 

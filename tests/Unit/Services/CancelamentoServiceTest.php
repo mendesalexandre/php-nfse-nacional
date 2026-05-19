@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class CancelamentoServiceTest extends TestCase
 {
-    private const CHAVE = '51079092200179028000138000000000005726057774456203';
+    private const CHAVE = '35503082212345678000195000000000005726057774456203';
 
     public function test_aceita_resposta_envelope_gzip_como_sucesso(): void
     {
@@ -84,9 +84,9 @@ final class CancelamentoServiceTest extends TestCase
     {
         $endereco = new Endereco('Av Exemplo', '100', 'Centro', '01310100', '3550308', 'SP');
         $prestador = new Prestador(
-            cnpj: '00179028000138',
-            inscricaoMunicipal: '11408',
-            razaoSocial: 'CARTORIO TESTE',
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA TESTE',
             endereco: $endereco,
         );
         return new Config($prestador, Ambiente::Homologacao);
@@ -98,7 +98,7 @@ final class CancelamentoServiceTest extends TestCase
             privateKeyPem: '-----BEGIN PRIVATE KEY-----\nDUMMY\n-----END PRIVATE KEY-----',
             certificatePem: '-----BEGIN CERTIFICATE-----\nDUMMY\n-----END CERTIFICATE-----',
             validade: new \DateTimeImmutable('+1 year'),
-            cnpj: '00179028000138',
+            cnpj: '12345678000195',
             subjectCN: 'TESTE',
         );
     }

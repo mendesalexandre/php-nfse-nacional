@@ -68,7 +68,7 @@ $config = new Config(prestador: $prestador, ambiente: Ambiente::Homologacao);
 $nfse = NFSe::create($config, $cert);
 
 $tomador = new Tomador(
-    documento: getenv('TOMADOR_DOC') ?: '44208855134',
+    documento: getenv('TOMADOR_DOC') ?: '12345678909',
     nome: getenv('TOMADOR_NOME') ?: 'TOMADOR TESTE EXIGSUSP',
     endereco: new Endereco(
         logradouro: 'Rua Teste',

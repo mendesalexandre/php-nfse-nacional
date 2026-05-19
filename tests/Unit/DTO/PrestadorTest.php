@@ -15,20 +15,20 @@ final class PrestadorTest extends TestCase
 {
     private function endereco(): Endereco
     {
-        return new Endereco('R Nogueiras', '1108', 'Centro', '78550200', '5107909', 'MT');
+        return new Endereco('R Exemplo', '100', 'Centro', '01310100', '3550308', 'MT');
     }
 
     public function test_prestador_valido(): void
     {
         $p = new Prestador(
-            cnpj: '00.179.028/0001-38',
-            inscricaoMunicipal: '11408',
-            razaoSocial: 'CARTORIO TESTE',
+            cnpj: '12.345.678/0001-95',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA TESTE',
             endereco: $this->endereco(),
         );
 
         // Documento::limpar tira a máscara
-        self::assertSame('00179028000138', $p->cnpj);
+        self::assertSame('12345678000195', $p->cnpj);
         self::assertSame(RegimeEspecialTributacao::Nenhum, $p->regimeEspecial);
         self::assertSame(SituacaoSimplesNacional::NaoOptante, $p->simplesNacional);
         self::assertFalse($p->incentivadorCultural);
@@ -39,8 +39,8 @@ final class PrestadorTest extends TestCase
         $this->expectException(ValidationException::class);
         new Prestador(
             cnpj: '123',
-            inscricaoMunicipal: '11408',
-            razaoSocial: 'CARTORIO',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA',
             endereco: $this->endereco(),
         );
     }
@@ -48,9 +48,9 @@ final class PrestadorTest extends TestCase
     public function test_inscricao_municipal_vazia_eh_normalizada_para_null(): void
     {
         $p = new Prestador(
-            cnpj: '00179028000138',
+            cnpj: '12345678000195',
             inscricaoMunicipal: '',
-            razaoSocial: 'CARTORIO',
+            razaoSocial: 'EMPRESA',
             endereco: $this->endereco(),
         );
 
@@ -60,7 +60,7 @@ final class PrestadorTest extends TestCase
     public function test_inscricao_municipal_null_eh_aceita(): void
     {
         $p = new Prestador(
-            cnpj: '00179028000138',
+            cnpj: '12345678000195',
             inscricaoMunicipal: null,
             razaoSocial: 'MEI ALEXANDRE TEIXEIRA',
             endereco: $this->endereco(),
@@ -73,21 +73,21 @@ final class PrestadorTest extends TestCase
     public function test_inscricao_municipal_com_espacos_eh_trimada(): void
     {
         $p = new Prestador(
-            cnpj: '00179028000138',
-            inscricaoMunicipal: '  11408  ',
-            razaoSocial: 'CARTORIO',
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '  12345  ',
+            razaoSocial: 'EMPRESA',
             endereco: $this->endereco(),
         );
 
-        self::assertSame('11408', $p->inscricaoMunicipal);
+        self::assertSame('12345', $p->inscricaoMunicipal);
     }
 
     public function test_razao_social_vazia_eh_rejeitada(): void
     {
         $this->expectException(ValidationException::class);
         new Prestador(
-            cnpj: '00179028000138',
-            inscricaoMunicipal: '11408',
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
             razaoSocial: '',
             endereco: $this->endereco(),
         );
@@ -96,20 +96,20 @@ final class PrestadorTest extends TestCase
     public function test_propriedades_opcionais_sao_preservadas(): void
     {
         $p = new Prestador(
-            cnpj: '00179028000138',
-            inscricaoMunicipal: '11408',
-            razaoSocial: 'CARTORIO',
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA',
             endereco: $this->endereco(),
             regimeEspecial: RegimeEspecialTributacao::NotarioOuRegistrador,
             simplesNacional: SituacaoSimplesNacional::MeEpp,
             incentivadorCultural: true,
-            email: 'cartorio@example.com',
-            telefone: '(66) 3531-1108',
+            email: 'empresa@example.com',
+            telefone: '(11) 4004-0100',
         );
 
         self::assertSame(RegimeEspecialTributacao::NotarioOuRegistrador, $p->regimeEspecial);
         self::assertSame(SituacaoSimplesNacional::MeEpp, $p->simplesNacional);
         self::assertTrue($p->incentivadorCultural);
-        self::assertSame('cartorio@example.com', $p->email);
+        self::assertSame('empresa@example.com', $p->email);
     }
 }

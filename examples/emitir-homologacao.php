@@ -8,15 +8,15 @@ declare(strict_types=1);
  * Uso:
  *   PFX_PATH=/path/cert.pfx \
  *   PFX_SENHA='senha' \
- *   PRESTADOR_CNPJ=00179028000138 \
- *   PRESTADOR_IM=11408 \
+ *   PRESTADOR_CNPJ=12345678000195 \
+ *   PRESTADOR_IM=12345 \
  *   PRESTADOR_RAZAO='EMPRESA XYZ' \
- *   PRESTADOR_CMUN=5107909 \
- *   PRESTADOR_UF=MT \
- *   PRESTADOR_CEP=78550200 \
- *   PRESTADOR_LOGRADOURO='R DAS NOGUEIRAS' \
- *   PRESTADOR_NUMERO=1108 \
- *   PRESTADOR_BAIRRO='SETOR COMERCIAL' \
+ *   PRESTADOR_CMUN=3550308 \
+ *   PRESTADOR_UF=SP \
+ *   PRESTADOR_CEP=01310100 \
+ *   PRESTADOR_LOGRADOURO='RUA EXEMPLO' \
+ *   PRESTADOR_NUMERO=100 \
+ *   PRESTADOR_BAIRRO='CENTRO' \
  *   php examples/emitir-homologacao.php
  *
  * Saídas:
@@ -109,7 +109,7 @@ $nfse = NFSe::create($config, $cert);
 /* ----------------------------------------------------------------------- */
 
 $tomador = new Tomador(
-    documento: getenv('TOMADOR_DOC') ?: '44208855134',
+    documento: getenv('TOMADOR_DOC') ?: '12345678909',
     nome: getenv('TOMADOR_NOME') ?: 'TOMADOR DE TESTE HOMOLOGACAO',
     endereco: new Endereco(
         logradouro: 'Rua Teste',

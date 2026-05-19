@@ -43,7 +43,7 @@ final class DfeServiceTest extends TestCase
         $pag1 = json_encode([
             'StatusProcessamento' => 'ProcessamentoNormal',
             'LoteDFe' => [
-                ['NSU' => 1, 'TipoDocumento' => 'NFS-e', 'ChaveAcesso' => '5107909...'],
+                ['NSU' => 1, 'TipoDocumento' => 'NFS-e', 'ChaveAcesso' => '3550308...'],
                 ['NSU' => 2, 'TipoEvento' => '101101', 'SequencialEvento' => 1],
             ],
         ]);
@@ -125,14 +125,14 @@ final class DfeServiceTest extends TestCase
     private function buildService(?array $responses): DfeService
     {
         $endereco = new Endereco('Av Exemplo', '100', 'Centro', '01310100', '3550308', 'SP');
-        $prestador = new Prestador('00179028000138', '11408', 'CARTORIO TESTE', $endereco);
+        $prestador = new Prestador('12345678000195', '12345', 'EMPRESA TESTE', $endereco);
         $config = new Config($prestador, Ambiente::Homologacao);
 
         $cert = new Certificate(
             privateKeyPem: 'DUMMY',
             certificatePem: 'DUMMY',
             validade: new \DateTimeImmutable('+1 year'),
-            cnpj: '00179028000138',
+            cnpj: '12345678000195',
             subjectCN: 'TESTE',
         );
 

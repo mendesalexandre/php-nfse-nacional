@@ -35,7 +35,7 @@ final class Tomador
          * principalmente quando o tomador é PJ no mesmo município do
          * prestador (ex: tomador advocacia/consultoria) — permite cruzamento
          * de dados pela prefeitura e tratamento de imunidade tributária por
-         * IM. Em cartório de RI, tomador é majoritariamente PF, então fica
+         * IM. Em emissor PJ, tomador é majoritariamente PF, então fica
          * normalmente null.
          */
         public readonly ?string $inscricaoMunicipal = null,

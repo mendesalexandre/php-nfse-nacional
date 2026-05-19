@@ -10,11 +10,11 @@ use PHPUnit\Framework\TestCase;
 
 final class ServicoTest extends TestCase
 {
-    public function test_defaults_de_cartorio(): void
+    public function test_defaults_de_emissor(): void
     {
         $s = new Servico(
             discriminacao: 'Certidão de matrícula',
-            codigoMunicipioPrestacao: '5107909',
+            codigoMunicipioPrestacao: '3550308',
         );
 
         self::assertSame('210101', $s->cTribNac);   // serviços notariais
@@ -25,7 +25,7 @@ final class ServicoTest extends TestCase
     public function test_discriminacao_curta_demais_eh_rejeitada(): void
     {
         $this->expectException(ValidationException::class);
-        new Servico(discriminacao: 'curta', codigoMunicipioPrestacao: '5107909');
+        new Servico(discriminacao: 'curta', codigoMunicipioPrestacao: '3550308');
     }
 
     public function test_discriminacao_longa_demais_eh_rejeitada(): void
@@ -33,7 +33,7 @@ final class ServicoTest extends TestCase
         $this->expectException(ValidationException::class);
         new Servico(
             discriminacao: str_repeat('a', 2001),
-            codigoMunicipioPrestacao: '5107909',
+            codigoMunicipioPrestacao: '3550308',
         );
     }
 
@@ -48,7 +48,7 @@ final class ServicoTest extends TestCase
         $this->expectException(ValidationException::class);
         new Servico(
             discriminacao: 'Certidão de matrícula',
-            codigoMunicipioPrestacao: '5107909',
+            codigoMunicipioPrestacao: '3550308',
             cTribNac: '21010',
         );
     }
