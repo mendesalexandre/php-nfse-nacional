@@ -53,6 +53,14 @@ $prestador = new Prestador(
     ),
 );
 
-$config = new Config(prestador: $prestador, ambiente: Ambiente::Homologacao);
+// Ambiente via env AMBIENTE (producao|homologacao). Default: homologação
+// (mantém compatibilidade com os smokes existentes). Para rodar contra o
+// ADN/SEFIN de produção: AMBIENTE=producao
+$ambiente = match (strtolower((string) (getenv('AMBIENTE') ?: 'homologacao'))) {
+    'producao', 'prod', 'production' => Ambiente::Producao,
+    default => Ambiente::Homologacao,
+};
+
+$config = new Config(prestador: $prestador, ambiente: $ambiente);
 
 return NFSe::create($config, $cert);
