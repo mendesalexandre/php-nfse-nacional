@@ -121,9 +121,12 @@ $tomador = new Tomador(
     ),
 );
 
+$indZfmAlc = getenv('IND_ZFMALC');
 $servico = new Servico(
     discriminacao: 'TESTE DE HOMOLOGACAO — ' . date('Y-m-d H:i:s') . ' — NFS-e emitida pelo SDK php-nfse-nacional',
     codigoMunicipioPrestacao: getEnvOrDie('PRESTADOR_CMUN'),
+    // NT 007/2026: indZFMALC (só faz sentido com INCLUIR_IBSCBS=1).
+    indZfmAlc: ($indZfmAlc === false || $indZfmAlc === '') ? null : (bool) (int) $indZfmAlc,
 );
 
 $valores = new Valores(

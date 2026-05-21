@@ -23,8 +23,12 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 - **`Servico::$indZfmAlc` (novo)** — emite `<IBSCBS><indZFMALC>` (operação de
   fornecimento favorecido com alíquota zero de CBS — ZFM/ALC, art. 451/466 LC
   214/2025). Opt-in: `null` (default) não emite; `true`/`false` emitem `1`/`0`.
-  Posição dentro de `<IBSCBS>` ainda pendente de validação contra o XSD do
-  AnexoVI V1.03.00 (o CSV V1.00.02 não cobre o grupo IBSCBS).
+  **Atenção:** smoke em homologação (21/mai/2026) retornou **cStat=1235** —
+  o schema vigente ainda **não aceita** `indZFMALC` (esperados após `indDest`:
+  `dest, imovel, valores`). A evolução do AnexoVI V1.03.00 ainda não foi
+  implantada no ambiente; o campo fica disponível na API mas só deve ser usado
+  quando o cronograma da NT 007 entrar em vigor. Default `null` mantém as
+  emissões normais intactas.
 
 ## [0.17.0] — 2026-05-18
 

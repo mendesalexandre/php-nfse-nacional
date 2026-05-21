@@ -112,6 +112,7 @@ Service classes ficam em `PhpNfseNacional\Services\` — pra DI granular (Symfon
 | ADN `/danfse/{chave}` instável em homologação (HTTP 502 persistente em ambas tentativas) — usar `danfseLocal()` ou confiar no retry do SDK (v0.11.0) | smoke |
 | `<BM>/<nBM>` tem 14 dígitos: 7 IBGE + 2 tipo (01-04) + 5 sequencial — cadastrado pelo município no Sistema Nacional | leiaute linha 259 |
 | Cabeçalho DANFSE coluna direita tem apenas 1.76cm úteis (entre x=15.62 e QR Code em x=17.48) — textos curtos obrigatórios | fix v0.10.1 |
+| `indZFMALC` (NT 007/2026) ainda NÃO aceito no schema de homologação (cStat=1235) — AnexoVI V1.03.00 não implantado. Filhos de `<IBSCBS>` esperados após `indDest`: `dest, imovel, valores` | smoke 21mai2026 |
 
 ## Bug history (cuidado em refactors)
 
