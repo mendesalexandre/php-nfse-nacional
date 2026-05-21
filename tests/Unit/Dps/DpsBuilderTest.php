@@ -334,6 +334,54 @@ final class DpsBuilderTest extends TestCase
         self::assertStringContainsString('<CST>000</CST>', $xml);
     }
 
+    public function test_IBSCBS_omite_indZFMALC_por_padrao(): void
+    {
+        $config = new Config(
+            prestador: new Prestador(
+                cnpj: '12345678000195',
+                inscricaoMunicipal: '12345',
+                razaoSocial: 'EMPRESA EXEMPLO LTDA',
+                endereco: new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP'),
+            ),
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $xml = (new DpsBuilder($config))->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertStringNotContainsString('indZFMALC', $xml);
+    }
+
+    public function test_IBSCBS_emite_indZFMALC_quando_declarado(): void
+    {
+        // NT 007/2026: indicador de operação ZFM/ALC com alíquota zero de CBS.
+        $config = new Config(
+            prestador: new Prestador(
+                cnpj: '12345678000195',
+                inscricaoMunicipal: '12345',
+                razaoSocial: 'EMPRESA EXEMPLO LTDA',
+                endereco: new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP'),
+            ),
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $servico = new Servico(
+            discriminacao: 'Certidão de matrícula nº 12345',
+            codigoMunicipioPrestacao: '3550308',
+            indZfmAlc: true,
+        );
+        $xml = (new DpsBuilder($config))->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertStringContainsString('<indZFMALC>1</indZFMALC>', $xml);
+    }
+
     public function test_pTotTribMun_formatado_com_2_casas_decimais(): void
     {
         // SefinNacional 1.6 restringe pTotTrib* ao tipo TSDec3V2 (exatamente

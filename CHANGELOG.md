@@ -5,6 +5,27 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adequações à NT 007/2026 (Reforma Tributária — adequações NFS-e)
+
+- **Corrigido — `CstPisCofins::OperacaoTributavelContribuicao` (07) estava com
+  rótulo errado.** O código `07` é **Operação Isenta da Contribuição**
+  (convenção NF-e/NT 007), não "tributável". Renomeado para
+  `OperacaoIsentaContribuicao`. **BC-break (pré-1.0):** quem referenciava o
+  case antigo precisa ajustar o nome (o valor `'07'` não mudou).
+- **`CstPisCofins` — domínio ampliado** conforme NT 007 (AnexoVI V1.03.00):
+  adicionados `49` (outras saídas), `50`–`56` (direito a crédito), `60`–`67`
+  (crédito presumido), `70`–`75` (aquisição), `98` (outras entradas) e `99`
+  (outras operações).
+- **`TipoRetencaoPisCofins` — domínio ampliado** para englobar CSLL: além de
+  `1`/`2` (legado, sem CSLL), adicionados `0` e `3`–`9`. Os retidos dos três
+  tributos (PIS, COFINS, CSLL) somam em `<vRetCSLL>` conforme o indicador.
+  `1`/`2` serão suprimidos do schema quando `IBSCBS` virar obrigatório.
+- **`Servico::$indZfmAlc` (novo)** — emite `<IBSCBS><indZFMALC>` (operação de
+  fornecimento favorecido com alíquota zero de CBS — ZFM/ALC, art. 451/466 LC
+  214/2025). Opt-in: `null` (default) não emite; `true`/`false` emitem `1`/`0`.
+  Posição dentro de `<IBSCBS>` ainda pendente de validação contra o XSD do
+  AnexoVI V1.03.00 (o CSV V1.00.02 não cobre o grupo IBSCBS).
+
 ## [0.17.0] — 2026-05-18
 
 ### Corrigido — `dCompet` saltava pro dia seguinte na virada do dia em SP

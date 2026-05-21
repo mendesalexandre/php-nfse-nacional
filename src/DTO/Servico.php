@@ -32,6 +32,14 @@ final class Servico
         ListaNbs|string $cNBS = '113040000',
         public readonly string $cIndOp = '100301',
         /**
+         * `<IBSCBS><indZFMALC>` — indicador de operação de fornecimento
+         * favorecido com alíquota zero de CBS (Zona Franca de Manaus / Áreas
+         * de Livre Comércio, art. 451 e 466 da LC 214/2025). Introduzido pela
+         * NT 007/2026. `null` (default) não emite o campo; `true`/`false`
+         * emitem `1`/`0`.
+         */
+        public readonly ?bool $indZfmAlc = null,
+        /**
          * Grupo `<infoCompl>` (Informações Complementares) — opcional.
          * Quando setado, o `DpsBuilder` emite como ÚLTIMO filho de
          * `<serv>`. Use pra observações da nota, referência a documento

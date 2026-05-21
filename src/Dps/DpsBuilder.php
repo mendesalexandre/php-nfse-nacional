@@ -633,6 +633,12 @@ final class DpsBuilder
         $ibscbs->appendChild($this->el($doc, 'indFinal', '1'));   // 1 = Consumidor final
         $ibscbs->appendChild($this->el($doc, 'cIndOp', $servico->cIndOp));
         $ibscbs->appendChild($this->el($doc, 'indDest', '0'));   // 0 = Operação interna
+        // indZFMALC (NT 007/2026) — opt-in; só emite quando o emitente declara.
+        // Posição dentro de <IBSCBS> pendente de validação contra o XSD do
+        // AnexoVI V1.03.00 (CSV V1.00.02 não cobre o grupo IBSCBS).
+        if ($servico->indZfmAlc !== null) {
+            $ibscbs->appendChild($this->el($doc, 'indZFMALC', $servico->indZfmAlc ? '1' : '0'));
+        }
 
         // valores > trib > gIBSCBS (estrutura mínima)
         $valNode = $this->el($doc, 'valores');
