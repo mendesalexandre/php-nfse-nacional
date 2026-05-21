@@ -15,9 +15,9 @@ declare(strict_types=1);
  *   OPENSSL_CONF=/caminho/openssl-sha1.cnf \
  *   AMBIENTE=producao \
  *   PFX_PATH=/caminho/cert.pfx PFX_SENHA=... \
- *   PRESTADOR_CNPJ=00179028000138 PRESTADOR_IM=... PRESTADOR_RAZAO=... \
+ *   PRESTADOR_CNPJ=... PRESTADOR_IM=... PRESTADOR_RAZAO=... \
  *   PRESTADOR_LOGRADOURO=... PRESTADOR_NUMERO=... PRESTADOR_BAIRRO=... \
- *   PRESTADOR_CEP=... PRESTADOR_CMUN=5107909 PRESTADOR_UF=MT \
+ *   PRESTADOR_CEP=... PRESTADOR_CMUN=... PRESTADOR_UF=MT \
  *   NSU=0 ALVO_NNFSE=559 \
  *     php examples/sincronizar-dfe-producao.php
  *
