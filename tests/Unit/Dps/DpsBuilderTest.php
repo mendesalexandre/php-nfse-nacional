@@ -405,6 +405,28 @@ final class DpsBuilderTest extends TestCase
         self::assertStringContainsString('<IM>987654</IM>', $xml);
     }
 
+    public function test_tomador_endereco_omitido_nao_emite_grupo_end(): void
+    {
+        $builder = new DpsBuilder($this->configPadrao());
+        $tomador = new Tomador(
+            documento: '06338993001407',
+            nome: 'DIPAGRO LTDA',
+        );
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $tomador,
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        $tomaBlock = substr(
+            $xml,
+            strpos($xml, '<toma>'),
+            strpos($xml, '</toma>') - strpos($xml, '<toma>') + 7,
+        );
+        // toma sem <end> mas com CNPJ + xNome
+        self::assertSame('<toma><CNPJ>06338993001407</CNPJ><xNome>DIPAGRO LTDA</xNome></toma>', $tomaBlock);
+    }
+
     public function test_cTribNac_default_eh_210101(): void
     {
         $builder = new DpsBuilder($this->configPadrao());

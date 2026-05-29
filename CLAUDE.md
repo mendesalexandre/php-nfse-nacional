@@ -12,7 +12,7 @@ Cobre **ciclo de vida completo:** emissão, consulta, cancelamento, substituiç�
 
 - **Repo:** github.com/mendesalexandre/php-nfse-nacional
 - **Packagist:** `composer require mendesalexandre/php-nfse-nacional`
-- **Versão atual:** v0.17.0. Cobertura DPS quase completa — Ondas 1, 2, 5, 7 fechadas + endExt + BC-break v0.14.0 e v0.17.0. Ver `CHANGELOG.md`
+- **Versão atual:** v0.18.0. Cobertura DPS quase completa — Ondas 1, 2, 5, 7 fechadas + endExt + tomador sem endereço + BC-break v0.14.0 e v0.17.0. Ver `CHANGELOG.md`
 - **Diretório local:** `/home/alexandre/code/sinop-nfse-nacional`
 - **Licença:** MIT
 
@@ -112,6 +112,9 @@ Service classes ficam em `PhpNfseNacional\Services\` — pra DI granular (Symfon
 | ADN `/danfse/{chave}` instável em homologação (HTTP 502 persistente em ambas tentativas) — usar `danfseLocal()` ou confiar no retry do SDK (v0.11.0) | smoke |
 | `<BM>/<nBM>` tem 14 dígitos: 7 IBGE + 2 tipo (01-04) + 5 sequencial — cadastrado pelo município no Sistema Nacional | leiaute linha 259 |
 | Cabeçalho DANFSE coluna direita tem apenas 1.76cm úteis (entre x=15.62 e QR Code em x=17.48) — textos curtos obrigatórios | fix v0.10.1 |
+| `indZFMALC` (NT 007/2026) ainda NÃO aceito no schema de homologação (cStat=1235) — AnexoVI V1.03.00 não implantado. Filhos de `<IBSCBS>` esperados após `indDest`: `dest, imovel, valores` | smoke 21mai2026 |
+| Faixa de série `70000+` é reservada pro EmissorWeb (`procEmi=2`) — emissão via API com essa série dá cStat=10. Pra API usar série fora dessa faixa (default do SDK é `"1"`) | smoke #145 |
+| `<toma><end>` é `0-1` no leiaute (Anexo IV linha 274) — SEFIN Sinop aceita DPS com `<toma>` contendo apenas CPF/CNPJ + xNome, sem endereço | smoke #146 v0.18.0 |
 
 ## Bug history (cuidado em refactors)
 

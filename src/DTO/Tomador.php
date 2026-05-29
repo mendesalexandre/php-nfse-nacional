@@ -24,8 +24,12 @@ final class Tomador
          * Endereço nacional (`Endereco`) ou estrangeiro (`EnderecoExterior`).
          * O `DpsBuilder` detecta o tipo e emite `<endNac>` ou `<endExt>`
          * dentro de `<end>` conforme TCEndereco (XSD V1.01).
+         *
+         * Opcional pelo leiaute oficial (`toma/end` é `0-1`, Anexo IV V1.00.02
+         * linha 274). Útil pra emissões avulsas onde o tomador não foi
+         * cadastrado (cartório de balcão, serviço a transeunte, etc.).
          */
-        public readonly Endereco|EnderecoExterior $endereco,
+        public readonly Endereco|EnderecoExterior|null $endereco = null,
         public readonly ?string $email = null,
         public readonly ?string $telefone = null,
         /**

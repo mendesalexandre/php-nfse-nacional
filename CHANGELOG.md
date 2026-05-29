@@ -5,6 +5,35 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-05-28
+
+### Mudado — `Tomador::$endereco` agora é opcional
+
+- `Tomador::__construct` aceita `endereco: null` (default). Pela leitura do
+  Anexo IV V1.00.02 linha 274, o grupo `<toma><end>` é `0-1` (opcional) no
+  schema oficial. A lib estava sendo mais estrita que o leiaute exigia.
+- `DpsBuilder` omite o grupo `<end>` inteiro quando `endereco === null` —
+  ordem TSDestinaDps preservada (`CPF/CNPJ → IM? → xNome → end? → fone? →
+  email?`).
+- Útil pra emissões avulsas (cartório de balcão, serviço a transeunte,
+  qualquer cenário em que o tomador não tem cadastro). Mantém compatibilidade
+  total — quem já passava `endereco` continua igual.
+- **Validado empiricamente em homologação SEFIN Sinop** (NFS-e #146,
+  cStat=100) com DPS contendo apenas `<toma><CNPJ>...</CNPJ><xNome>...
+  </xNome></toma>`. Outros municípios podem ter parametrização que exija
+  endereço — comportamento atrelado a convênio local.
+- Dois testes novos: `TomadorTest::test_aceita_endereco_omitido` e
+  `DpsBuilderTest::test_tomador_endereco_omitido_nao_emite_grupo_end`.
+
+### Corrigido — Investigação cStat=10 com `serie ≥ 70000` via API
+
+- Achado empírico (não muda código, só documentação): a faixa de série
+  `70000+` é reservada pro **EmissorWeb** (`procEmi=2`). Emissões via API
+  (`procEmi=1`, que é o que o SDK envia) com `serie="70000"` são rejeitadas
+  com **cStat=10** ("série não pertence à faixa do tipo de emissor").
+- O SDK já default para `serie="1"` no `Identificacao`. Quem passar série
+  explícita deve usar uma faixa fora de 70000+.
+
 ## [0.17.0] — 2026-05-18
 
 ### Corrigido — `dCompet` saltava pro dia seguinte na virada do dia em SP

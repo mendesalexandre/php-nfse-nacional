@@ -282,8 +282,12 @@ final class DpsBuilder
         ));
 
         // Endereço — detecta union type Endereco vs EnderecoExterior
-        // e emite <endNac> ou <endExt> dentro de <end>.
-        $toma->appendChild($this->montarEnderecoTcEndereco($doc, $tomador->endereco));
+        // e emite <endNac> ou <endExt> dentro de <end>. Opcional (0-1) pelo
+        // leiaute oficial (linha 274 Anexo IV V1.00.02); quando null, omite
+        // o grupo inteiro.
+        if ($tomador->endereco !== null) {
+            $toma->appendChild($this->montarEnderecoTcEndereco($doc, $tomador->endereco));
+        }
 
         // fone e email vão APÓS o end (ordem TSDestinaDps B-45/B-46).
         if ($tomador->telefone !== null && $tomador->telefone !== '') {

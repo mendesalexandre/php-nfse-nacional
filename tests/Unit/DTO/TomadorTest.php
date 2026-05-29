@@ -79,4 +79,14 @@ final class TomadorTest extends TestCase
         );
         self::assertNull($tomador->email);
     }
+
+    public function test_aceita_endereco_omitido(): void
+    {
+        $tomador = new Tomador(
+            documento: '06338993001407',
+            nome: 'DIPAGRO LTDA',
+        );
+        self::assertSame('06338993001407', $tomador->documento);
+        self::assertNull($tomador->endereco);
+    }
 }
