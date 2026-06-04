@@ -543,6 +543,12 @@ $cache->set('dfe_ultimo_nsu', $resp->ultimoNsu);
 
 ### DANFSe local
 
+> **⚠ Em refino.** Esse renderizador local é a implementação da **NT 008/2026** no SDK e **ainda está em maturação** — ajustes de leiaute, posicionamento, blocos opcionais e edge cases continuam saindo a cada release minor/patch. Bugs já corrigidos: tarja indevida em produção via Sistema Nacional (v0.18.1), grid do cabeçalho (v0.10.1), labels `tribISSQN` invertidos (v0.9.1), entre outros.
+>
+> **Em produção, prefira [`baixarPdf($chave)`](#download-de-xml-e-pdf)** (PDF gerado pelo próprio SEFIN/ADN). Use o `danfseLocal()` para: (a) fallback quando o ADN está instável (HTTP 502 já visto em homologação), (b) customização (logo do prestador, observações), (c) **após 01/07/2026**, quando o ADN desativa o endpoint `/danfse/{chave}` e a geração local vira o caminho oficial.
+>
+> Quando usar em produção, mantenha o SDK atualizado e teste o PDF gerado contra o leiaute oficial antes de imprimir/enviar pra cliente.
+
 ```php
 $nfse->danfseLocal(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
 $nfse->danfseLocalDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
