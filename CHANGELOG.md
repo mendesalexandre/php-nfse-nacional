@@ -5,6 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.18.1] — 2026-06-04
+
+### Corrigido — DANFSe carimbava "SEM VALIDADE JURÍDICA" em NFS-e de PRODUÇÃO via Sistema Nacional
+
+- `DanfseXmlParser` decidia `homologacao = true` com base em
+  `ambGer === 2 || tpAmb === 2`. Os dois campos são **conceitos distintos**
+  no leiaute oficial (Anexo IV V1.00.02):
+  - `ambGer` (linha 14) — **sistema gerador**: 1 = Próprio Município,
+    2 = Sefin Nacional.
+  - `tpAmb` (linha 50) — **ambiente**: 1 = Produção, 2 = Homologação.
+- Como NFS-e emitida pelo **Sistema Nacional em produção** tem
+  `ambGer=2 tpAmb=1` (cenário mais comum dos consumidores do SDK em
+  produção), a DANFSe vinha com a tarja "NFS-e SEM VALIDADE JURÍDICA"
+  carimbada indevidamente.
+- O check agora usa apenas `tpAmb === 2`.
+- Bug descoberto por **@guicalabria** (Guilherme Calabria Filho) — PR #24.
+  Follow-up corrige docblocks/comentários stale em `DanfseXmlParser`,
+  `DanfseDados` e `DanfseServiceTest`, e adiciona 3 testes de regressão
+  (parser nos dois cenários + DANFSe-PDF sem tarja em produção).
+
 ## [0.18.0] — 2026-05-28
 
 ### Mudado — `Tomador::$endereco` agora é opcional

@@ -28,7 +28,7 @@ final class DanfseDados
      * @param string|null                $qrCodeUrl     URL completa pro QR Code (consulta pública)
      * @param bool                       $cancelada     true se NFS-e cancelada (cStat 101/102) — exibe marca d'água
      * @param bool                       $substituida   true se NFS-e foi substituída — marca d'água "SUBSTITUÍDA"
-     * @param bool                       $homologacao   true se ambGer=2 — exibe "NFS-e SEM VALIDADE JURÍDICA"
+     * @param bool                       $homologacao   true se tpAmb=2 (ambiente de homologação) — exibe "NFS-e SEM VALIDADE JURÍDICA"
      */
     public function __construct(
         public readonly array $identificacao,

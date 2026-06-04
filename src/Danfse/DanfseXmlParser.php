@@ -61,8 +61,10 @@ final class DanfseXmlParser
         $cStat = (int) ($identificacao['cStat'] ?? 0);
         $cancelada = in_array($cStat, [101, 102], true);
 
-        // Ambiente: 2 = homologação ("produção restrita")
-        $ambGer = (int) ($identificacao['ambiente_gerador'] ?? 0);
+        // Ambiente: tpAmb=2 → homologação ("produção restrita"). Anexo IV
+        // V1.00.02 linha 50. NÃO confundir com ambGer (linha 14), que
+        // identifica o SISTEMA gerador (1=município, 2=Sefin Nacional) e
+        // não tem relação com produção/homologação.
         $tpAmb = (int) ($identificacao['tpAmb_dps'] ?? 0);
         $homologacao = $tpAmb === 2;
 

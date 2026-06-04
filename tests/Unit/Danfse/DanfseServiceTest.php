@@ -113,7 +113,7 @@ final class DanfseServiceTest extends TestCase
 
     public function test_pdf_homologacao_inclui_tarja_sem_validade(): void
     {
-        // Fixture tem ambGer=2 (homologação) → deve exibir "NFS-e SEM VALIDADE JURÍDICA"
+        // Fixture tem tpAmb=2 (homologação) → deve exibir "NFS-e SEM VALIDADE JURÍDICA"
         $service = new DanfseService();
         $pdf = $service->gerarDoXml($this->xmlAutorizado());
 
@@ -127,5 +127,30 @@ final class DanfseServiceTest extends TestCase
         }
 
         self::assertStringContainsString('NFS-e SEM VALIDADE JURÍDICA', $texto);
+    }
+
+    public function test_pdf_producao_via_sistema_nacional_nao_inclui_tarja(): void
+    {
+        // Regressão do bug corrigido em v0.18.1: ambGer=2 (Sistema Nacional)
+        // NÃO é homologação. Combinado com tpAmb=1 (produção) deve gerar
+        // DANFSe sem a tarja "NFS-e SEM VALIDADE JURÍDICA". É o cenário mais
+        // comum do consumidor em produção.
+        $xmlHomol = $this->xmlAutorizado();
+        $xmlProd = str_replace('<tpAmb>2</tpAmb>', '<tpAmb>1</tpAmb>', $xmlHomol);
+        self::assertNotSame($xmlHomol, $xmlProd, 'fixture precisa conter <tpAmb>2</tpAmb>');
+
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($xmlProd);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível no ambiente');
+        }
+
+        self::assertStringNotContainsString('NFS-e SEM VALIDADE JURÍDICA', $texto);
     }
 }

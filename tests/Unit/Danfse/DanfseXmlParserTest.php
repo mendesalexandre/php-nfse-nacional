@@ -186,4 +186,23 @@ final class DanfseXmlParserTest extends TestCase
         self::assertStringContainsString('nfse.gov.br', $dados->qrCodeUrl);
         self::assertStringContainsString($dados->chave() ?? 'N/A', $dados->qrCodeUrl);
     }
+
+    public function test_homologacao_true_quando_tpAmb_2(): void
+    {
+        // Fixture default: ambGer=2 (Sistema Nacional) + tpAmb=2 (homologação)
+        $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
+        self::assertTrue($dados->homologacao);
+    }
+
+    public function test_homologacao_false_quando_tpAmb_1_independente_de_ambGer(): void
+    {
+        // Regressão: ambGer=2 (Sistema Nacional) NÃO indica homologação.
+        // Apenas tpAmb decide. Combinação ambGer=2 tpAmb=1 é o cenário de
+        // PRODUÇÃO via Sistema Nacional (caso mais comum em produção real).
+        $xmlProd = str_replace('<tpAmb>2</tpAmb>', '<tpAmb>1</tpAmb>', $this->xmlAutorizado());
+        $dados = (new DanfseXmlParser())->parse($xmlProd);
+
+        self::assertSame('2', $dados->identificacao['ambiente_gerador']);
+        self::assertFalse($dados->homologacao);
+    }
 }

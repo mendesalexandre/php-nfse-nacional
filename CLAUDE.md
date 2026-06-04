@@ -12,7 +12,7 @@ Cobre **ciclo de vida completo:** emissão, consulta, cancelamento, substituiç�
 
 - **Repo:** github.com/mendesalexandre/php-nfse-nacional
 - **Packagist:** `composer require mendesalexandre/php-nfse-nacional`
-- **Versão atual:** v0.18.0. Cobertura DPS quase completa — Ondas 1, 2, 5, 7 fechadas + endExt + tomador sem endereço + BC-break v0.14.0 e v0.17.0. Ver `CHANGELOG.md`
+- **Versão atual:** v0.18.1. Cobertura DPS quase completa — Ondas 1, 2, 5, 7 fechadas + endExt + tomador sem endereço + BC-break v0.14.0 e v0.17.0. Ver `CHANGELOG.md`
 - **Diretório local:** `/home/alexandre/code/sinop-nfse-nacional`
 - **Licença:** MIT
 
@@ -115,6 +115,7 @@ Service classes ficam em `PhpNfseNacional\Services\` — pra DI granular (Symfon
 | `indZFMALC` (NT 007/2026) ainda NÃO aceito no schema de homologação (cStat=1235) — AnexoVI V1.03.00 não implantado. Filhos de `<IBSCBS>` esperados após `indDest`: `dest, imovel, valores` | smoke 21mai2026 |
 | Faixa de série `70000+` é reservada pro EmissorWeb (`procEmi=2`) — emissão via API com essa série dá cStat=10. Pra API usar série fora dessa faixa (default do SDK é `"1"`) | smoke #145 |
 | `<toma><end>` é `0-1` no leiaute (Anexo IV linha 274) — SEFIN Sinop aceita DPS com `<toma>` contendo apenas CPF/CNPJ + xNome, sem endereço | smoke #146 v0.18.0 |
+| `ambGer` (linha 14) e `tpAmb` (linha 50) são **conceitos diferentes**: `ambGer` = sistema gerador (1=Município, 2=Sefin Nacional); `tpAmb` = ambiente (1=Produção, 2=Homologação). Tarja "SEM VALIDADE JURÍDICA" deve depender só de `tpAmb` | bug fix v0.18.1 (#24 @guicalabria) |
 
 ## Bug history (cuidado em refactors)
 
