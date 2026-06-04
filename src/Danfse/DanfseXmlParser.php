@@ -64,7 +64,7 @@ final class DanfseXmlParser
         // Ambiente: 2 = homologação ("produção restrita")
         $ambGer = (int) ($identificacao['ambiente_gerador'] ?? 0);
         $tpAmb = (int) ($identificacao['tpAmb_dps'] ?? 0);
-        $homologacao = $ambGer === 2 || $tpAmb === 2;
+        $homologacao = $tpAmb === 2;
 
         return new DanfseDados(
             identificacao: $identificacao,
