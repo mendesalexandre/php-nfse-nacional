@@ -87,12 +87,12 @@ $cert = Certificate::fromPfxFile('/path/cert.pfx', 'senha-do-pfx');
 // 2. Configure o prestador (singleton, uma vez na app)
 $prestador = new Prestador(
     cnpj: '12345678000195',
-    inscricaoMunicipal: '11408',
+    inscricaoMunicipal: '12345',
     razaoSocial: 'EMPRESA XYZ',
     endereco: new Endereco(
-        logradouro: 'R DAS NOGUEIRAS',
-        numero: '1108',
-        bairro: 'SETOR COMERCIAL',
+        logradouro: 'RUA EXEMPLO',
+        numero: '100',
+        bairro: 'CENTRO',
         cep: '01310100',
         codigoMunicipioIbge: '3550308',
         uf: 'MT',
@@ -232,7 +232,7 @@ $valores = new Valores(
     deducoesReducoes: 0.00,
     aliquotaIssqnPercentual: 4.00,
     beneficioMunicipal: new BeneficioMunicipal(
-        nBM: '51079090100001',     // ID parametrizado pelo município
+        nBM: '35503080100001',     // ID parametrizado pelo município
         percentualReducaoBc: 50.00, // ou valorReducaoBc — choice no schema
     ),
 );
@@ -245,7 +245,7 @@ use PhpNfseNacional\Enums\{ListaServicosNacional, ListaNbs};
 
 $servico = new Servico(
     discriminacao: 'Análise e desenvolvimento de sistemas',
-    codigoMunicipioPrestacao: '5107909',
+    codigoMunicipioPrestacao: '3550308',
     cTribNac: ListaServicosNacional::S010101,  // ou string '010101'
     cNBS:     ListaNbs::N101011100,             // ou string '101011100'
 );
@@ -343,7 +343,7 @@ Pra evitar dupla emissão (sequencial DPS reutilizado, retry agressivo do
 cliente, etc.), use `verificarDps()` antes de chamar `emitir()`:
 
 ```php
-$idDps = 'DPS510790920017902800013800001000000000128585';
+$idDps = 'DPS35503082212345678000195000010000000001285AB';
 
 if ($nfse->verificarDps($idDps)) {
     echo "DPS já existe no SEFIN — não emite de novo\n";
@@ -388,8 +388,8 @@ use PhpNfseNacional\DTO\MotivoCancelamento;
 use PhpNfseNacional\DTO\MotivoSubstituicao;
 
 $resposta = $nfse->substituir(
-    chaveOriginal:   '51079092200179028000138000000000005726057774456203',
-    chaveSubstituta: '51079092200179028000138000000000005826057774456204',
+    chaveOriginal:   '35503082212345678000195000000000005712345678901234',
+    chaveSubstituta: '35503082212345678000195000000000005812345678901235',
     motivo:          MotivoSubstituicao::DesenquadramentoSimples,
 );
 ```

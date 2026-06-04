@@ -38,10 +38,10 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 - Útil pra emissões avulsas (cartório de balcão, serviço a transeunte,
   qualquer cenário em que o tomador não tem cadastro). Mantém compatibilidade
   total — quem já passava `endereco` continua igual.
-- **Validado empiricamente em homologação SEFIN Sinop** (NFS-e #146,
-  cStat=100) com DPS contendo apenas `<toma><CNPJ>...</CNPJ><xNome>...
-  </xNome></toma>`. Outros municípios podem ter parametrização que exija
-  endereço — comportamento atrelado a convênio local.
+- **Validado empiricamente em homologação SEFIN** (NFS-e #146, cStat=100)
+  com DPS contendo apenas `<toma><CNPJ>...</CNPJ><xNome>...</xNome></toma>`.
+  Outros municípios podem ter parametrização que exija endereço —
+  comportamento atrelado a convênio local.
 - Dois testes novos: `TomadorTest::test_aceita_endereco_omitido` e
   `DpsBuilderTest::test_tomador_endereco_omitido_nao_emite_grupo_end`.
 

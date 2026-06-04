@@ -64,9 +64,9 @@ Mensagens em **português ou inglês** — projeto é pt-BR predominante pelo do
 
 Esse SDK acumula achados de comportamento da SEFIN que **não estão no leiaute oficial** ou divergem dele. Quando você confirmar algo novo em homologação:
 
-1. Adiciona uma linha na tabela "Achados empíricos importantes" do `CLAUDE.md` com origem.
-2. No PR, descreve o achado + cStat retornado + como você confirmou (NFS-e #N, data, ambiente).
-3. Se for um bug fix decorrente de divergência leiaute-vs-SEFIN, adiciona uma entrada em "Bug history".
+1. Descreve o achado no corpo do PR — cStat retornado, como você confirmou (NFS-e #N, data, ambiente), o que a SEFIN aceitou ou rejeitou.
+2. Se for um bug fix decorrente de divergência leiaute-vs-SEFIN, mencione no CHANGELOG na seção "Corrigido".
+3. O mantenedor consolida na base de conhecimento interna.
 
 ## CHANGELOG
 
@@ -78,7 +78,7 @@ Esse SDK acumula achados de comportamento da SEFIN que **não estão no leiaute 
 - `### Removido` — APIs deletadas
 - `### Segurança` — fixes de vulnerabilidade
 
-Não bumpe versão no `CHANGELOG.md` — release de fato é responsabilidade do mantenedor (ver "Workflow de release" no `CLAUDE.md`).
+Não bumpe versão no `CHANGELOG.md` — release de fato é responsabilidade do mantenedor.
 
 ## Smoke real em homologação
 

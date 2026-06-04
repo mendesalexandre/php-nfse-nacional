@@ -10,6 +10,9 @@ coverage/
 .phpactor.json
 *.log
 
+# Notas locais de contexto do mantenedor (não compartilhar)
+CLAUDE.md
+
 # Certificados de teste (NUNCA commitar)
 tests/Fixtures/certs/*.pfx
 tests/Fixtures/certs/*.pem

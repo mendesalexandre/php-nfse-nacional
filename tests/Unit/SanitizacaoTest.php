@@ -42,32 +42,42 @@ final class SanitizacaoTest extends TestCase
      */
     public function test_padrao_nao_aparece_em_codigo_publico(string $regex, string $rotulo, string $exemplo): void
     {
-        $raizes = ['src', 'tests', 'examples'];
-        $vazamentos = [];
+        $raiz = realpath(__DIR__ . '/../../');
+        self::assertNotFalse($raiz, 'raiz do projeto não encontrada');
 
-        foreach ($raizes as $raiz) {
-            $base = __DIR__ . '/../../' . $raiz;
-            if (!is_dir($base)) {
-                continue;
-            }
+        $vazamentos = [];
+        $docsRaiz = glob($raiz . '/*.md') ?: [];
+        $diretorios = array_filter(
+            array_map(fn (string $d) => $raiz . '/' . $d, ['src', 'tests', 'examples']),
+            is_dir(...),
+        );
+
+        $arquivosScan = $docsRaiz;
+        foreach ($diretorios as $base) {
             $iter = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator($base, \RecursiveDirectoryIterator::SKIP_DOTS),
             );
             foreach ($iter as $arquivo) {
-                if (!$arquivo->isFile()) {
-                    continue;
+                if ($arquivo->isFile()) {
+                    $arquivosScan[] = $arquivo->getPathname();
                 }
-                $ext = strtolower($arquivo->getExtension());
-                if (!in_array($ext, ['php', 'xml', 'md', 'json', 'yml', 'yaml'], true)) {
-                    continue;
-                }
-                if (str_contains($arquivo->getPathname(), '/SanitizacaoTest.php')) {
-                    continue; // o próprio guard contém os padrões na lista
-                }
-                $conteudo = file_get_contents($arquivo->getPathname());
-                if ($conteudo !== false && preg_match($regex, $conteudo) === 1) {
-                    $vazamentos[] = str_replace(__DIR__ . '/../../', '', $arquivo->getPathname());
-                }
+            }
+        }
+
+        foreach ($arquivosScan as $path) {
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['php', 'xml', 'md', 'json', 'yml', 'yaml'], true)) {
+                continue;
+            }
+            if (str_contains($path, '/SanitizacaoTest.php')) {
+                continue; // o próprio guard contém os padrões na lista
+            }
+            if (str_contains($path, '/CLAUDE.md')) {
+                continue; // CLAUDE.md é local-only do mantenedor (.gitignore)
+            }
+            $conteudo = file_get_contents($path);
+            if ($conteudo !== false && preg_match($regex, $conteudo) === 1) {
+                $vazamentos[] = str_replace($raiz . '/', '', $path);
             }
         }
 

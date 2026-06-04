@@ -139,7 +139,7 @@ final class Endereco
         public readonly string $logradouro,
         public readonly string $numero,
         public readonly string $bairro,
-        public readonly string $cep,                  // formatos: '78550200' ou '78550-200'
+        public readonly string $cep,                  // formatos: '01310100' ou '01310-100'
         public readonly string $codigoMunicipioIbge,  // 7 dígitos
         public readonly string $uf,                   // 2 letras maiúsculas
         public readonly ?string $complemento = null,
@@ -266,7 +266,7 @@ Ajustes feitos automaticamente pelo SDK na hora de montar o DPS:
 $resp = $nfse->emitir(
     identificacao: new Identificacao(numeroDps: 1745, serie: '1'),
     tomador:       new Tomador('12345678901', 'Cliente Exemplo', $endereco),
-    servico:       new Servico('Certidão de matrícula', codigoMunicipioPrestacao: '5107909'),
+    servico:       new Servico('Certidão de matrícula', codigoMunicipioPrestacao: '3550308'),
     valores:       new Valores(valorServicos: 100.00, deducoesReducoes: 20.00, aliquotaIssqnPercentual: 4.00),
 );
 
@@ -296,7 +296,7 @@ $nfse->consultarEventos(
 **Validação:** `ValidationException` se chave de acesso ≠ 50 dígitos.
 
 ```php
-$resp = $nfse->consultar('51079092200179028000138000000000005726057774456203');
+$resp = $nfse->consultar('35503082212345678000195000000000005712345678901234');
 
 if ($resp->cancelada()) { /* ... */ }
 echo $resp->numeroNfse;
@@ -326,7 +326,7 @@ Evento e101101. **Aceitação de cStat:**
 use PhpNfseNacional\DTO\MotivoCancelamento;
 
 $resp = $nfse->cancelar(
-    '51079092200179028000138000000000005726057774456203',
+    '35503082212345678000195000000000005712345678901234',
     MotivoCancelamento::ErroEmissao,
     'Valor da NFS-e divergente do recibo',
 );
@@ -377,10 +377,10 @@ Códigos de evento gerados:
 
 > **Restrição (E1835):** uma Rejeição só pode ser anulada UMA vez. Após anular, não dá pra rejeitar de novo.
 
-> **Validado em homologação SEFIN (13/05/2026, cartório de Sinop):**
+> **Validado em homologação SEFIN (13/05/2026):**
 > - ✅ **Confirmação do Prestador** (e202201) — cStat=100, NFS-e #72
 > - ✅ **Rejeição do Prestador** (e202205, motivo Duplicidade) — cStat=100, NFS-e #73
-> - ⚠️ **Anulação da Rejeição** (e205208) — cStat=999 ("Falha de configuração"). Provavelmente a parametrização do município de Sinop ainda não habilita esse evento em homologação. Outros municípios podem ter habilitado — teste no seu.
+> - ⚠️ **Anulação da Rejeição** (e205208) — cStat=999 ("Falha de configuração"). Provavelmente parametrização do município ainda não habilita esse evento em homologação. Outros municípios podem ter habilitado — teste no seu.
 
 ```php
 use PhpNfseNacional\DTO\MotivoRejeicao;
@@ -472,7 +472,7 @@ Usa `HEAD /dps/{id}` no SEFIN — leve, sem baixar o corpo. Retorna `true` se o 
 Útil pra evitar dupla emissão (cliente que retenta agressivamente, sequencial reutilizado em conflito, processo recuperando-se de crash). Chame antes de `emitir()`:
 
 ```php
-$idDps = 'DPS510790920017902800013800001000000000128585';
+$idDps = 'DPS35503082212345678000195000010000000001285AB';
 
 if ($nfse->verificarDps($idDps)) {
     // já existe — não emite, consulta o status:
@@ -782,7 +782,7 @@ A tabela completa está no [Anexo II do leiaute SefinNacional 1.6](https://www.g
 
 > **⚠ Atenção:** `cTribNac` errado é causa frequente de E1235 ou de NFS-e tributada em alíquota errada. O leiaute valida o cruzamento `cTribNac × cClassTrib × município`. Use sempre o código exato do seu segmento.
 
-> **Cartório de Sinop:** sempre `'210101'`. NUNCA `'140101'` (lubrificação/limpeza — bug histórico já corrigido).
+> **Cartório de RI:** sempre `'210101'` (Serviços de registros públicos cartorários e notariais). NUNCA `'140101'` (lubrificação/limpeza — bug histórico do legado já corrigido).
 
 ### `Intermediario`
 
@@ -1021,9 +1021,9 @@ final class Valores
 >
 > A alíquota real do ISSQN é determinada pelo **cadastro tributário do município no SEFIN** (vinculado ao `cTribNac` × `cClassTrib`). Vem na resposta autorizada como `<pAliqAplic>` e é usada pra calcular `<vISSQN>`.
 >
-> Validado em homologação 13/05/2026 (NFS-es #61 e #62 do cartório de Sinop): mesmo enviando `pTotTribMun=3.51` ou `3.56`, SEFIN aplicou `pAliqAplic=4.00` (alíquota oficial de Sinop pra LC 116 item 21.01) e calculou ISSQN sobre 4%.
+> Validado em homologação 13/05/2026 (NFS-es #61 e #62): mesmo enviando `pTotTribMun=3.51` ou `3.56`, SEFIN aplicou `pAliqAplic=4.00` (alíquota oficial do município pra LC 116 item 21.01) e calculou ISSQN sobre 4%.
 >
-> Implicação prática: você não precisa "acertar" a alíquota tributária no DPS — basta enviar uma estimativa razoável da carga total. Em cartório de RI fica `4.00` (alíquota local). Pra outros segmentos, consulte a alíquota cadastrada pelo município.
+> Implicação prática: você não precisa "acertar" a alíquota tributária no DPS — basta enviar uma estimativa razoável da carga total. Em cartório de RI fica tipicamente `4.00`. Pra outros segmentos, consulte a alíquota cadastrada pelo município.
 
 ---
 
