@@ -5,6 +5,53 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado — DANFSe local com leiaute V1 (legado ADN) + arquitetura Strategy
+
+- **Novo enum `PhpNfseNacional\Enums\DanfseVersao`** com `V1` (leiaute ADN
+  pré-NT 008) e `V2` (NT 008/2026, default mantido).
+- **Refator pra Strategy pattern** — `DanfseGenerator` virou orquestrador
+  fino (criação TCPDF + marcas d'água + output); o desenho dos blocos é
+  delegado pra `DanfseLayoutStrategy`:
+  - `DanfseLayoutV2` (`src/Danfse/Layouts/`) — código original do leiaute
+    NT 008/2026 movido aqui sem alteração funcional.
+  - `DanfseLayoutV1` (novo) — leiaute pré-NT 008 igual ao ADN, paradigma
+    visual "formulário aberto" (sem caixa por campo, separadores horizontais
+    finos entre blocos, label-anchor lateral para títulos).
+- **API estendida** em `NFSe::danfseLocal()` e `DanfseService::gerarDoXml()`:
+  ```php
+  $pdf = $nfse->danfseLocal($xml);                              // V2 default
+  $pdf = $nfse->danfseLocal($xml, versao: DanfseVersao::V1);    // legado ADN
+  ```
+- **`DanfseXmlParser` agora extrai `pTotTrib*`** (Federal/Estadual/Municipal
+  do grupo `<pTotTrib>` no DPS). Antes não eram parseados; necessário pro
+  bloco "Totais Aproximados dos Tributos" do V1.
+- **Testes V1 novos** em `DanfseServiceTest`:
+  - `test_versao_default_eh_v2` — confirma V2 default
+  - `test_versao_v1_renderiza_layout_legado_adn` — verifica marcadores V1
+    (título "DANFSe v1.0", label "Inscrição Municipal", ausência de bloco
+    IBS/CBS, presença de "TOTAIS APROXIMADOS DOS TRIBUTOS")
+  - `test_versao_v1_via_gerarDeDados` — variante low-level
+  - `test_versao_v1_homologacao_tem_tarja_sem_validade` — regra `tpAmb=2`
+    do bug fix v0.18.1 aplica também ao V1
+- **BC-break pré-1.0**: `DanfseGenerator::__construct` agora exige
+  `DanfseLayoutStrategy`. Consumidores que instanciavam direto precisam
+  passar `new DanfseLayoutV2()` (ou usar `DanfseService` que cuida disso).
+
+### Quando usar V1 vs V2
+
+- **V2 (default)** — NT 008/2026, novo padrão SE/CGNFS-e. Use em novos
+  fluxos. Ainda em refino visual (ver disclaimer no `MANUAL.md`).
+- **V1** — replica o leiaute que o ADN/SEFIN renderiza hoje em
+  `/danfse/{chave}`. Útil pra:
+  - Preservar identidade visual quando o ADN desativar o endpoint
+    (previsto pra 01/07/2026)
+  - Fallback consistente quando o ADN tá instável (HTTP 502 já visto em
+    homologação)
+  - Clientes que estão acostumados com o layout legado
+- V1 NÃO tem bloco TRIBUTAÇÃO IBS/CBS (Reforma Tributária está em rampa,
+  ADN ainda não inclui esse bloco). Quando IBS/CBS virar obrigatório, V1
+  fica obsoleto.
+
 ## [0.18.1] — 2026-06-04
 
 ### Corrigido — DANFSe carimbava "SEM VALIDADE JURÍDICA" em NFS-e de PRODUÇÃO via Sistema Nacional

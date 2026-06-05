@@ -364,6 +364,7 @@ final class DanfseXmlParser
             ? (float) (($vIbsTotal ?? 0.0) + ($vCbs ?? 0.0))
             : null;
 
+        $pTotTribPath = $dpsValPath . '/n:trib/n:totTrib/n:pTotTrib';
         return [
             'valor_servicos' => $this->float($xpath, $dpsValPath . '/n:vServPrest/n:vServ'),
             'desconto_incondicionado' => $this->float($xpath, $dpsValPath . '/n:vDescCondIncond/n:vDescIncond'),
@@ -376,6 +377,11 @@ final class DanfseXmlParser
                 ? $vLiq + $vTotIbsCbs
                 : $vLiq,
             'issqn_apurado' => $this->float($xpath, '//n:infNFSe/n:valores/n:vISSQN'),
+            // Totais aproximados Lei 12.741/2012 (Transparência Fiscal).
+            // Declaratórios — vêm do DPS <pTotTrib>.
+            'percentual_total_tributos_federais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribFed'),
+            'percentual_total_tributos_estaduais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribEst'),
+            'percentual_total_tributos_municipais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribMun'),
         ];
     }
 

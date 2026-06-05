@@ -22,6 +22,7 @@ use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
 use PhpNfseNacional\Enums\AutorManifestacao;
+use PhpNfseNacional\Enums\DanfseVersao;
 use PhpNfseNacional\Sefin\RespostaDfe;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
@@ -248,13 +249,19 @@ final class NFSe
 
     // ───────── DANFSe local ─────────
 
-    public function danfseLocal(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
-    {
-        return $this->danfseService->gerarDoXml($xmlNfse, $custom);
+    public function danfseLocal(
+        string $xmlNfse,
+        ?DanfseCustomizacao $custom = null,
+        DanfseVersao $versao = DanfseVersao::V2,
+    ): string {
+        return $this->danfseService->gerarDoXml($xmlNfse, $custom, $versao);
     }
 
-    public function danfseLocalDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
-    {
-        return $this->danfseService->gerarDeDados($dados, $custom);
+    public function danfseLocalDeDados(
+        DanfseDados $dados,
+        ?DanfseCustomizacao $custom = null,
+        DanfseVersao $versao = DanfseVersao::V2,
+    ): string {
+        return $this->danfseService->gerarDeDados($dados, $custom, $versao);
     }
 }

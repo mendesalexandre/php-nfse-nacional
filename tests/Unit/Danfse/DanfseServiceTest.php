@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Tests\Unit\Danfse;
 
+use PhpNfseNacional\Enums\DanfseVersao;
 use PhpNfseNacional\Services\DanfseService;
 use PHPUnit\Framework\TestCase;
 
@@ -126,6 +127,84 @@ final class DanfseServiceTest extends TestCase
             self::markTestSkipped('pdftotext não disponível no ambiente');
         }
 
+        self::assertStringContainsString('NFS-e SEM VALIDADE JURÍDICA', $texto);
+    }
+
+    public function test_versao_default_eh_v2(): void
+    {
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        self::assertStringContainsString('DANFSe v2.0', $texto);
+        self::assertStringNotContainsString('DANFSe v1.0', $texto);
+    }
+
+    public function test_versao_v1_renderiza_layout_legado_adn(): void
+    {
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado(), versao: DanfseVersao::V1);
+
+        // PDF válido
+        self::assertStringStartsWith('%PDF-', $pdf);
+        self::assertGreaterThan(5_000, strlen($pdf));
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        // Header V1 (não V2)
+        self::assertStringContainsString('DANFSe v1.0', $texto);
+        self::assertStringNotContainsString('DANFSe v2.0', $texto);
+        // Label V1 — "Inscrição Municipal" (V2 usa "Indicador Municipal", bug do v0.19.1+)
+        self::assertStringContainsString('Inscrição Municipal', $texto);
+        // V1 não tem bloco IBS/CBS (Reforma ainda em rampa, ADN não inclui)
+        self::assertStringNotContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        // V1 tem bloco TOTAIS APROXIMADOS DOS TRIBUTOS dedicado
+        self::assertStringContainsString('TOTAIS APROXIMADOS DOS TRIBUTOS', $texto);
+        // EMITENTE + label-anchor "Prestador do Serviço"
+        self::assertStringContainsString('EMITENTE DA NFS-e', $texto);
+        self::assertStringContainsString('Prestador do Serviço', $texto);
+    }
+
+    public function test_versao_v1_via_gerarDeDados(): void
+    {
+        $service = new DanfseService();
+        $dados = $service->parser()->parse($this->xmlAutorizado());
+        $pdf = $service->gerarDeDados($dados, versao: DanfseVersao::V1);
+
+        self::assertStringStartsWith('%PDF-', $pdf);
+        self::assertGreaterThan(5_000, strlen($pdf));
+    }
+
+    public function test_versao_v1_homologacao_tem_tarja_sem_validade(): void
+    {
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado(), versao: DanfseVersao::V1);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        // Mesma regra do V2 — tarja só com tpAmb=2 (independente de ambGer)
         self::assertStringContainsString('NFS-e SEM VALIDADE JURÍDICA', $texto);
     }
 
