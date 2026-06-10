@@ -761,6 +761,24 @@ final class Servico
 }
 ```
 
+#### Quebras de linha na discriminação (v0.19.0+)
+
+A `discriminacao` (`<xDescServ>`) preserva quebras de linha — útil pra listar ordens/itens:
+
+```php
+$servico = new Servico(
+    discriminacao: "Honorários referentes a:\n"
+        . "1 - Registro de matrícula\n"
+        . "2 - Averbação de hipoteca\n"
+        . "3 - Certidão de ônus reais",
+    codigoMunicipioPrestacao: '3550308',
+);
+```
+
+O SDK normaliza `\r\n`/`\r` → `\n`, remove espaços nas pontas de cada linha e limita a no máximo **2 quebras consecutivas**. **Validado em homologação SEFIN** (cStat=100): o `\n` é aceito e preservado no XML autorizado e na DANFSe oficial.
+
+> **Limite de 2000 caracteres** (XSD `TSDesc2000`): conta **todo** caractere — letras, espaços e cada `\n` (1 cada). O `Servico` rejeita discriminação crua > 2000 com `ValidationException`; o SEFIN rejeita valores acima de 2000 com `cStat=1235` (não trunca).
+
 #### Grupos opcionais (v0.13.0+)
 
 - **`infoCompl`** → `<infoCompl>` com `xInfComp`, `idDocTec`, `docRef`. Posicionado como ÚLTIMO filho de `<serv>`. Veja [InformacoesComplementares](#informacoescomplementares).
