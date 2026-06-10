@@ -3,7 +3,24 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Unreleased]
+## [0.19.0] — 2026-06-09
+
+### Adicionado — Quebras de linha preservadas na discriminação do serviço (`xDescServ`)
+
+- `TextoSanitizador::paraNFSe()` ganhou parâmetro opt-in
+  `bool $preservarQuebras = false`. Quando ligado, colapsa apenas espaços/tabs
+  horizontais e **preserva `\n`** — normaliza `\r\n`/`\r` → `\n`, remove espaço
+  nas pontas de cada linha e limita a no máximo 2 quebras consecutivas.
+  Comportamento default (single-line) inalterado pros demais campos.
+- `DpsBuilder` passa `preservarQuebras: true` ao montar o `<xDescServ>`. Agora
+  `Servico::$discriminacao` com `"1 - ordem\n2 - ordem\n3 - ordem"` chega ao
+  SEFIN como lista de fato, em vez de virar uma linha só.
+- **Validado empiricamente em homologação SEFIN** (NFS-e #152, cStat=100): o
+  SEFIN **aceita e preserva** `\n` (0x0A) dentro do `<xDescServ>` — o XML
+  autorizado e a DANFSe oficial baixada do ADN renderizam as quebras
+  corretamente. Não dá cStat=1235.
+- Três testes novos em `TextoSanitizadorTest` cobrindo default (colapsa),
+  opt-in (preserva) e limite de quebras consecutivas.
 
 ### Adicionado — DANFSe local com leiaute V1 (legado ADN) + arquitetura Strategy
 

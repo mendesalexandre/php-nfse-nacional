@@ -64,7 +64,7 @@ final class TextoSanitizador
         "\u{FEFF}" => '',   // ZERO WIDTH NO-BREAK SPACE / BOM (remove)
     ];
 
-    public static function paraNFSe(?string $valor, int $maxLength = 2000): string
+    public static function paraNFSe(?string $valor, int $maxLength = 2000, bool $preservarQuebras = false): string
     {
         if ($valor === null) {
             return '';
@@ -84,8 +84,20 @@ final class TextoSanitizador
         // 3. Remove caracteres de controle (preserva \t \n \r)
         $valor = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $valor) ?? '';
 
-        // 4. Colapsa whitespace múltiplo em espaço único
-        $valor = preg_replace('/\s+/u', ' ', $valor) ?? '';
+        // 4. Colapsa whitespace múltiplo
+        if ($preservarQuebras) {
+            // Normaliza CRLF/CR → LF
+            $valor = preg_replace('/\r\n?/u', "\n", $valor) ?? '';
+            // Colapsa espaços/tabs horizontais (preserva \n)
+            $valor = preg_replace('/[^\S\n]+/u', ' ', $valor) ?? '';
+            // Remove espaços nas pontas de cada linha
+            $valor = preg_replace('/[^\S\n]*\n[^\S\n]*/u', "\n", $valor) ?? '';
+            // Limita a no máximo 2 quebras consecutivas
+            $valor = preg_replace('/\n{3,}/u', "\n\n", $valor) ?? '';
+        } else {
+            // Colapsa todo whitespace (inclusive \n) em espaço único
+            $valor = preg_replace('/\s+/u', ' ', $valor) ?? '';
+        }
 
         // 5. Trim e truncate
         $valor = trim($valor);

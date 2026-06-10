@@ -70,4 +70,25 @@ final class TextoSanitizadorTest extends TestCase
     {
         self::assertSame('', TextoSanitizador::paraNFSe(null));
     }
+
+    public function test_colapsa_quebras_de_linha_por_padrao(): void
+    {
+        $entrada = "1 - ordem\n2 - ordem\n3 - ordem";
+        $saida = TextoSanitizador::paraNFSe($entrada);
+        self::assertSame('1 - ordem 2 - ordem 3 - ordem', $saida);
+    }
+
+    public function test_preserva_quebras_de_linha_quando_habilitado(): void
+    {
+        $entrada = "1 - ordem\r\n2 - ordem  \n  3 - ordem";
+        $saida = TextoSanitizador::paraNFSe($entrada, preservarQuebras: true);
+        self::assertSame("1 - ordem\n2 - ordem\n3 - ordem", $saida);
+    }
+
+    public function test_limita_quebras_consecutivas_quando_preserva(): void
+    {
+        $entrada = "linha1\n\n\n\nlinha2";
+        $saida = TextoSanitizador::paraNFSe($entrada, preservarQuebras: true);
+        self::assertSame("linha1\n\nlinha2", $saida);
+    }
 }
