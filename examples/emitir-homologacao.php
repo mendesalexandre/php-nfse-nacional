@@ -122,7 +122,8 @@ $tomador = new Tomador(
 );
 
 $servico = new Servico(
-    discriminacao: 'TESTE DE HOMOLOGACAO — ' . date('Y-m-d H:i:s') . ' — NFS-e emitida pelo SDK php-nfse-nacional',
+    discriminacao: getenv('DISCRIMINACAO')
+        ?: 'TESTE DE HOMOLOGACAO — ' . date('Y-m-d H:i:s') . ' — NFS-e emitida pelo SDK php-nfse-nacional',
     codigoMunicipioPrestacao: getEnvOrDie('PRESTADOR_CMUN'),
 );
 
