@@ -152,6 +152,38 @@ final class DpsBuilderTest extends TestCase
         self::assertSame(0, $xpath->query('//n:toma/n:CPF')->length);
     }
 
+    public function test_nome_com_caracteres_especiais_xml_e_escapado(): void
+    {
+        // Regressão: createElement($name, $value) (2 args) NÃO escapa o valor,
+        // então razão social com '&'/'<'/'>' (ex: "X & NEGOCIOS LTDA") quebrava
+        // com "DOMDocument::createElement(): unterminated entity reference".
+        $tomador = new Tomador(
+            documento: '12345678000195',
+            nome: 'COMERCIO & SERVICOS <ME> LTDA',
+            endereco: new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP'),
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $tomador,
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+
+        // XML precisa ser bem-formado e o valor volta desescapado no DOM
+        $dom = new DOMDocument();
+        self::assertTrue($dom->loadXML($xml));
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+        self::assertSame(
+            'COMERCIO & SERVICOS <ME> LTDA',
+            $xpath->query('//n:toma/n:xNome')->item(0)?->nodeValue,
+        );
+        // E o '&' aparece escapado na string serializada
+        self::assertStringContainsString('COMERCIO &amp; SERVICOS', $xml);
+    }
+
     public function test_dhEmi_aceita_override_via_Identificacao_dataEmissao(): void
     {
         // Cenário "contingência": DPS gerada offline com dhEmi de ontem,

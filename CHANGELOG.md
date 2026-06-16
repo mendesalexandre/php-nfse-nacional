@@ -3,6 +3,19 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.19.1] — 2026-06-16
+
+### Corrigido — Caracteres especiais de XML (`&`, `<`, `>`) no conteúdo dos elementos
+
+- `DpsBuilder::el()` usava `DOMDocument::createElement($name, $value)` (forma de
+  2 argumentos), que **não escapa** o valor. Qualquer conteúdo com `&`, `<` ou
+  `>` — ex: razão social `"COMERCIO & SERVICOS LTDA"` — quebrava a emissão com
+  `DOMDocument::createElement(): unterminated entity reference`.
+- Agora cria o elemento vazio e anexa o texto via `createTextNode()`, que
+  escapa corretamente os caracteres especiais. Como todos os elementos do DPS
+  passam por `el()`, o fix cobre tomador, prestador, descrição e demais campos.
+- Teste de regressão novo em `DpsBuilderTest` com nome contendo `&` e `<>`.
+
 ## [0.19.0] — 2026-06-09
 
 ### Adicionado — Quebras de linha preservadas na discriminação do serviço (`xDescServ`)

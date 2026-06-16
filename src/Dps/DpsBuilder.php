@@ -108,9 +108,16 @@ final class DpsBuilder
      */
     private function el(DOMDocument $doc, string $name, ?string $value = null): DOMElement
     {
-        $el = $value !== null ? $doc->createElement($name, $value) : $doc->createElement($name);
+        // NÃO usar a forma de 2 argumentos createElement($name, $value): ela NÃO
+        // escapa o valor, então um '&', '<' ou '>' no conteúdo (ex: razão social
+        // "X & NEGOCIOS LTDA") quebra com "unterminated entity reference".
+        // createTextNode escapa corretamente os caracteres especiais de XML.
+        $el = $doc->createElement($name);
         if ($el === false) {
             throw new ValidationException(["Falha ao criar elemento DOM <{$name}>"]);
+        }
+        if ($value !== null && $value !== '') {
+            $el->appendChild($doc->createTextNode($value));
         }
         return $el;
     }
