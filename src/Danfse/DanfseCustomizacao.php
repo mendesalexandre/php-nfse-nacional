@@ -40,6 +40,15 @@ final class DanfseCustomizacao
          * Para autenticidade consulte..."). Max 2000 chars.
          */
         public readonly ?string $observacoesAdicionais = null,
+
+        /**
+         * Define se os campos de retenções de impostos devem ser destacados no PDF.
+         * 
+         * Quando definido como `true`, aplica um fundo amarelo aos campos de retenção 
+         * (IRRF, Contribuições Sociais, ISSQN Retido e o Total das Retenções) na DANFSe, 
+         * mas apenas se o valor retido for maior que zero.
+         */
+        public readonly bool $destacarRetencoes = false,
     ) {
         $errors = [];
 
