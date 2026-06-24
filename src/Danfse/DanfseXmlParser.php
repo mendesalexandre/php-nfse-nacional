@@ -369,7 +369,7 @@ final class DanfseXmlParser
             'valor_servicos' => $this->float($xpath, $dpsValPath . '/n:vServPrest/n:vServ'),
             'desconto_incondicionado' => $this->float($xpath, $dpsValPath . '/n:vDescCondIncond/n:vDescIncond'),
             'desconto_condicionado' => $this->float($xpath, $dpsValPath . '/n:vDescCondIncond/n:vDescCond'),
-            'total_retencoes' => $this->float($xpath, $dpsValPath . '/n:vTotalRet'),
+            'total_retencoes' => $this->totalRetencoes($xpath, $dpsValPath),
             'valor_liquido' => $vLiq,
             'total_ibscbs' => $vTotIbsCbs,
             // valor líquido + IBS/CBS: somatório (NT 008 item 2.1.11)
@@ -383,6 +383,50 @@ final class DanfseXmlParser
             'percentual_total_tributos_estaduais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribEst'),
             'percentual_total_tributos_municipais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribMun'),
         ];
+    }
+
+    /**
+     * Total das retenções (R$).
+     *
+     * Fonte primária: `<vTotalRet>` da NFS-e **autorizada**
+     * (`infNFSe/valores`), computado pelo SEFIN — NÃO existe no DPS
+     * (`infDPS/valores` não tem esse elemento no schema; ele vive em
+     * `TCValoresNFSe`, entre `vISSQN` e `vLiq`).
+     *
+     * Fallback: quando o município não devolve `<vTotalRet>` (opcional,
+     * `minOccurs=0`), reconstrói pela fórmula oficial do leiaute
+     * (Anexo IV linha 43):
+     *
+     *   vTotalRet = vRetCP + vRetIRRF + vRetCSLL
+     *             + vISSQN*  (só se ISSQN retido: tpRetISSQN 2 ou 3)
+     *             + (vPis + vCofins)**  (só se tpRetPisCofins = 1)
+     *
+     * Retorna `null` se não há nenhuma retenção (campo fica `-` na DANFSe).
+     */
+    private function totalRetencoes(DOMXPath $xpath, string $dpsValPath): ?float
+    {
+        $vTotalRet = $this->float($xpath, '//n:infNFSe/n:valores/n:vTotalRet');
+        if ($vTotalRet !== null) {
+            return $vTotalRet;
+        }
+
+        $fedPath = $dpsValPath . '/n:trib/n:tribFed';
+        $total = ($this->float($xpath, $fedPath . '/n:vRetCP') ?? 0.0)
+            + ($this->float($xpath, $fedPath . '/n:vRetIRRF') ?? 0.0)
+            + ($this->float($xpath, $fedPath . '/n:vRetCSLL') ?? 0.0);
+
+        $tpRetIssqn = $this->texto($xpath, $dpsValPath . '/n:trib/n:tribMun/n:tpRetISSQN');
+        if ($tpRetIssqn === '2' || $tpRetIssqn === '3') {
+            $total += $this->float($xpath, '//n:infNFSe/n:valores/n:vISSQN') ?? 0.0;
+        }
+
+        $tpRetPisCofins = $this->texto($xpath, $fedPath . '/n:piscofins/n:tpRetPisCofins');
+        if ($tpRetPisCofins === '1') {
+            $total += ($this->float($xpath, $fedPath . '/n:piscofins/n:vPis') ?? 0.0)
+                + ($this->float($xpath, $fedPath . '/n:piscofins/n:vCofins') ?? 0.0);
+        }
+
+        return $total > 0.0 ? $total : null;
     }
 
     /**

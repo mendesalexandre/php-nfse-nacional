@@ -51,13 +51,25 @@ Recurso de conferência opt-in (base: PR #25 de @luizbasca, com correções).
 - Mantidos a borda externa da página e a faixa cinza dos títulos de bloco, que
   preservam a estrutura visual entre seções.
 
+### Corrigido — `Total das Retenções` da DANFSe saía sempre `-`
+
+- O `DanfseXmlParser` lia `<vTotalRet>` do **DPS**
+  (`//DPS/infDPS/valores/vTotalRet`), onde esse elemento **nunca existe**: pelo
+  schema (`TCValoresNFSe`) o `<vTotalRet>` é **computado pelo SEFIN** e vive na
+  NFS-e autorizada (`infNFSe/valores`, entre `vISSQN` e `vLiq`). O path errado
+  fazia o campo (e seu destaque amarelo) saírem sempre vazios mesmo com
+  retenções. Diagnóstico anterior ("não emitimos `<vTotalRet>` no DPS, corrigir
+  no `DpsBuilder`") estava equivocado — o DPS **não tem** esse elemento no
+  leiaute; não é o emitente que o informa.
+- **Fix:** o parser agora lê `infNFSe/valores/vTotalRet` (fonte primária,
+  SEFIN). Quando o município não devolve o campo (opcional, `minOccurs=0`),
+  reconstrói pela fórmula oficial (Anexo IV linha 43):
+  `vRetCP + vRetIRRF + vRetCSLL + vISSQN* + (vPis + vCofins)**` — ISSQN somado só
+  se retido (`tpRetISSQN` 2/3) e Pis/Cofins só se `tpRetPisCofins=1`. Sem
+  retenção alguma, fica `null` (campo `-`).
+
 ### Limitações conhecidas / pendências
 
-- **`Total das Retenções (ISSQN / Federais)` sai `-`** mesmo quando há retenções.
-  O SDK **não emite `<vTotalRet>`** no DPS, então `DanfseXmlParser` lê `null` e o
-  campo (e seu destaque) ficam vazios. Gap pré-existente, separado do destaque —
-  a corrigir no `DpsBuilder` (somar IRRF + CP + CSLL + PIS/COFINS retidos + ISSQN
-  retido). Os demais campos de retenção são preenchidos e destacados normalmente.
 - **Pendências de leiaute V2 (estilo V1)**, ainda não decididas:
   - `renderLinhaSupressao` (linhas "DESTINATÁRIO É O PRÓPRIO TOMADOR" /
     "INTERMEDIÁRIO NÃO IDENTIFICADO") ainda desenha caixa full-width.

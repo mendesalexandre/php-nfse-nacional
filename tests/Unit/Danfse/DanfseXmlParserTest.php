@@ -163,6 +163,94 @@ final class DanfseXmlParserTest extends TestCase
         XML;
     }
 
+    public function test_total_retencoes_usa_vTotalRet_da_nfse_autorizada(): void
+    {
+        // Fonte primária: <vTotalRet> computado pelo SEFIN na NFS-e autorizada
+        // (infNFSe/valores), entre vISSQN e vLiq. Quando presente, é usado
+        // direto — sem recálculo.
+        $xml = $this->xmlComRetencoes(vTotalRet: '17.15');
+
+        $dados = (new DanfseXmlParser())->parse($xml);
+
+        self::assertSame(17.15, $dados->valorTotal['total_retencoes']);
+    }
+
+    public function test_total_retencoes_fallback_soma_retencoes_do_dps(): void
+    {
+        // Quando o município não devolve <vTotalRet> (opcional, minOccurs=0),
+        // o parser reconstrói pela fórmula oficial (Anexo IV linha 43):
+        //   vRetCP + vRetIRRF + vRetCSLL + vISSQN* + (vPis + vCofins)**
+        // ISSQN só soma se retido (tpRetISSQN 2/3); Pis/Cofins só se
+        // tpRetPisCofins=1. Valores do smoke #159 (homologação):
+        //   11.00 + 1.50 + 1.00 + 0.92 (ISSQN retido) + 0.65 + 3.00 = 18.07
+        $xml = $this->xmlComRetencoes(vTotalRet: null);
+
+        $dados = (new DanfseXmlParser())->parse($xml);
+
+        self::assertSame(18.07, $dados->valorTotal['total_retencoes']);
+    }
+
+    public function test_total_retencoes_null_quando_sem_retencao(): void
+    {
+        // Fixture padrão não tem retenção nenhuma → campo fica null (e "-" na
+        // DANFSe). Não cai no fallback porque a soma daria 0.
+        $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
+
+        self::assertNull($dados->valorTotal['total_retencoes']);
+    }
+
+    private function xmlComRetencoes(?string $vTotalRet): string
+    {
+        $linhaTotalRet = $vTotalRet !== null ? "<vTotalRet>{$vTotalRet}</vTotalRet>" : '';
+
+        return <<<XML
+        <?xml version="1.0" encoding="utf-8"?>
+        <NFSe versao="1.01" xmlns="http://www.sped.fazenda.gov.br/nfse">
+          <infNFSe Id="NFS00000000000000000000000000000000000000000000000001">
+            <nNFSe>1</nNFSe>
+            <cStat>100</cStat>
+            <dhProc>2026-06-23T22:11:12-03:00</dhProc>
+            <verAplic>SefinNacional_1.6.0</verAplic>
+            <ambGer>2</ambGer>
+            <valores>
+              <vBC>23.08</vBC>
+              <pAliqAplic>4.00</pAliqAplic>
+              <vISSQN>0.92</vISSQN>
+              {$linhaTotalRet}
+              <vLiq>32.97</vLiq>
+            </valores>
+            <DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01">
+              <infDPS Id="DPS00000000000000000000000000000000000000000000000001">
+                <tpAmb>2</tpAmb>
+                <dhEmi>2026-06-23T22:10:11-03:00</dhEmi>
+                <serie>1</serie>
+                <nDPS>1</nDPS>
+                <dCompet>2026-06-23</dCompet>
+                <prest><CNPJ>12345678000195</CNPJ><IM>12345</IM></prest>
+                <toma><CPF>12345678909</CPF><xNome>X</xNome></toma>
+                <serv><cServ><cTribNac>210101</cTribNac><xDescServ>X</xDescServ><cNBS>113040000</cNBS></cServ></serv>
+                <valores>
+                  <vServPrest><vServ>32.97</vServ></vServPrest>
+                  <trib>
+                    <tribMun><tribISSQN>1</tribISSQN><tpRetISSQN>2</tpRetISSQN></tribMun>
+                    <tribFed>
+                      <piscofins>
+                        <CST>01</CST><vPis>0.65</vPis><vCofins>3.00</vCofins><tpRetPisCofins>1</tpRetPisCofins>
+                      </piscofins>
+                      <vRetCP>11.00</vRetCP>
+                      <vRetIRRF>1.50</vRetIRRF>
+                      <vRetCSLL>1.00</vRetCSLL>
+                    </tribFed>
+                    <totTrib><indTotTrib>0</indTotTrib></totTrib>
+                  </trib>
+                </valores>
+              </infDPS>
+            </DPS>
+          </infNFSe>
+        </NFSe>
+        XML;
+    }
+
     public function test_tributacao_municipal_extraida(): void
     {
         $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
