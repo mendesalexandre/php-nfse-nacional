@@ -44,9 +44,9 @@ final class DanfseLayout
     /** Texto preto sólido K100 (NT 008 item 2.4) */
     public const COR_TEXTO = [0, 0, 0];
 
-    /** Fundo amarelo para destaque de retenções */
+    /** Fundo amarelo para destaque de retenções (conferência opt-in) */
     public const COR_AMARELO_DESTAQUE = [255, 255, 153];
-    
+
     /** Borda preta (linhas divisórias 0,5pt — item 2.2.3) */
     public const COR_BORDA = [0, 0, 0];
 

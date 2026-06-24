@@ -42,11 +42,11 @@ final class DanfseCustomizacao
         public readonly ?string $observacoesAdicionais = null,
 
         /**
-         * Define se os campos de retenções de impostos devem ser destacados no PDF.
-         * 
-         * Quando definido como `true`, aplica um fundo amarelo aos campos de retenção 
-         * (IRRF, Contribuições Sociais, ISSQN Retido e o Total das Retenções) na DANFSe, 
-         * mas apenas se o valor retido for maior que zero.
+         * Define se os campos de retenções de impostos devem ser destacados no
+         * DANFSe (layout V2). Quando `true`, aplica fundo amarelo aos campos de
+         * retenção (IRRF, Contribuição Previdenciária, Contribuições Sociais,
+         * ISSQN Retido e o Total das Retenções), mas apenas quando há retenção
+         * efetiva — valor > 0, ou tipo de retenção que comprove retenção na fonte.
          */
         public readonly bool $destacarRetencoes = false,
     ) {

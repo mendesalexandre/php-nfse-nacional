@@ -564,6 +564,7 @@ $custom = new DanfseCustomizacao(
     logoPrestadorPath:    '/var/cartorio/logo.png',  // opcional, PNG/JPG
     observacoesAdicionais: 'Esta NFS-e refere-se a serviço cartorial. ' .
                            'Para autenticidade consulte https://...',  // opcional, max 2000 chars
+    destacarRetencoes:    true,                       // opcional, default false
 );
 
 $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
@@ -573,6 +574,14 @@ $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 |---|---|---|
 | `logoPrestadorPath` | Canto superior direito do bloco PRESTADOR (4cm × 1.26cm) | qualquer formato suportado pelo TCPDF (PNG/JPG/GIF) |
 | `observacoesAdicionais` | Concatenado ao bloco INFORMAÇÕES COMPLEMENTARES (após o `<xOutInf>` do XML) | 2000 chars |
+| `destacarRetencoes` | Pinta de amarelo os campos de retenção efetiva (leiaute V2) | flag opt-in, default `false` |
+
+> **`destacarRetencoes` — conferência de retenções.** Quando `true`, o leiaute V2 destaca em amarelo os campos de retenção **de fato**, ajudando o contador a validar os valores retidos na fonte:
+> - **ISSQN** (`Retenção do ISSQN` + `ISSQN Apurado`) — só se `tpRetISSQN` for `2` (Retido pelo Tomador) ou `3` (Retido pelo Intermediário) **e** valor > 0;
+> - **Federal** (`IRRF`, `Contribuição Previdenciária`, `Contribuições Sociais - Retidas`, `Total das Retenções`) — cada um só se valor > 0;
+> - **Descrição Contrib. Sociais** — só se `tpRetPisCofins = 1` (Retido). `PIS/COFINS - Débito Apuração Própria` **não** são destacados (não são retenção).
+>
+> Sem a flag (default), o DANFSe sai idêntico ao anterior — nenhum campo amarelo.
 
 > **Logo institucional NFSe NÃO pode ser substituído** — é obrigatório no cabeçalho conforme item 2.2.4 da NT 008/2026. O logo do prestador é renderizado em espaço dedicado dentro do bloco PRESTADOR.
 

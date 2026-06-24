@@ -3,6 +3,66 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### Adicionado — Destaque visual de retenções na DANFSe V2 (`destacarRetencoes`)
+
+Recurso de conferência opt-in (base: PR #25 de @luizbasca, com correções).
+
+- **Nova flag `DanfseCustomizacao::$destacarRetencoes`** (`bool`, default
+  `false`). Quando `true`, o leiaute V2 pinta de **amarelo** (`COR_AMARELO_DESTAQUE`)
+  os campos de retenção efetiva, pra facilitar a conferência do contador:
+  ```php
+  $pdf = $nfse->danfseLocal($xml, new DanfseCustomizacao(destacarRetencoes: true));
+  ```
+- **Campos destacados** (só quando há retenção de fato):
+  - **ISSQN** — `Retenção do ISSQN` + `ISSQN Apurado`, apenas se `tpRetISSQN`
+    for `2` (Retido pelo Tomador) ou `3` (Retido pelo Intermediário) **e** o
+    valor apurado for > 0. Em apuração própria pelo prestador, não destaca.
+  - **Federal** — `IRRF`, `Contribuição Previdenciária - Retida`,
+    `Contribuições Sociais - Retidas` (`vRetCSLL`) e o `Total das Retenções`,
+    cada um apenas se o respectivo valor for > 0.
+  - **Descrição Contrib. Sociais - Retidas** — destacado apenas quando
+    `tpRetPisCofins = 1` (Retido). `PIS/COFINS - Débito Apuração Própria` **não**
+    são destacados (débito de apuração própria não é retenção).
+- **Default 100% preservado**: sem a flag, o DANFSe sai idêntico ao anterior
+  (nenhum campo amarelo). Validado em homologação SEFIN (NFS-e #159, cStat=100)
+  gerando o mesmo XML com e sem a flag.
+
+#### Correções sobre a proposta original do PR #25
+
+- O destaque de PIS/COFINS **ignorava a flag** `destacarRetencoes` — pintava de
+  amarelo por padrão em qualquer nota com `tpRetPisCofins=1`. Agora passa pelo
+  mesmo gate (`$this->destacarRetencoes && ...`).
+- O destaque estava sendo aplicado em `PIS/COFINS - Débito Apuração Própria`
+  (apuração própria não é retenção) — removido.
+- A célula `Contribuições Sociais - Retidas` (`vRetCSLL`) tinha sido removida do
+  grid por engano, deixando um vão na primeira linha do bloco federal —
+  **restaurada** e incluída no destaque.
+
+### Alterado — Leiaute V2 sem grid de bordas (estilo "formulário aberto" do V1)
+
+- O V2 desenhava um retângulo de borda (`'D'`/`'DF'`) em **cada campo**,
+  resultando num grid visualmente pesado. Agora segue o paradigma do V1:
+  **sem caixa por campo**. As bordas de célula foram removidas de
+  `renderCelula`, `renderCelulaTextoLongo` e `renderCaixaTextoUnico`.
+- O preenchimento de fundo (`'F'`, sem traço) é mantido **apenas** para células
+  sombreadas (totais/valor líquido) e para o destaque de retenções.
+- Mantidos a borda externa da página e a faixa cinza dos títulos de bloco, que
+  preservam a estrutura visual entre seções.
+
+### Limitações conhecidas / pendências
+
+- **`Total das Retenções (ISSQN / Federais)` sai `-`** mesmo quando há retenções.
+  O SDK **não emite `<vTotalRet>`** no DPS, então `DanfseXmlParser` lê `null` e o
+  campo (e seu destaque) ficam vazios. Gap pré-existente, separado do destaque —
+  a corrigir no `DpsBuilder` (somar IRRF + CP + CSLL + PIS/COFINS retidos + ISSQN
+  retido). Os demais campos de retenção são preenchidos e destacados normalmente.
+- **Pendências de leiaute V2 (estilo V1)**, ainda não decididas:
+  - `renderLinhaSupressao` (linhas "DESTINATÁRIO É O PRÓPRIO TOMADOR" /
+    "INTERMEDIÁRIO NÃO IDENTIFICADO") ainda desenha caixa full-width.
+  - Títulos de bloco usam faixa cinza; o V1 usa negrito + linha divisória fina.
+
 ## [0.19.1] — 2026-06-16
 
 ### Corrigido — Caracteres especiais de XML (`&`, `<`, `>`) no conteúdo dos elementos

@@ -421,7 +421,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->cursorY += 1.10;
     }
 
-// ================================================================
+    // ================================================================
     // BLOCO 8 — TRIBUTAÇÃO MUNICIPAL (ISSQN)
     // ================================================================
 
@@ -476,15 +476,14 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Alíquota Aplicada',
             DanfseLayout::formatarPercentual($t['aliquota_aplicada'] ?? null));
 
-        // Regra de negócio para o ISS: O imposto só é elegível para destaque visual 
-        // se for efetivamente retido na fonte, ou seja, Retido pelo Tomador (código '2') 
-        // ou Retido pelo Intermediário (código '3'). 
-        // Em casos de apuração própria pelo prestador, o destaque é ignorado.
-        // Se for retido, delega para o helper validar se o valor é > 0 e se a flag global está ligada.
+        // Regra de negócio do ISS: só é elegível para destaque se for efetivamente
+        // retido na fonte — Retido pelo Tomador ('2') ou pelo Intermediário ('3').
+        // Em apuração própria pelo prestador, o destaque é ignorado. Se retido,
+        // delega ao helper, que valida valor > 0 e se a flag global está ligada.
         $tipoRetencaoIss = $this->ns($t['tipo_retencao_issqn'] ?? null);
         $issRetido = in_array($tipoRetencaoIss, ['2', '3'], true);
-        $corFundoIss = $issRetido 
-            ? $this->corDestaqueSePossuirValor($t['issqn_apurado'] ?? null) 
+        $corFundoIss = $issRetido
+            ? $this->corDestaqueSePossuirValor($t['issqn_apurado'] ?? null)
             : null;
 
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Retenção do ISSQN',
@@ -507,25 +506,30 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $h = 0.63;
 
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'IRRF',
-            DanfseLayout::formatarMoeda($f['irrf'] ?? null), 
+            DanfseLayout::formatarMoeda($f['irrf'] ?? null),
             corFundo: $this->corDestaqueSePossuirValor($f['irrf'] ?? null));
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Contribuição Previdenciária - Retida',
-            DanfseLayout::formatarMoeda($f['contribuicao_previdenciaria'] ?? null), 
+            DanfseLayout::formatarMoeda($f['contribuicao_previdenciaria'] ?? null),
             corFundo: $this->corDestaqueSePossuirValor($f['contribuicao_previdenciaria'] ?? null));
+        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Contribuições Sociais - Retidas',
+            DanfseLayout::formatarMoeda($f['contribuicoes_sociais_retidas'] ?? null),
+            corFundo: $this->corDestaqueSePossuirValor($f['contribuicoes_sociais_retidas'] ?? null));
         $this->cursorY += $h;
 
-
-        // Destaca a descrição das contribuições se houver retenção (diferente de 0 e 2)
+        // "Descrição Contrib. Sociais - Retidas" expõe o tpRetPisCofins
+        // (1=Retido, 2=NãoRetido). Só destaca quando há retenção efetiva
+        // (código '1') e a flag de conferência está ligada. PIS/COFINS de
+        // apuração própria (débito) não são retenções — não recebem destaque.
         $tpPC = (string) ($f['descricao_contrib_sociais'] ?? '');
         $pisCofRetido = $tpPC !== '' && $tpPC !== '0' && $tpPC !== '2';
-        $corFundoPisCofins = $pisCofRetido ? DanfseLayout::COR_AMARELO_DESTAQUE : null;
+        $corFundoPisCofins = ($this->destacarRetencoes && $pisCofRetido)
+            ? DanfseLayout::COR_AMARELO_DESTAQUE
+            : null;
 
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'PIS - Débito Apuração Própria',
-            DanfseLayout::formatarMoeda($f['pis_debito'] ?? null),
-            corFundo: $corFundoPisCofins);
+            DanfseLayout::formatarMoeda($f['pis_debito'] ?? null));
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'COFINS - Débito Apuração Própria',
-            DanfseLayout::formatarMoeda($f['cofins_debito'] ?? null),
-            corFundo: $corFundoPisCofins);
+            DanfseLayout::formatarMoeda($f['cofins_debito'] ?? null));
         $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Descrição Contrib. Sociais - Retidas',
             $this->s($f['descricao_contrib_sociais'] ?? null),
             corFundo: $corFundoPisCofins);
@@ -690,6 +694,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     // HELPERS DE RENDERIZAÇÃO
     // ================================================================
 
+    /**
+     * @param list<int>|null $corFundo RGB do fundo da célula; null usa o padrão
+     */
     private function renderCelula(
         float $xCm,
         float $yCm,
@@ -700,7 +707,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         int $tamanhoLabel = DanfseLayout::TAM_LABEL_CAMPO,
         bool $labelCaixaAlta = false,
         bool $sombreado = false,
-        ?array $corFundo = null
+        ?array $corFundo = null,
     ): void {
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $x = $marginX + DanfseLayout::cmToMm($xCm - DanfseLayout::MARGIN_X_CM);
@@ -708,13 +715,13 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $largura = DanfseLayout::cmToMm($larguraCm);
         $altura = DanfseLayout::cmToMm($alturaCm);
 
-        $this->pdf->SetLineWidth(self::ESPESSURA_LINHA_MM);
+        // Estilo V1: sem caixa por campo. Só preenche o fundo quando há
+        // sombreamento (célula de destaque/total) ou destaque de retenção —
+        // sem traço de borda (fill puro 'F').
         if ($sombreado || $corFundo !== null) {
             $cor = $corFundo ?? DanfseLayout::COR_SOMBREAMENTO;
             $this->pdf->SetFillColor(...$cor);
-            $this->pdf->Rect($x, $y, $largura, $altura, 'DF');
-        } else {
-            $this->pdf->Rect($x, $y, $largura, $altura, 'D');
+            $this->pdf->Rect($x, $y, $largura, $altura, 'F');
         }
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', $tamanhoLabel);
@@ -740,10 +747,6 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $y = DanfseLayout::cmToMm($yCm);
         $largura = DanfseLayout::cmToMm($larguraCm);
         $altura = DanfseLayout::cmToMm($alturaCm);
-
-        $this->pdf->SetLineWidth(self::ESPESSURA_LINHA_MM);
-        $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
-        $this->pdf->Rect($x, $y, $largura, $altura, 'D');
 
         $offsetTexto = 1.0;
         if ($label !== null) {
@@ -785,9 +788,6 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $y = DanfseLayout::cmToMm($yCm);
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
         $altura = DanfseLayout::cmToMm($alturaCm);
-
-        $this->pdf->SetLineWidth(self::ESPESSURA_LINHA_MM);
-        $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_CONTEUDO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
@@ -945,6 +945,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     /**
      * Retorna a cor de destaque (amarelo) se a opção estiver ativa na
      * customização e o valor retido for maior que zero.
+     *
+     * @return list<int>|null
      */
     private function corDestaqueSePossuirValor(mixed $valor): ?array
     {
