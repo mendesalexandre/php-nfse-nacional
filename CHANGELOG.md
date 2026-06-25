@@ -48,8 +48,22 @@ Recurso de conferência opt-in (base: PR #25 de @luizbasca, com correções).
   `renderCelula`, `renderCelulaTextoLongo` e `renderCaixaTextoUnico`.
 - O preenchimento de fundo (`'F'`, sem traço) é mantido **apenas** para células
   sombreadas (totais/valor líquido) e para o destaque de retenções.
-- Mantidos a borda externa da página e a faixa cinza dos títulos de bloco, que
-  preservam a estrutura visual entre seções.
+
+### Alterado — Leiaute V2 adota a moldura e os divisores do V1
+
+Completa o alinhamento visual do V2 ao paradigma "formulário aberto" do V1
+(campos com borda em cima/embaixo, sem laterais, e quadro ao redor da folha):
+
+- **Moldura externa da folha**: o V2 não desenhava o quadro ao redor da página.
+  Adicionado `renderBordaFolha()` (4 retângulos preenchidos top/bottom/left/
+  right, mesma técnica anti-AA do V1), a `0,17 cm` da borda física.
+- **Títulos de bloco sem faixa cinza**: `renderTituloBloco` desenhava um
+  retângulo cinza (`COR_SOMBREAMENTO`, `'DF'`) atrás do título. Agora segue o
+  V1: **linha divisória fina full-width acima** + título em negrito MAIÚSCULAS,
+  sem fundo. Novo helper `linhaSeparadora()`.
+- **Linhas de supressão** ("DESTINATÁRIO É O PRÓPRIO TOMADOR" / "INTERMEDIÁRIO
+  NÃO IDENTIFICADO"): `renderLinhaSupressao` desenhava uma caixa full-width
+  (`'D'`). Agora é texto centralizado sob uma linha divisória fina, sem caixa.
 
 ### Corrigido — `Total das Retenções` da DANFSe saía sempre `-`
 
@@ -67,13 +81,6 @@ Recurso de conferência opt-in (base: PR #25 de @luizbasca, com correções).
   `vRetCP + vRetIRRF + vRetCSLL + vISSQN* + (vPis + vCofins)**` — ISSQN somado só
   se retido (`tpRetISSQN` 2/3) e Pis/Cofins só se `tpRetPisCofins=1`. Sem
   retenção alguma, fica `null` (campo `-`).
-
-### Limitações conhecidas / pendências
-
-- **Pendências de leiaute V2 (estilo V1)**, ainda não decididas:
-  - `renderLinhaSupressao` (linhas "DESTINATÁRIO É O PRÓPRIO TOMADOR" /
-    "INTERMEDIÁRIO NÃO IDENTIFICADO") ainda desenha caixa full-width.
-  - Títulos de bloco usam faixa cinza; o V1 usa negrito + linha divisória fina.
 
 ## [0.19.1] — 2026-06-16
 

@@ -45,6 +45,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     /** Espessura da borda externa da página em mm pra 1pt */
     private const ESPESSURA_BORDA_MM = 0.353;
 
+    /** Distância (cm) da moldura externa à borda física da folha. */
+    private const MARGEM_FOLHA_CM = 0.17;
+
     public function versao(): DanfseVersao
     {
         return DanfseVersao::V2;
@@ -60,6 +63,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // Borda externa da página (1pt, item 2.2.3)
         $this->pdf->SetLineWidth(self::ESPESSURA_BORDA_MM);
         $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
+
+        // Moldura externa da folha (estilo V1 — linha ao redor de toda a página)
+        $this->renderBordaFolha();
 
         $this->renderCabecalho($dados);
         // Bloco DADOS DA NFS-e: posição fixa pra alinhar com QR Code do cabeçalho
@@ -764,20 +770,20 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     private function renderLinhaSupressao(string $texto): void
     {
+        // Estilo V1: texto centralizado entre linhas divisórias finas,
+        // sem caixa full-width.
         $alturaCm = self::ALTURA_TITULO_BLOCO_CM;
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($this->cursorY);
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
         $altura = DanfseLayout::cmToMm($alturaCm);
 
-        $this->pdf->SetLineWidth(self::ESPESSURA_LINHA_MM);
-        $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
-        $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
+        $this->linhaSeparadora($this->cursorY);
 
-        $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
+        $this->setFonte(DanfseLayout::FONTE_TITULO, '', DanfseLayout::TAM_LABEL_BLOCO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
-        $this->pdf->SetXY($marginX, $y + 0.4);
-        $this->pdf->Cell($largura, $altura - 0.8, $texto, 0, 0, 'C');
+        $this->pdf->SetXY($marginX, $y + 0.6);
+        $this->pdf->Cell($largura, $altura - 1.0, $texto, 0, 0, 'C');
 
         $this->cursorY += $alturaCm;
     }
@@ -803,19 +809,51 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     private function renderTituloBloco(float $yCm, string $titulo): void
     {
+        // Estilo V1: linha divisória fina acima do título + negrito MAIÚSCULAS,
+        // sem faixa cinza de fundo.
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($yCm);
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
         $altura = DanfseLayout::cmToMm(0.32);
 
-        $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
-        $this->pdf->SetLineWidth(self::ESPESSURA_LINHA_MM);
-        $this->pdf->Rect($marginX, $y, $largura, $altura, 'DF');
+        $this->linhaSeparadora($yCm);
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
-        $this->pdf->SetXY($marginX + 1, $y + 0.3);
+        $this->pdf->SetXY($marginX + 1, $y + 0.7);
         $this->pdf->Cell($largura - 2, $altura - 0.5, mb_strtoupper($titulo), 0, 0, 'L');
+    }
+
+    /**
+     * Linha horizontal full-width — retângulo PREENCHIDO (não stroke), pra
+     * evitar o anti-aliasing fuzzy que viewers aplicam em traços finos.
+     * Mesma técnica do V1.
+     */
+    private function linhaSeparadora(float $yCm): void
+    {
+        $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
+        $this->pdf->SetFillColor(...DanfseLayout::COR_BORDA);
+        $this->pdf->Rect($marginX, DanfseLayout::cmToMm($yCm), $largura, self::ESPESSURA_LINHA_MM, 'F');
+    }
+
+    /**
+     * Moldura externa da folha — 4 retângulos preenchidos (top/bottom/left/
+     * right) formando o quadro. Mesma técnica dos separadores (preto sólido
+     * sem AA). Estilo V1/ADN.
+     */
+    private function renderBordaFolha(): void
+    {
+        $margem = DanfseLayout::cmToMm(self::MARGEM_FOLHA_CM);
+        $espessura = self::ESPESSURA_BORDA_MM;
+        $larguraBorda = DanfseLayout::PAGE_WIDTH_MM - 2 * $margem;
+        $alturaBorda = DanfseLayout::PAGE_HEIGHT_MM - 2 * $margem;
+
+        $this->pdf->SetFillColor(...DanfseLayout::COR_BORDA);
+        $this->pdf->Rect($margem, $margem, $larguraBorda, $espessura, 'F');
+        $this->pdf->Rect($margem, $margem + $alturaBorda - $espessura, $larguraBorda, $espessura, 'F');
+        $this->pdf->Rect($margem, $margem, $espessura, $alturaBorda, 'F');
+        $this->pdf->Rect($margem + $larguraBorda - $espessura, $margem, $espessura, $alturaBorda, 'F');
     }
 
     private function setFonte(string $familia, string $estilo, float $tamanho): void
