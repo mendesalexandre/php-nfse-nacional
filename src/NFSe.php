@@ -225,14 +225,25 @@ final class NFSe
     }
 
     /**
-     * True se a NFS-e tem evento de **CANCELAMENTO** ou **SUBSTITUICAO**
-     * vinculado. Forma canônica de detectar cancelamento — `consultar()`
-     * retorna cStat=100 mesmo após cancelar (cancelamento é evento, não
-     * altera status da emissão original).
+     * Verifica (consulta os eventos no ADN) se a NFS-e tem evento de
+     * **CANCELAMENTO** ou **SUBSTITUICAO** vinculado. Forma canônica de
+     * detectar cancelamento — `consultar()` retorna cStat=100 mesmo após
+     * cancelar (cancelamento é evento, não altera o status da emissão
+     * original). Faz uma chamada de rede; não é um getter barato.
+     */
+    public function verificarCancelamento(string $chaveAcesso): bool
+    {
+        return $this->downloadService->verificarCancelamentoNfse($chaveAcesso);
+    }
+
+    /**
+     * @deprecated Renomeado para {@see verificarCancelamento()} — o nome antigo
+     *             sugeria um getter barato, mas faz chamada de rede. Mantido
+     *             como alias por compatibilidade.
      */
     public function estaCancelada(string $chaveAcesso): bool
     {
-        return $this->downloadService->nfseEstaCancelada($chaveAcesso);
+        return $this->verificarCancelamento($chaveAcesso);
     }
 
     // ───────── DFe (Distribuição de Documentos Eletrônicos) ─────────

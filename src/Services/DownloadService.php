@@ -87,15 +87,16 @@ final class DownloadService
     }
 
     /**
-     * Verifica se uma NFS-e tem evento de **CANCELAMENTO** ou **SUBSTITUICAO**
-     * vinculado — forma canônica de detectar cancelamento.
+     * Verifica (consulta os eventos no ADN) se uma NFS-e tem evento de
+     * **CANCELAMENTO** ou **SUBSTITUICAO** vinculado — forma canônica de
+     * detectar cancelamento.
      *
      * Atenção: `consultar($chave)->cancelada()` NÃO funciona para detectar
      * cancelamento — a consulta retorna cStat=100 (autorizada) mesmo após
      * cancelar. O cancelamento é um evento separado vinculado à NFS-e, não
      * altera o status da emissão original.
      */
-    public function nfseEstaCancelada(string $chaveAcesso): bool
+    public function verificarCancelamentoNfse(string $chaveAcesso): bool
     {
         $itens = $this->listarEventosNfse($chaveAcesso);
         foreach ($itens as $item) {
@@ -118,6 +119,16 @@ final class DownloadService
             }
         }
         return false;
+    }
+
+    /**
+     * @deprecated Renomeado para {@see verificarCancelamentoNfse()} — o nome
+     *             antigo sugeria um getter barato, mas faz chamada de rede.
+     *             Mantido como alias por compatibilidade.
+     */
+    public function nfseEstaCancelada(string $chaveAcesso): bool
+    {
+        return $this->verificarCancelamentoNfse($chaveAcesso);
     }
 
     /**

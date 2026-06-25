@@ -50,10 +50,9 @@ final class DanfseGenerator
         $this->layout->renderizar($dados, $pdf, $custom);
 
         // Marcas d'água diagonais — comuns a qualquer leiaute.
-        if ($dados->cancelada) {
-            $this->renderMarcaAgua($pdf, 'CANCELADA');
-        } elseif ($dados->substituida) {
-            $this->renderMarcaAgua($pdf, 'SUBSTITUÍDA');
+        $marca = self::definirMarcaAgua($dados, $custom);
+        if ($marca !== null) {
+            $this->inserirMarcaAgua($pdf, $marca);
         }
 
         /** @var string $output */
@@ -84,7 +83,31 @@ final class DanfseGenerator
         return $pdf;
     }
 
-    private function renderMarcaAgua(TCPDF $pdf, string $texto): void
+    /**
+     * Decide a marca d'água diagonal ('CANCELADA' | 'SUBSTITUÍDA' | null).
+     *
+     * O override da `DanfseCustomizacao` tem **precedência** sobre o cStat do
+     * XML: cancelamento e substituição são *eventos* vinculados e a NFS-e
+     * mantém `cStat=100`, então o XML de `consultar()`/`baixarXml` não reflete
+     * o cancelamento. Quem sabe o estado real é a consulta de eventos
+     * (`NFSe::verificarCancelamento()` / `listarEventos()`), e o resultado entra
+     * aqui via `DanfseCustomizacao::$cancelada` / `$substituida`.
+     */
+    public static function definirMarcaAgua(DanfseDados $dados, ?DanfseCustomizacao $custom): ?string
+    {
+        $cancelada = $custom?->cancelada ?? $dados->cancelada;
+        $substituida = $custom?->substituida ?? $dados->substituida;
+
+        if ($cancelada) {
+            return 'CANCELADA';
+        }
+        if ($substituida) {
+            return 'SUBSTITUÍDA';
+        }
+        return null;
+    }
+
+    private function inserirMarcaAgua(TCPDF $pdf, string $texto): void
     {
         $pdf->StartTransform();
         $pdf->Rotate(

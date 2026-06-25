@@ -152,10 +152,10 @@ try {
     // IMPORTANTE: `consultar()->cancelada()` NÃO detecta cancelamento —
     // a consulta retorna cStat=100 (autorizada) mesmo após cancelar,
     // porque o cancelamento é evento separado, não muda o cStat.
-    // Forma correta: `estaCancelada()` (via /contribuintes/NFSe/{chave}/Eventos)
+    // Forma correta: `verificarCancelamento()` (via /contribuintes/NFSe/{chave}/Eventos)
     // ou via `sincronizarDfe()->foiCancelada($chave)` (lote do CNPJ).
-    $cancelada = $nfse->estaCancelada($chave);
-    echo "  estaCancelada(): " . ($cancelada ? 'true' : 'false') . "\n";
+    $cancelada = $nfse->verificarCancelamento($chave);
+    echo "  verificarCancelamento(): " . ($cancelada ? 'true' : 'false') . "\n";
 
     if ($cancelada) {
         echo "\n✓ CICLO COMPLETO OK — NFS-e emitida, baixada e cancelada com sucesso\n";

@@ -641,7 +641,7 @@ Imutável. `xmlRetorno` é útil pra arquivar em S3; `rawResponse` é só pra de
 
 > ⚠️ **`$nfse->consultar($chave)->cancelada()` NÃO detecta cancelamento de NFS-e.** O método verifica `cStat ∈ {101, 102, 135, 155}` — mas o `consultar()` retorna sempre cStat=100 (autorizada) mesmo após o cancelamento, porque o cancelamento é um EVENTO separado, não muda o cStat da NFS-e original.
 >
-> Para detectar cancelamento de uma NFS-e específica, use [`$nfse->estaCancelada($chave)`](#listagem-de-eventos-por-nfs-e) (busca eventos no ADN) ou [`$resp->foiCancelada($chave)`](#respostadfe--itemdfe) sobre um lote DFe.
+> Para detectar cancelamento de uma NFS-e específica, use [`$nfse->verificarCancelamento($chave)`](#listagem-de-eventos-por-nfs-e) (busca eventos no ADN; `estaCancelada()` é alias `@deprecated`) ou [`$resp->foiCancelada($chave)`](#respostadfe--itemdfe) sobre um lote DFe.
 
 ### `RespostaDfe` + `ItemDfe`
 

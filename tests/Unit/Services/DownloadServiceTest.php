@@ -188,7 +188,7 @@ final class DownloadServiceTest extends TestCase
         self::assertSame('EVENTO', $resultado[1]['TipoDocumento']);
     }
 
-    public function test_nfseEstaCancelada_true_quando_tem_evento_CANCELAMENTO(): void
+    public function test_verificarCancelamentoNfse_true_quando_tem_evento_CANCELAMENTO(): void
     {
         $body = json_encode([
             'LoteDFe' => [
@@ -199,10 +199,10 @@ final class DownloadServiceTest extends TestCase
         self::assertNotFalse($body);
         $service = $this->buildService([new Response(200, [], $body)]);
 
-        self::assertTrue($service->nfseEstaCancelada(self::CHAVE));
+        self::assertTrue($service->verificarCancelamentoNfse(self::CHAVE));
     }
 
-    public function test_nfseEstaCancelada_true_quando_tem_evento_SUBSTITUICAO(): void
+    public function test_verificarCancelamentoNfse_true_quando_tem_evento_SUBSTITUICAO(): void
     {
         $body = json_encode([
             'LoteDFe' => [
@@ -213,10 +213,10 @@ final class DownloadServiceTest extends TestCase
         self::assertNotFalse($body);
         $service = $this->buildService([new Response(200, [], $body)]);
 
-        self::assertTrue($service->nfseEstaCancelada(self::CHAVE));
+        self::assertTrue($service->verificarCancelamentoNfse(self::CHAVE));
     }
 
-    public function test_nfseEstaCancelada_false_quando_so_tem_NFSE(): void
+    public function test_verificarCancelamentoNfse_false_quando_so_tem_NFSE(): void
     {
         $body = json_encode([
             'LoteDFe' => [
@@ -226,10 +226,10 @@ final class DownloadServiceTest extends TestCase
         self::assertNotFalse($body);
         $service = $this->buildService([new Response(200, [], $body)]);
 
-        self::assertFalse($service->nfseEstaCancelada(self::CHAVE));
+        self::assertFalse($service->verificarCancelamentoNfse(self::CHAVE));
     }
 
-    public function test_nfseEstaCancelada_false_quando_so_tem_manifestacao(): void
+    public function test_verificarCancelamentoNfse_false_quando_so_tem_manifestacao(): void
     {
         $body = json_encode([
             'LoteDFe' => [
@@ -240,7 +240,22 @@ final class DownloadServiceTest extends TestCase
         self::assertNotFalse($body);
         $service = $this->buildService([new Response(200, [], $body)]);
 
-        self::assertFalse($service->nfseEstaCancelada(self::CHAVE));
+        self::assertFalse($service->verificarCancelamentoNfse(self::CHAVE));
+    }
+
+    public function test_nfseEstaCancelada_alias_deprecated_delega(): void
+    {
+        $body = json_encode([
+            'LoteDFe' => [
+                ['NSU' => 1, 'TipoDocumento' => 'NFSE', 'ChaveAcesso' => self::CHAVE],
+                ['NSU' => 2, 'TipoDocumento' => 'EVENTO', 'ChaveAcesso' => self::CHAVE, 'TipoEvento' => 'CANCELAMENTO'],
+            ],
+        ]);
+        self::assertNotFalse($body);
+        $service = $this->buildService([new Response(200, [], $body)]);
+
+        // @phpstan-ignore-next-line — testando o alias @deprecated de propósito
+        self::assertTrue($service->nfseEstaCancelada(self::CHAVE));
     }
 
     /**

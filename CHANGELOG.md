@@ -5,6 +5,39 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-06-25
+
+### Alterado — `NFSe::estaCancelada()` renomeado para `verificarCancelamento()`
+
+- O nome `estaCancelada()` sugeria um getter barato, mas o método **faz uma
+  chamada de rede** (consulta os eventos no ADN). Renomeado para
+  **`NFSe::verificarCancelamento($chave)`** (e `DownloadService::nfseEstaCancelada`
+  → `verificarCancelamentoNfse`). Os nomes antigos continuam funcionando como
+  **alias `@deprecated`** — nenhuma quebra de compatibilidade.
+
+### Adicionado — Override de cancelamento/substituição na DANFSe local
+
+A NFS-e do Sistema Nacional **mantém `cStat=100` mesmo após cancelada** —
+cancelamento e substituição são *eventos* vinculados, não alteram o status da
+emissão original. Logo o XML de `consultar()`/`baixarXml` **não reflete** o
+cancelamento, e a DANFSe local nunca exibia a marca d'água "CANCELADA"
+(derivava só do `cStat`). Validado: o PDF oficial do SEFIN (`baixarPdf` →
+`/danfse/{chave}`) **mostra** a tarja porque o renderizador lê os eventos.
+
+- **Novos campos `DanfseCustomizacao::$cancelada` / `$substituida`** (`?bool`,
+  default `null`). Quando não-`null`, **forçam** a marca d'água, com precedência
+  sobre o `cStat` do XML. Detecte o estado real via eventos:
+  ```php
+  $pdf = $nfse->danfseLocal($xml, new DanfseCustomizacao(
+      cancelada: $nfse->estaCancelada($chave),
+  ));
+  ```
+- **`DanfseGenerator::definirMarcaAgua()`** — método estático puro que decide a
+  marca (`'CANCELADA'` | `'SUBSTITUÍDA'` | `null`) a partir de `DanfseDados` +
+  `DanfseCustomizacao`, com a regra de precedência. Testável e usado pelo
+  `gerar()`. Default 100% preservado: sem override, o comportamento é idêntico
+  (deriva do `cStat`).
+
 ## [0.20.0] — 2026-06-25
 
 ### Adicionado — Destaque visual de retenções na DANFSe V2 (`destacarRetencoes`)

@@ -49,6 +49,28 @@ final class DanfseCustomizacao
          * efetiva — valor > 0, ou tipo de retenção que comprove retenção na fonte.
          */
         public readonly bool $destacarRetencoes = false,
+
+        /**
+         * Override do status de cancelamento da marca d'água "CANCELADA".
+         *
+         * A NFS-e do Sistema Nacional **mantém `cStat=100` mesmo após o
+         * cancelamento** — cancelamento é um *evento* vinculado, não altera o
+         * status da emissão original. Logo o XML de `consultar()`/`baixarXml`
+         * não basta pra detectar cancelamento; a forma canônica é via eventos
+         * (`NFSe::verificarCancelamento()` / `listarEventos()`).
+         *
+         * Quando `null` (default), usa o que veio do XML (cStat 101/102).
+         * Quando `true`/`false`, força a marca d'água. Use assim:
+         * `new DanfseCustomizacao(cancelada: $nfse->verificarCancelamento($chave))`.
+         */
+        public readonly ?bool $cancelada = null,
+
+        /**
+         * Override do status de substituição (marca d'água "SUBSTITUÍDA").
+         * Mesma lógica do `$cancelada` — substituição é evento. Detectar via
+         * `listarEventos()`. `null` = usa o XML; default do parser é `false`.
+         */
+        public readonly ?bool $substituida = null,
     ) {
         $errors = [];
 

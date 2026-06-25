@@ -45,7 +45,7 @@ API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
   + retenções de IRRF/CP/CSLL
 - **Distribuição de DFe paginada** (caixa postal do CNPJ no SEFIN), com
   helpers `chavesCanceladas`, `statusPorChave`, `agruparPorChave`, etc.
-- **Detecção de cancelamento** via `$nfse->estaCancelada($chave)` (forma
+- **Detecção de cancelamento** via `$nfse->verificarCancelamento($chave)` (forma
   canônica — `consultar()` retorna cStat=100 mesmo após cancelar)
 - Retry automático com backoff exponencial no download de DANFSe (502/503/504)
 - Verificação idempotente de DPS (`HEAD /dps/{id}`) antes de emitir
