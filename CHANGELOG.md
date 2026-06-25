@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-06-25
+
 ### Adicionado — Destaque visual de retenções na DANFSe V2 (`destacarRetencoes`)
 
 Recurso de conferência opt-in (base: PR #25 de @luizbasca, com correções).
@@ -83,6 +85,13 @@ Completa o alinhamento visual do V2 ao paradigma "formulário aberto" do V1
   `vPis`/`vCofins`: os valores **retidos** de PIS, COFINS e CSLL são **agregados
   no `vRetCSLL`** (conforme `tpRetPisCofins`); os campos `vPis`/`vCofins` são de
   apuração própria (débito), **não** de retenção. Logo somá-los duplicaria.
+
+### Documentação
+
+- Versionada a **NT oficial SE/CGNFS-e nº 007** (adequações RTC) em
+  `docs/nt-007-se-cgnfse-rtc-v1.0.pdf` — fonte da regra de agregação de
+  retenções PIS/COFINS/CSLL no `vRetCSLL`. Referenciada no `CLAUDE.md`
+  (seção Documentação + tabela de achados empíricos).
 
 ## [0.19.1] — 2026-06-16
 
