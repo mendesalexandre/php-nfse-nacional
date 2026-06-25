@@ -75,12 +75,14 @@ Completa o alinhamento visual do V2 ao paradigma "formulário aberto" do V1
   retenções. Diagnóstico anterior ("não emitimos `<vTotalRet>` no DPS, corrigir
   no `DpsBuilder`") estava equivocado — o DPS **não tem** esse elemento no
   leiaute; não é o emitente que o informa.
-- **Fix:** o parser agora lê `infNFSe/valores/vTotalRet` (fonte primária,
-  SEFIN). Quando o município não devolve o campo (opcional, `minOccurs=0`),
-  reconstrói pela fórmula oficial (Anexo IV linha 43):
-  `vRetCP + vRetIRRF + vRetCSLL + vISSQN* + (vPis + vCofins)**` — ISSQN somado só
-  se retido (`tpRetISSQN` 2/3) e Pis/Cofins só se `tpRetPisCofins=1`. Sem
-  retenção alguma, fica `null` (campo `-`).
+- **Fix:** o parser agora lê `infNFSe/valores/vTotalRet` (computado pelo SEFIN).
+  **Sem fallback/recálculo**: se o SEFIN não devolver o campo, fica `null`
+  (DANFSe mostra `-`). Validado em homologação (NFS-e #161): o SEFIN **emite**
+  `<vTotalRet>` e calcula `vRetCP + vRetIRRF + vRetCSLL + vISSQN` (retido).
+- A NT SE/CGNFS-e nº 007 esclarece por que não cabe recalcular somando
+  `vPis`/`vCofins`: os valores **retidos** de PIS, COFINS e CSLL são **agregados
+  no `vRetCSLL`** (conforme `tpRetPisCofins`); os campos `vPis`/`vCofins` são de
+  apuração própria (débito), **não** de retenção. Logo somá-los duplicaria.
 
 ## [0.19.1] — 2026-06-16
 

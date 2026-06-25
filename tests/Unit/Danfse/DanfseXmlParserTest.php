@@ -165,36 +165,24 @@ final class DanfseXmlParserTest extends TestCase
 
     public function test_total_retencoes_usa_vTotalRet_da_nfse_autorizada(): void
     {
-        // Fonte primária: <vTotalRet> computado pelo SEFIN na NFS-e autorizada
-        // (infNFSe/valores), entre vISSQN e vLiq. Quando presente, é usado
-        // direto — sem recálculo.
-        $xml = $this->xmlComRetencoes(vTotalRet: '17.15');
+        // <vTotalRet> é computado pelo SEFIN na NFS-e autorizada
+        // (infNFSe/valores), entre vISSQN e vLiq. O parser apenas lê esse
+        // valor — sem recálculo. Validado no smoke #161 (SEFIN devolveu 17.50).
+        $xml = $this->xmlComRetencoes(vTotalRet: '17.50');
 
         $dados = (new DanfseXmlParser())->parse($xml);
 
-        self::assertSame(17.15, $dados->valorTotal['total_retencoes']);
+        self::assertSame(17.50, $dados->valorTotal['total_retencoes']);
     }
 
-    public function test_total_retencoes_fallback_soma_retencoes_do_dps(): void
+    public function test_total_retencoes_null_quando_sefin_nao_devolve(): void
     {
-        // Quando o município não devolve <vTotalRet> (opcional, minOccurs=0),
-        // o parser reconstrói pela fórmula oficial (Anexo IV linha 43):
-        //   vRetCP + vRetIRRF + vRetCSLL + vISSQN* + (vPis + vCofins)**
-        // ISSQN só soma se retido (tpRetISSQN 2/3); Pis/Cofins só se
-        // tpRetPisCofins=1. Valores do smoke #159 (homologação):
-        //   11.00 + 1.50 + 1.00 + 0.92 (ISSQN retido) + 0.65 + 3.00 = 18.07
+        // Sem <vTotalRet> na resposta do SEFIN, o campo fica null (e "-" na
+        // DANFSe). NÃO há fallback/recálculo a partir do DPS — mesmo com
+        // retenções presentes no DPS, sem o valor do SEFIN o total fica vazio.
         $xml = $this->xmlComRetencoes(vTotalRet: null);
 
         $dados = (new DanfseXmlParser())->parse($xml);
-
-        self::assertSame(18.07, $dados->valorTotal['total_retencoes']);
-    }
-
-    public function test_total_retencoes_null_quando_sem_retencao(): void
-    {
-        // Fixture padrão não tem retenção nenhuma → campo fica null (e "-" na
-        // DANFSe). Não cai no fallback porque a soma daria 0.
-        $dados = (new DanfseXmlParser())->parse($this->xmlAutorizado());
 
         self::assertNull($dados->valorTotal['total_retencoes']);
     }
