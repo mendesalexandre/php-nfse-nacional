@@ -378,6 +378,9 @@ final class DpsBuilder
 
         $cServ = $this->el($doc, 'cServ');
         $cServ->appendChild($this->el($doc, 'cTribNac', $servico->cTribNac));
+        if ($servico->cTribMun !== null) {
+            $cServ->appendChild($this->el($doc, 'cTribMun', $servico->cTribMun));
+        }
         $cServ->appendChild($this->el($doc, 'xDescServ',
             TextoSanitizador::paraNFSe($servico->discriminacao, 2000, preservarQuebras: true),
         ));

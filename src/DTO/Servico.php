@@ -32,6 +32,13 @@ final class Servico
         ListaNbs|string $cNBS = '113040000',
         public readonly string $cIndOp = '100301',
         /**
+         * `<cTribMun>` — Código de tributação municipal do ISSQN, opcional
+         * (3 dígitos). Só existe pra municípios que mantêm uma codificação
+         * própria além do `cTribNac` nacional (LC 116/2003). A maioria dos
+         * municípios não usa — deixe `null` se o seu não exigir.
+         */
+        public readonly ?string $cTribMun = null,
+        /**
          * Grupo `<infoCompl>` (Informações Complementares) — opcional.
          * Quando setado, o `DpsBuilder` emite como ÚLTIMO filho de
          * `<serv>`. Use pra observações da nota, referência a documento
@@ -71,6 +78,9 @@ final class Servico
         }
         if (!preg_match('/^\d{6}$/', $this->cTribNac)) {
             $errors[] = "cTribNac inválido: {$this->cTribNac} (esperado 6 dígitos)";
+        }
+        if ($cTribMun !== null && !preg_match('/^\d{3}$/', $cTribMun)) {
+            $errors[] = "cTribMun inválido: {$cTribMun} (esperado 3 dígitos)";
         }
 
         if (!empty($errors)) {

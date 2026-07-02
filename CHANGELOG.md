@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-07-02
+
+### Adicionado — `cTribMun` opcional em `Servico`
+
+- `Servico::$cTribMun` (novo, opcional, 3 dígitos) — Código de tributação
+  municipal do ISSQN (`<cTribMun>`, `TCCodTribMun`). Emitido logo após
+  `<cTribNac>` em `<cServ>` quando informado. A maioria dos municípios
+  não usa esse campo (é só pra prefeituras com codificação própria além
+  do `cTribNac` nacional). Validação de formato (3 dígitos) via
+  `ValidationException`.
+
 ## [0.23.0] — 2026-07-02
 
 ### Alterado — `cClassTrib`/`CST` do grupo IBSCBS configuráveis
