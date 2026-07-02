@@ -5,6 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.1] — 2026-07-02
+
+### Corrigido
+
+- **Bloco Canhoto estourava a folha**: 3 colunas de largura igual (6,8cm)
+  não cabiam "número / chave de 50 dígitos" (~58 chars) na 3ª coluna —
+  texto vazava pra fora da borda da página. Colunas agora assimétricas
+  (4,5cm / 4,5cm / 11,4cm) + nova `renderCelulaAutoFit()` reduz a fonte
+  do valor em degraus até caber, protegendo contra qualquer combinação
+  número+chave. Adicionadas linhas divisórias verticais entre as 3
+  colunas (visual de tabela, igual ao resto do documento).
+- **"SITUAÇÃO DA NFS-e" mostrava o mesmo texto de "FINALIDADE"**: ambos
+  usavam "NFS-e regular" — mas são campos com fontes de dados diferentes
+  no XML (`cStat` vs `finNFSe`). `labelSituacao()` agora usa "NFS-e
+  Gerada" (cStat=100), "NFS-e Cancelada" (101), "NFS-e Cancelada por
+  Substituição" (102) — distinto de FINALIDADE.
+
+Bugs encontrados comparando com DANFSe real gerada por outro sistema
+próprio (v0.26.0 recém lançada).
+
 ## [0.26.0] — 2026-07-02
 
 ### Adicionado — Bloco "Canhoto" opcional na DANFSe local (item 2.1.13, Anexo I)

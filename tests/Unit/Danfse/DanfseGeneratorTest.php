@@ -128,4 +128,38 @@ final class DanfseGeneratorTest extends TestCase
         // (no bloco DADOS DA NFS-e), não duplicada no canhoto.
         self::assertSame(1, substr_count($texto, '15/01/2026 10:00:00'));
     }
+
+    public function test_situacao_e_finalidade_nao_usam_o_mesmo_texto(): void
+    {
+        // Bug real (02/07/2026): SITUAÇÃO DA NFS-E (fonte: cStat) copiava o
+        // texto de FINALIDADE (fonte: finNFSe) — "NFS-e regular" nas duas.
+        // São campos com fontes de dados diferentes no XML.
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringContainsString('NFS-e Gerada', $texto);
+        self::assertStringContainsString('NFS-e regular', $texto);
+    }
+
+    public function test_canhoto_chave_nao_estoura_a_pagina(): void
+    {
+        // Bug real (02/07/2026): 3 colunas iguais (6.8cm) não cabiam
+        // "número / chave de 50 dígitos" (~58 chars) na terceira coluna —
+        // texto vazava pra fora da borda da folha. Valida que o texto do
+        // PDF renderizado contém a chave completa (prova de que
+        // renderCelulaAutoFit encolheu a fonte o suficiente pra caber).
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml(
+            $xml,
+            new DanfseCustomizacao(canhoto: \PhpNfseNacional\Enums\TipoCanhoto::PreenchidoAutomaticamente),
+        );
+        $texto = $this->textoDoPdf($pdf);
+        // Chave de 50 dígitos da fixture nfse-autorizada.xml
+        self::assertStringContainsString(
+            '35012345200001234567890123456789012345678123456789',
+            str_replace(' ', '', $texto),
+        );
+    }
 }

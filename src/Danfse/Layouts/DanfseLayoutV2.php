@@ -749,15 +749,67 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $altura = DanfseLayout::cmToMm(self::ALTURA_CANHOTO_CM);
         $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
 
-        $larguraColuna = DanfseLayout::CONTENT_WIDTH_CM / 3;
-        $this->renderCelula(DanfseLayout::MARGIN_X_CM, $this->cursorY, $larguraColuna, self::ALTURA_CANHOTO_CM,
+        // Colunas assimétricas: "Data Cientificação" e "Identificação e
+        // Assinatura" só precisam de espaço pra uma data (~20 chars);
+        // "Nº NFS-e / Chave NFS-e" precisa de muito mais (número + chave
+        // de 50 dígitos, ~60 chars) — dividir em 3 partes iguais estourava
+        // a folha.
+        $col1Cm = 4.50;
+        $col2Cm = 4.50;
+        $col3Cm = DanfseLayout::CONTENT_WIDTH_CM - $col1Cm - $col2Cm;
+
+        // Linhas divisórias entre as colunas (visual de tabela, como o
+        // restante do documento).
+        $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
+        $this->pdf->Line($marginX + DanfseLayout::cmToMm($col1Cm), $y,
+            $marginX + DanfseLayout::cmToMm($col1Cm), $y + $altura);
+        $this->pdf->Line($marginX + DanfseLayout::cmToMm($col1Cm + $col2Cm), $y,
+            $marginX + DanfseLayout::cmToMm($col1Cm + $col2Cm), $y + $altura);
+
+        $this->renderCelula(DanfseLayout::MARGIN_X_CM, $this->cursorY, $col1Cm, self::ALTURA_CANHOTO_CM,
             'Data Cientificação', $dataHoraEmissao);
-        $this->renderCelula(DanfseLayout::MARGIN_X_CM + $larguraColuna, $this->cursorY, $larguraColuna,
+        $this->renderCelula(DanfseLayout::MARGIN_X_CM + $col1Cm, $this->cursorY, $col2Cm,
             self::ALTURA_CANHOTO_CM, 'Identificação e Assinatura', $preenchido ? $dataHoraEmissao : '');
-        $this->renderCelula(DanfseLayout::MARGIN_X_CM + 2 * $larguraColuna, $this->cursorY, $larguraColuna,
+        $this->renderCelulaAutoFit(DanfseLayout::MARGIN_X_CM + $col1Cm + $col2Cm, $this->cursorY, $col3Cm,
             self::ALTURA_CANHOTO_CM, 'Nº NFS-e / Chave NFS-e', $numeroChave);
 
         $this->cursorY += self::ALTURA_CANHOTO_CM;
+    }
+
+    /**
+     * Igual `renderCelula`, mas reduz o tamanho da fonte do valor em
+     * degraus até caber na largura da célula — protege contra overflow
+     * pra valores de tamanho variável (ex: número da NFS-e não tem
+     * tamanho fixo, e a chave de acesso some 50 dígitos).
+     */
+    private function renderCelulaAutoFit(
+        float $xCm,
+        float $yCm,
+        float $larguraCm,
+        float $alturaCm,
+        string $label,
+        string $valor,
+    ): void {
+        $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $x = $marginX + DanfseLayout::cmToMm($xCm - DanfseLayout::MARGIN_X_CM);
+        $y = DanfseLayout::cmToMm($yCm);
+        $largura = DanfseLayout::cmToMm($larguraCm);
+
+        $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_CAMPO);
+        $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
+        $this->pdf->SetXY($x + 0.5, $y + 0.3);
+        $this->pdf->Cell($largura - 1, 2.5, $label, 0, 0, 'L');
+
+        $tamanho = DanfseLayout::TAM_CONTEUDO;
+        $larguraDisponivel = $largura - 1.0;
+        $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', $tamanho);
+        while ($tamanho > 4.5 && $this->pdf->GetStringWidth($valor) > $larguraDisponivel) {
+            $tamanho -= 0.5;
+            $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', $tamanho);
+        }
+
+        $this->pdf->SetXY($x + 0.5, $y + 2.8);
+        $this->pdf->Cell($largura - 1, 3, $valor, 0, 0, 'L');
     }
 
     // ================================================================
@@ -994,11 +1046,16 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     private function labelSituacao(int $cStat): string
     {
+        // "Situação da NFS-e" (fonte: NFSe/infNFSe/cStat) é DIFERENTE de
+        // "Finalidade" (fonte: finNFSe) — não reusar o mesmo texto.
+        // "NFS-e regular" é exemplo oficial da NT 008 pra Finalidade, não
+        // pra Situação; usava-se por engano aqui (bug encontrado 02/07/2026
+        // comparando com DANFSe real de outro sistema próprio).
         return match ($cStat) {
-            100 => 'NFS-e regular',
-            101 => 'NFS-e cancelada',
-            102 => 'NFS-e cancelada por substituição',
-            default => $cStat > 0 ? "cStat={$cStat}" : 'NFS-e regular',
+            100 => 'NFS-e Gerada',
+            101 => 'NFS-e Cancelada',
+            102 => 'NFS-e Cancelada por Substituição',
+            default => $cStat > 0 ? "cStat={$cStat}" : 'NFS-e Gerada',
         };
     }
 
