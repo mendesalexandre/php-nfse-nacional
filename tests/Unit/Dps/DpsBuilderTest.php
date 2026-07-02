@@ -364,6 +364,44 @@ final class DpsBuilderTest extends TestCase
         );
         self::assertStringContainsString('<IBSCBS>', $xml);
         self::assertStringContainsString('<CST>000</CST>', $xml);
+        self::assertStringContainsString('<cClassTrib>000001</cClassTrib>', $xml);
+    }
+
+    public function test_IBSCBS_usa_cst_e_classTrib_customizados(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
+            endereco: $endereco,
+        );
+        $config = new Config(
+            prestador: $prestador,
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $builder = new DpsBuilder($config);
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00, cstIbsCbs: '200', cClassTrib: '200003'),
+        );
+        self::assertStringContainsString('<CST>200</CST>', $xml);
+        self::assertStringContainsString('<cClassTrib>200003</cClassTrib>', $xml);
+    }
+
+    public function test_cClassTrib_invalido_lanca_validation_exception(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        new Valores(100.00, 20.00, 4.00, cClassTrib: '1');
+    }
+
+    public function test_cstIbsCbs_invalido_lanca_validation_exception(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        new Valores(100.00, 20.00, 4.00, cstIbsCbs: 'AB');
     }
 
     public function test_pTotTribMun_formatado_com_2_casas_decimais(): void

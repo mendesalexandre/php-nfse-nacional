@@ -648,12 +648,14 @@ final class DpsBuilder
         // valores > trib > gIBSCBS (estrutura mínima)
         $valNode = $this->el($doc, 'valores');
         $trib = $this->el($doc, 'trib');
-        // CST 000 + cClassTrib 000001 = Tributação Regular (combinação válida
-        // do leiaute). Pra outros cenários (imune, isento, suspenso, etc.)
-        // refinar com base na tabela CST × cClassTrib do leiaute.
+        // CST/cClassTrib vêm de Valores (default '000'/'000001' = Tributação
+        // Regular). Pra outros cenários (imune, isento, suspenso, etc.),
+        // o caller informa a combinação certa via Valores::$cstIbsCbs /
+        // Valores::$cClassTrib — o SDK não valida a combinação contra a
+        // tabela oficial, só o formato.
         $gIBSCBS = $this->el($doc, 'gIBSCBS');
-        $gIBSCBS->appendChild($this->el($doc, 'CST', '000'));
-        $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', '000001'));
+        $gIBSCBS->appendChild($this->el($doc, 'CST', $valores->cstIbsCbs));
+        $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', $valores->cClassTrib));
         $trib->appendChild($gIBSCBS);
         $valNode->appendChild($trib);
         $ibscbs->appendChild($valNode);

@@ -5,6 +5,18 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-07-02
+
+### Alterado — `cClassTrib`/`CST` do grupo IBSCBS configuráveis
+
+- `Valores` ganha `$cstIbsCbs` (default `'000'`) e `$cClassTrib` (default
+  `'000001'`) — antes hardcoded no `DpsBuilder::appendIBSCBS()`. Só afeta
+  o DPS quando `Config::incluirIbsCbs = true` (default `false`,
+  inalterado). Validação de formato (3/6 dígitos) via `ValidationException`;
+  o SDK não valida a combinação CST × cClassTrib contra a tabela oficial
+  da Reforma Tributária — quem chama é responsável por passar a
+  combinação certa pro segmento do prestador.
+
 ## [0.22.0] — 2026-07-02
 
 ### Adicionado — Regras de supressão do Anexo I na DANFSe V2 (notas `**`/`***`)

@@ -157,8 +157,34 @@ final class Valores
         public readonly ?float $valorRetidoCp = null,
         /** Valor retido de CSLL — `<tribFed><vRetCSLL>`. */
         public readonly ?float $valorRetidoCsll = null,
+        /**
+         * `<CST>` do grupo `gIBSCBS` — Código de Situação Tributária do
+         * IBS/CBS (3 dígitos, `TSRTCCodSitTrib`). Só é emitido quando
+         * `Config::incluirIbsCbs = true`. Default `'000'` (Tributação
+         * Regular) preserva o comportamento anterior à parametrização.
+         */
+        public readonly string $cstIbsCbs = '000',
+        /**
+         * `<cClassTrib>` do grupo `gIBSCBS` — Código de Classificação
+         * Tributária do IBS/CBS (6 dígitos, `TSRTCCodClassTrib`). Só é
+         * emitido quando `Config::incluirIbsCbs = true`. Default
+         * `'000001'` (Tributação Regular) preserva o comportamento
+         * anterior à parametrização.
+         *
+         * A combinação CST × cClassTrib precisa ser válida conforme a
+         * tabela oficial da Reforma Tributária (SE/CGNFS-e) — o SDK não
+         * valida a combinação, só o formato (6 dígitos).
+         */
+        public readonly string $cClassTrib = '000001',
     ) {
         $errors = [];
+
+        if (!preg_match('/^\d{3}$/', $cstIbsCbs)) {
+            $errors[] = "cstIbsCbs inválido: '{$cstIbsCbs}' (esperado 3 dígitos)";
+        }
+        if (!preg_match('/^\d{6}$/', $cClassTrib)) {
+            $errors[] = "cClassTrib inválido: '{$cClassTrib}' (esperado 6 dígitos)";
+        }
 
         if ($valorServicos <= 0) {
             $errors[] = 'valorServicos deve ser maior que zero';
