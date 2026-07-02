@@ -816,11 +816,19 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->cursorY += self::ALTURA_CANHOTO_CM;
     }
 
+    /** Fonte mínima (pt) do valor em `renderCelulaAutoFit` antes de truncar com reticências. */
+    private const TAM_MINIMO_AUTOFIT = 6.0;
+
     /**
      * Igual `renderCelula`, mas reduz o tamanho da fonte do valor em
      * degraus até caber na largura da célula — protege contra overflow
      * pra valores de tamanho variável (ex: número da NFS-e não tem
-     * tamanho fixo, e a chave de acesso some 50 dígitos).
+     * tamanho fixo, a chave de acesso soma 50 dígitos, e nomes
+     * institucionais de cartório podem passar de 100 caracteres).
+     *
+     * Não encolhe indefinidamente (ficaria ilegível): para no piso
+     * `TAM_MINIMO_AUTOFIT` (6pt) e, se ainda não couber nessa fonte,
+     * trunca o texto com reticências no final.
      */
     private function renderCelulaAutoFit(
         float $xCm,
@@ -844,13 +852,21 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $tamanho = DanfseLayout::TAM_CONTEUDO;
         $larguraDisponivel = $largura - 1.0;
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', $tamanho);
-        while ($tamanho > 4.5 && $this->pdf->GetStringWidth($valor) > $larguraDisponivel) {
+        while ($tamanho > self::TAM_MINIMO_AUTOFIT && $this->pdf->GetStringWidth($valor) > $larguraDisponivel) {
             $tamanho -= 0.5;
             $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', $tamanho);
         }
 
+        $valorExibido = $valor;
+        if ($this->pdf->GetStringWidth($valorExibido) > $larguraDisponivel) {
+            while ($valorExibido !== '' && $this->pdf->GetStringWidth($valorExibido . '...') > $larguraDisponivel) {
+                $valorExibido = mb_substr($valorExibido, 0, -1);
+            }
+            $valorExibido = rtrim($valorExibido) . '...';
+        }
+
         $this->pdf->SetXY($x + 0.5, $y + 2.8);
-        $this->pdf->Cell($largura - 1, 3, $valor, 0, 0, 'L');
+        $this->pdf->Cell($largura - 1, 3, $valorExibido, 0, 0, 'L');
     }
 
     // ================================================================

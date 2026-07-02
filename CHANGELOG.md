@@ -5,6 +5,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.10] — 2026-07-02
+
+### Alterado
+
+- `renderCelulaAutoFit()` não encolhe mais a fonte indefinidamente — piso
+  de 6pt (`TAM_MINIMO_AUTOFIT`, era 4.5pt). Textos que ainda não cabem
+  nessa fonte são truncados com reticências (`...`) no final, em vez de
+  ficar ilegíveis. Afeta "Nome / Nome Empresarial" (Prestador/Tomador/
+  Destinatário/Intermediário) e "Nº NFS-e / Chave NFS-e" (Canhoto).
+
 ## [0.26.9] — 2026-07-02
 
 ### Corrigido

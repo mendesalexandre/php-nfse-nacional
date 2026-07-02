@@ -221,7 +221,27 @@ final class DanfseGeneratorTest extends TestCase
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
         $texto = $this->textoDoPdf($pdf);
 
-        self::assertStringContainsString($nomeLongo, $texto);
+        // Nome desse tamanho não cabe nem na fonte mínima (6pt) — trunca
+        // com reticências em vez de sobrepor a coluna vizinha. Confere que
+        // pelo menos o INÍCIO do nome aparece (não ficou em branco) e que
+        // "Município / Sigla UF" segue legível ao lado, sem overlap.
+        self::assertStringContainsString('OFICIAL DE REGISTRO CIVIL', $texto);
         self::assertStringContainsString('São Paulo / SP', $texto);
+    }
+
+    public function test_nome_tomador_moderadamente_longo_nao_trunca(): void
+    {
+        // Nomes que cabem na fonte mínima (6pt) não devem ser truncados —
+        // só encolhem até o piso, sem perder informação.
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $nomeModerado = 'CARTORIO DE REGISTRO DE IMOVEIS DE CIDADE EXEMPLO LTDA';
+        $xml = str_replace('JOAO DA SILVA', $nomeModerado, $xml);
+
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertStringContainsString($nomeModerado, $texto);
+        self::assertStringNotContainsString($nomeModerado . '...', $texto);
     }
 }
