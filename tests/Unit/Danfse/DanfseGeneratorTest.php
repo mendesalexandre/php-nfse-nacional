@@ -163,4 +163,32 @@ final class DanfseGeneratorTest extends TestCase
             str_replace(' ', '', $texto),
         );
     }
+
+    public function test_descricao_servico_longa_nao_sobrepoe_bloco_seguinte(): void
+    {
+        // Bug real (02/07/2026): altura fixa de 1.10cm pra "Descrição do
+        // Serviço" sobrepunha "TRIBUTAÇÃO MUNICIPAL (ISSQN)" quando o
+        // texto precisava de mais de ~2 linhas. Agora a altura é calculada
+        // dinamicamente via TCPDF::getStringHeight().
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $descricaoLonga = trim(str_repeat(
+            'Servico de exemplo com texto bem longo pra forcar quebra de linha multipla. ',
+            8,
+        ));
+        $xml = str_replace('Servico de exemplo - valores ficticios para teste', $descricaoLonga, $xml);
+
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+
+        $posDescricaoFim = strrpos($texto, 'forcar quebra de linha multipla.');
+        $posTributacao = strpos($texto, 'TRIBUTAÇÃO MUNICIPAL');
+        self::assertNotFalse($posDescricaoFim, 'descrição completa não encontrada no PDF');
+        self::assertNotFalse($posTributacao, 'bloco TRIBUTAÇÃO MUNICIPAL não encontrado no PDF');
+        self::assertGreaterThan(
+            $posDescricaoFim,
+            $posTributacao,
+            'TRIBUTAÇÃO MUNICIPAL deveria vir depois da descrição completa no texto extraído',
+        );
+    }
 }

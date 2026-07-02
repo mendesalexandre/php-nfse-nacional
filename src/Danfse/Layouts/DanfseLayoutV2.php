@@ -49,8 +49,14 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     /** Espessura da borda externa da página em mm pra 1pt */
     private const ESPESSURA_BORDA_MM = 0.353;
 
-    /** Distância (cm) da moldura externa à borda física da folha. */
-    private const MARGEM_FOLHA_CM = 0.17;
+    /**
+     * Distância (cm) da moldura externa à borda física da folha. Igual a
+     * `DanfseLayout::MARGIN_X_CM`/`Y_CABECALHO_CM` (0.30) de propósito —
+     * antes era 0.17, deixando uma faixa branca entre a moldura e o
+     * conteúdo (cabeçalho e linhas dos blocos "flutuavam" sem encostar
+     * na borda). Igualando os dois, tudo fica rente à moldura.
+     */
+    private const MARGEM_FOLHA_CM = 0.30;
 
     public function versao(): DanfseVersao
     {
@@ -430,10 +436,22 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             $s['descricao_tributacao_nacional'] ?? '-');
         $this->cursorY += 0.45;
 
-        $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, 1.10,
-            $s['descricao_servico'] ?? '-',
+        // Altura dinâmica: descrição de serviço não tem tamanho máximo (até
+        // 2000 chars no XML), altura fixa de 1.10cm cortava/sobrepunha o
+        // bloco seguinte quando o texto precisava de mais de ~2 linhas.
+        // Mede quantas linhas o MultiCell vai realmente usar e reserva esse
+        // espaço, com o mínimo de 1.10cm de antes (textos curtos).
+        $textoDescricao = $s['descricao_servico'] ?? '-';
+        $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CONTEUDO);
+        $alturaTextoMm = $this->pdf->getStringHeight(
+            DanfseLayout::cmToMm(20.40 - 1.0),
+            $textoDescricao,
+        );
+        $alturaDescricaoCm = max(1.10, ($alturaTextoMm / 10) + 0.35);
+        $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, $alturaDescricaoCm,
+            $textoDescricao,
             label: 'Descrição do Serviço');
-        $this->cursorY += 1.10;
+        $this->cursorY += $alturaDescricaoCm;
     }
 
     // ================================================================

@@ -5,6 +5,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.4] — 2026-07-02
+
+### Corrigido
+
+- **Moldura da folha com gap do conteúdo**: `MARGEM_FOLHA_CM` (0.17) era
+  menor que `MARGIN_X_CM`/`Y_CABECALHO_CM` (0.30) usados pelo conteúdo —
+  deixava uma faixa branca entre a moldura externa e o cabeçalho/blocos
+  (nada ficava rente à borda). Igualado a 0.30.
+- **Descrição do Serviço sobrepunha TRIBUTAÇÃO MUNICIPAL**: altura fixa
+  de 1.10cm pro bloco "Descrição do Serviço" não dava conta de textos
+  longos (>2 linhas) — o bloco seguinte começava a desenhar antes do
+  texto terminar. Altura agora calculada dinamicamente via
+  `TCPDF::getStringHeight()`, mínimo 1.10cm (preserva textos curtos).
+
 ## [0.26.3] — 2026-07-02
 
 ### Alterado
