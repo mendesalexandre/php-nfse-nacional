@@ -176,6 +176,20 @@ final class Valores
          * valida a combinação, só o formato (6 dígitos).
          */
         public readonly string $cClassTrib = '000001',
+        /**
+         * `<cCredPres>` do grupo `gIBSCBS` — Código e Classificação do
+         * Crédito Presumido de IBS/CBS (2 dígitos, `TSRTCCodCredPres`).
+         * Opcional; aplicável a operações com direito a crédito presumido
+         * (ex: agropecuário, insumos). Default `null` = omitido.
+         */
+        public readonly ?string $cCredPres = null,
+        /**
+         * `<gTribRegular>` do grupo `gIBSCBS` — referência à classificação
+         * tributária regular, usada quando a operação usa uma
+         * classificação diferente (redução, isenção, diferimento).
+         * Default `null` = omitido.
+         */
+        public readonly ?TribRegular $tribRegular = null,
     ) {
         $errors = [];
 
@@ -184,6 +198,9 @@ final class Valores
         }
         if (!preg_match('/^\d{6}$/', $cClassTrib)) {
             $errors[] = "cClassTrib inválido: '{$cClassTrib}' (esperado 6 dígitos)";
+        }
+        if ($cCredPres !== null && !preg_match('/^\d{2}$/', $cCredPres)) {
+            $errors[] = "cCredPres inválido: '{$cCredPres}' (esperado 2 dígitos)";
         }
 
         if ($valorServicos <= 0) {

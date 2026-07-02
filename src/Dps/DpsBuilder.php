@@ -646,7 +646,9 @@ final class DpsBuilder
         $ibscbs->appendChild($this->el($doc, 'finNFSe', '0'));   // 0 = Normal
         $ibscbs->appendChild($this->el($doc, 'indFinal', '1'));   // 1 = Consumidor final
         $ibscbs->appendChild($this->el($doc, 'cIndOp', $servico->cIndOp));
-        $ibscbs->appendChild($this->el($doc, 'indDest', '0'));   // 0 = Operação interna
+        // indDest: 0 = destinatário é o próprio tomador (caso normal);
+        // 1 = destinatário é outra pessoa/empresa diferente do tomador.
+        $ibscbs->appendChild($this->el($doc, 'indDest', '0'));
 
         // valores > trib > gIBSCBS (estrutura mínima)
         $valNode = $this->el($doc, 'valores');
@@ -659,6 +661,17 @@ final class DpsBuilder
         $gIBSCBS = $this->el($doc, 'gIBSCBS');
         $gIBSCBS->appendChild($this->el($doc, 'CST', $valores->cstIbsCbs));
         $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', $valores->cClassTrib));
+        // Ordem oficial (TCRTCInfoTributosSitClas): CST → cClassTrib →
+        // cCredPres? → gTribRegular? → gDif?
+        if ($valores->cCredPres !== null) {
+            $gIBSCBS->appendChild($this->el($doc, 'cCredPres', $valores->cCredPres));
+        }
+        if ($valores->tribRegular !== null) {
+            $gTribRegular = $this->el($doc, 'gTribRegular');
+            $gTribRegular->appendChild($this->el($doc, 'CSTReg', $valores->tribRegular->cstReg));
+            $gTribRegular->appendChild($this->el($doc, 'cClassTribReg', $valores->tribRegular->cClassTribReg));
+            $gIBSCBS->appendChild($gTribRegular);
+        }
         $trib->appendChild($gIBSCBS);
         $valNode->appendChild($trib);
         $ibscbs->appendChild($valNode);

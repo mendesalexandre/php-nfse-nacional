@@ -392,6 +392,61 @@ final class DpsBuilderTest extends TestCase
         self::assertStringContainsString('<cClassTrib>200003</cClassTrib>', $xml);
     }
 
+    public function test_IBSCBS_inclui_cCredPres_quando_informado(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
+            endereco: $endereco,
+        );
+        $config = new Config(
+            prestador: $prestador,
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $builder = new DpsBuilder($config);
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00, cCredPres: '01'),
+        );
+        self::assertStringContainsString('<cCredPres>01</cCredPres>', $xml);
+    }
+
+    public function test_IBSCBS_inclui_gTribRegular_quando_informado(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $prestador = new Prestador(
+            cnpj: '12345678000195',
+            inscricaoMunicipal: '12345',
+            razaoSocial: 'EMPRESA EXEMPLO LTDA',
+            endereco: $endereco,
+        );
+        $config = new Config(
+            prestador: $prestador,
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $builder = new DpsBuilder($config);
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(
+                100.00, 20.00, 4.00,
+                cstIbsCbs: '200',
+                cClassTrib: '200028',
+                tribRegular: new \PhpNfseNacional\DTO\TribRegular(cstReg: '000', cClassTribReg: '000001'),
+            ),
+        );
+        self::assertStringContainsString('<gTribRegular>', $xml);
+        self::assertStringContainsString('<CSTReg>000</CSTReg>', $xml);
+        self::assertStringContainsString('<cClassTribReg>000001</cClassTribReg>', $xml);
+    }
+
     public function test_cClassTrib_invalido_lanca_validation_exception(): void
     {
         $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);

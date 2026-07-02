@@ -5,6 +5,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-07-02
+
+### Adicionado — `cCredPres` e `gTribRegular` no grupo IBSCBS
+
+- `Valores::$cCredPres` (opcional, 2 dígitos, `TSRTCCodCredPres`) — Código
+  e Classificação do Crédito Presumido de IBS/CBS.
+- `Valores::$tribRegular` (opcional, `TribRegular` novo DTO) — grupo
+  `<gTribRegular>` com `CSTReg`/`cClassTribReg`, referência à
+  classificação tributária regular quando a operação usa uma
+  classificação diferente (redução, isenção, diferimento).
+- Ordem no XML (`TCRTCInfoTributosSitClas`): `CST → cClassTrib →
+  cCredPres? → gTribRegular? → gDif?` (gDif não implementado ainda).
+
 ## [0.24.0] — 2026-07-02
 
 ### Adicionado — `cTribMun` opcional em `Servico`
