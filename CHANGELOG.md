@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.2] — 2026-07-02
+
+### Corrigido
+
+- **Cabeçalho com moldura duplicada**: o bloco superior (fundo cinza com
+  logo/título/QR) tinha sua própria borda ('DF'), quase encostada na
+  moldura externa da folha — efeito visual de borda dupla. Trocado por
+  fundo sombreado sem borda própria ('F') + uma única linha divisória
+  full-width no rodapé do cabeçalho, encostada na moldura externa (mesmo
+  X/largura de `linhaSeparadora()`).
+
 ## [0.26.1] — 2026-07-02
 
 ### Corrigido

@@ -99,8 +99,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $altCabec = DanfseLayout::cmToMm(1.16);
 
+        // Sem moldura própria (evita borda dupla junto da moldura externa da
+        // folha, que já corre nas laterais/topo) — só o fundo sombreado +
+        // uma linha inferior full-width, encostada na moldura externa.
         $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
-        $this->pdf->Rect($marginX, $y, $larguraTotal, $altCabec, 'DF');
+        $this->pdf->Rect($marginX, $y, $larguraTotal, $altCabec, 'F');
+        $this->linhaSeparadora(DanfseLayout::Y_CABECALHO_CM + 1.16);
 
         $logoPath = __DIR__ . '/../../../resources/assets/logo-nfse-horizontal.png';
         if (file_exists($logoPath)) {
