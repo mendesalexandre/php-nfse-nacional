@@ -93,7 +93,7 @@ final class DanfseGeneratorTest extends TestCase
         self::assertNotFalse($xml);
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
         $texto = $this->textoDoPdf($pdf);
-        self::assertStringNotContainsString('Data Cientificação', $texto);
+        self::assertStringNotContainsString('DATA CIENTIFICAÇÃO', $texto);
     }
 
     public function test_canhoto_preenchido_automaticamente_repete_data_emissao(): void
@@ -105,9 +105,10 @@ final class DanfseGeneratorTest extends TestCase
             new DanfseCustomizacao(canhoto: \PhpNfseNacional\Enums\TipoCanhoto::PreenchidoAutomaticamente),
         );
         $texto = $this->textoDoPdf($pdf);
-        self::assertStringContainsString('Data Cientificação', $texto);
-        self::assertStringContainsString('Identificação e Assinatura', $texto);
-        self::assertStringContainsString('Nº NFS-e / Chave NFS-e', $texto);
+        // Labels em caixa alta (a pedido, 02/07/2026).
+        self::assertStringContainsString('DATA CIENTIFICAÇÃO', $texto);
+        self::assertStringContainsString('IDENTIFICAÇÃO E ASSINATURA', $texto);
+        self::assertStringContainsString('Nº NFS-E / CHAVE NFS-E', $texto);
         // A data de emissão (15/01/2026 10:00:00, da fixture) aparece 3x:
         // bloco DADOS DA NFS-e + "Data Cientificação" + "Identificação e
         // Assinatura" (ambos preenchidos automaticamente no canhoto).
@@ -123,7 +124,7 @@ final class DanfseGeneratorTest extends TestCase
             new DanfseCustomizacao(canhoto: \PhpNfseNacional\Enums\TipoCanhoto::EmBranco),
         );
         $texto = $this->textoDoPdf($pdf);
-        self::assertStringContainsString('Data Cientificação', $texto);
+        self::assertStringContainsString('DATA CIENTIFICAÇÃO', $texto);
         // Sem preenchimento automático — a data de emissão aparece só 1x
         // (no bloco DADOS DA NFS-e), não duplicada no canhoto.
         self::assertSame(1, substr_count($texto, '15/01/2026 10:00:00'));

@@ -5,6 +5,14 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.3] — 2026-07-02
+
+### Alterado
+
+- Labels do bloco Canhoto ("Data Cientificação", "Identificação e
+  Assinatura", "Nº NFS-e / Chave NFS-e") agora em caixa alta, igual ao
+  restante dos labels do documento.
+
 ## [0.26.2] — 2026-07-02
 
 ### Corrigido

@@ -771,11 +771,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             $marginX + DanfseLayout::cmToMm($col1Cm + $col2Cm), $y + $altura);
 
         $this->renderCelula(DanfseLayout::MARGIN_X_CM, $this->cursorY, $col1Cm, self::ALTURA_CANHOTO_CM,
-            'Data Cientificação', $dataHoraEmissao);
+            'Data Cientificação', $dataHoraEmissao, labelCaixaAlta: true);
         $this->renderCelula(DanfseLayout::MARGIN_X_CM + $col1Cm, $this->cursorY, $col2Cm,
-            self::ALTURA_CANHOTO_CM, 'Identificação e Assinatura', $preenchido ? $dataHoraEmissao : '');
+            self::ALTURA_CANHOTO_CM, 'Identificação e Assinatura', $preenchido ? $dataHoraEmissao : '',
+            labelCaixaAlta: true);
         $this->renderCelulaAutoFit(DanfseLayout::MARGIN_X_CM + $col1Cm + $col2Cm, $this->cursorY, $col3Cm,
-            self::ALTURA_CANHOTO_CM, 'Nº NFS-e / Chave NFS-e', $numeroChave);
+            self::ALTURA_CANHOTO_CM, 'Nº NFS-e / Chave NFS-e', $numeroChave, labelCaixaAlta: true);
 
         $this->cursorY += self::ALTURA_CANHOTO_CM;
     }
@@ -793,6 +794,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         float $alturaCm,
         string $label,
         string $valor,
+        bool $labelCaixaAlta = false,
     ): void {
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $x = $marginX + DanfseLayout::cmToMm($xCm - DanfseLayout::MARGIN_X_CM);
@@ -802,7 +804,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_CAMPO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
         $this->pdf->SetXY($x + 0.5, $y + 0.3);
-        $this->pdf->Cell($largura - 1, 2.5, $label, 0, 0, 'L');
+        $this->pdf->Cell($largura - 1, 2.5, $labelCaixaAlta ? mb_strtoupper($label) : $label, 0, 0, 'L');
 
         $tamanho = DanfseLayout::TAM_CONTEUDO;
         $larguraDisponivel = $largura - 1.0;
