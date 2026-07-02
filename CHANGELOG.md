@@ -5,6 +5,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.8] — 2026-07-02
+
+### Corrigido
+
+- **"Ambiente" mostrava "Sistema Nacional" hardcoded, errado**: esse
+  campo (item 2.1.1/2.4.3 do Anexo I, "Ambiente Gerador") indica QUEM
+  gerou o *documento PDF* — "Sistema Nacional" só vale pro DANFSe oficial
+  baixado do ADN. Esse SDK só gera localmente (`danfseLocal`/
+  `gerarDoXml`), nunca via ADN nesse fluxo, então o valor correto é
+  sempre "Sistema Próprio" (igual ao que outros sistemas terceiros
+  mostram nas DANFSe locais deles). Rótulo também corrigido pra
+  "Ambiente Gerador" (era só "Ambiente").
+
 ## [0.26.7] — 2026-07-02
 
 ### Alterado

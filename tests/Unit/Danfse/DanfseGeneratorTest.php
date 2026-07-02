@@ -191,4 +191,17 @@ final class DanfseGeneratorTest extends TestCase
             'TRIBUTAÇÃO MUNICIPAL deveria vir depois da descrição completa no texto extraído',
         );
     }
+
+    public function test_ambiente_gerador_e_sempre_sistema_proprio(): void
+    {
+        // O SDK só gera DANFSe LOCALMENTE (nunca via ADN nesse fluxo) —
+        // "Ambiente Gerador" tem que refletir isso, não "Sistema Nacional"
+        // (que era o valor hardcoded errado antes, 02/07/2026).
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringContainsString('Ambiente Gerador: Sistema Próprio', $texto);
+        self::assertStringNotContainsString('Sistema Nacional', $texto);
+    }
 }

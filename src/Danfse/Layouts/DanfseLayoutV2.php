@@ -155,10 +155,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->pdf->SetXY($xDir, $y + 0.5);
         $this->pdf->Cell($larguraDir, 3, 'Município: ' . $municipio, 0, 0, 'L');
 
-        $ambiente = 'Sistema Nacional';
+        // "Ambiente Gerador" (item 2.1.1/2.4.3 do Anexo I) indica QUEM gerou
+        // o DOCUMENTO PDF — "Sistema Nacional" só se aplica ao DANFSe oficial
+        // baixado do ADN. Esse SDK só gera localmente (danfseLocal), nunca
+        // via ADN nesse fluxo — então é sempre "Sistema Próprio", igual ao
+        // que outros sistemas terceiros mostram nas suas DANFSe locais.
+        $ambienteGerador = 'Sistema Próprio';
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CABECALHO_AMBIENTE);
         $this->pdf->SetXY($xDir, $y + 4);
-        $this->pdf->Cell($larguraDir, 2.5, 'Ambiente: ' . $ambiente, 0, 0, 'L');
+        $this->pdf->Cell($larguraDir, 2.5, 'Ambiente Gerador: ' . $ambienteGerador, 0, 0, 'L');
 
         $tipoAmb = $dados->homologacao ? 'Homologação' : 'Produção';
         $this->pdf->SetXY($xDir, $y + 6.5);
