@@ -321,9 +321,10 @@ final class DanfseLayout
     }
 
     /**
-     * Formata chave de acesso (50 dígitos) em grupos de 4 pra leitura,
-     * conforme costume das DANFSE oficiais. Mantém o conteúdo cru se não
-     * tiver 50 dígitos.
+     * Formata chave de acesso (50 dígitos) — dígitos corridos, sem
+     * separação em grupos (a pedido, 02/07/2026; antes agrupava de 4 em 4
+     * com espaço, "costume das DANFSE oficiais" que não bateu com o que
+     * o cartório queria). Só remove caracteres não-numéricos.
      */
     public static function formatarChave(?string $chave): string
     {
@@ -331,9 +332,6 @@ final class DanfseLayout
             return '-';
         }
         $d = preg_replace('/\D/', '', $chave) ?? '';
-        if (strlen($d) !== 50) {
-            return $d !== '' ? $d : '-';
-        }
-        return trim(chunk_split($d, 4, ' '));
+        return $d !== '' ? $d : '-';
     }
 }

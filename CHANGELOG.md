@@ -5,6 +5,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.6] — 2026-07-02
+
+### Alterado
+
+- `DanfseLayout::formatarChave()` não agrupa mais os 50 dígitos da chave
+  de acesso em blocos de 4 separados por espaço — dígitos corridos, a
+  pedido.
+- Legenda "A autenticidade desta NFS-e pode ser verificada..." abaixo do
+  QR Code agora alinhada à esquerda (era centralizada).
+
 ## [0.26.5] — 2026-07-02
 
 ### Corrigido

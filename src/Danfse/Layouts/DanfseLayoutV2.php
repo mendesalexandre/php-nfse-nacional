@@ -185,7 +185,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
                 2.0,
                 DanfseLayout::TEXTO_AUTENTICIDADE_QR,
                 0,
-                'C',
+                'L',
                 false,
             );
         }
