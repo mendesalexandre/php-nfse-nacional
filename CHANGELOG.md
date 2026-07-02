@@ -5,6 +5,24 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.5] — 2026-07-02
+
+### Corrigido
+
+- **Moldura externa coberta pelo fundo cinza**: células sombreadas
+  encostadas na borda (EMITENTE/SITUAÇÃO/FINALIDADE, VALOR LÍQUIDO DA
+  NFS-e, VALOR LÍQUIDO DA NFS-e + IBS/CBS) cobriam um trecho da moldura
+  externa, já que ambas ocupam o mesmo X desde a v0.26.4 (moldura sem
+  gap). `renderBordaFolha()` movida pro final de `renderizar()` — desenha
+  por cima de tudo, garantindo que a linha nunca fica coberta.
+
+### Alterado
+
+- Bloco Canhoto ganha `PADDING_CANHOTO_CM` (0,20cm) de recuo lateral em
+  relação à moldura externa — diferente do resto do documento (que
+  encosta na moldura por design), o canhoto fica com uma respiração
+  visual.
+
 ## [0.26.4] — 2026-07-02
 
 ### Corrigido

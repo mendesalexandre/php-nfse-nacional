@@ -74,9 +74,6 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->pdf->SetLineWidth(self::ESPESSURA_BORDA_MM);
         $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
 
-        // Moldura externa da folha (estilo V1 — linha ao redor de toda a página)
-        $this->renderBordaFolha();
-
         $this->renderCabecalho($dados);
         // Bloco DADOS DA NFS-e: posição fixa pra alinhar com QR Code do cabeçalho
         $this->cursorY = DanfseLayout::Y_DADOS_NFSE_CM;
@@ -92,6 +89,13 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderValorTotal($dados);
         $this->renderInformacoesComplementares($dados);
         $this->renderCanhoto($dados);
+
+        // Moldura externa da folha por ÚLTIMO (estilo V1 — linha ao redor de
+        // toda a página). Como agora encosta exatamente nas células
+        // sombreadas (MARGEM_FOLHA_CM = MARGIN_X_CM), precisa ser desenhada
+        // por cima de tudo — senão o fundo cinza de EMITENTE/SITUAÇÃO/
+        // FINALIDADE e VALOR LÍQUIDO cobre um pedaço da linha.
+        $this->renderBordaFolha();
     }
 
     // ================================================================
@@ -753,6 +757,13 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     // BLOCO 13 — CANHOTO (item 2.1.13, opcional)
     // ================================================================
 
+    /**
+     * Recuo lateral (cm) do bloco Canhoto em relação à moldura externa —
+     * diferente do resto do documento (que encosta na moldura), o canhoto
+     * fica com uma respiração visual pra não parecer "colado" na borda.
+     */
+    private const PADDING_CANHOTO_CM = 0.20;
+
     private function renderCanhoto(DanfseDados $dados): void
     {
         if (!($this->custom?->temCanhoto() ?? false)) {
@@ -765,9 +776,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             : '';
         $numeroChave = trim(($dados->identificacao['numero'] ?? '-') . ' / ' . ($dados->identificacao['chave'] ?? '-'));
 
-        $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $xInicioCm = DanfseLayout::MARGIN_X_CM + self::PADDING_CANHOTO_CM;
+        $larguraCm = DanfseLayout::CONTENT_WIDTH_CM - 2 * self::PADDING_CANHOTO_CM;
+
+        $marginX = DanfseLayout::cmToMm($xInicioCm);
         $y = DanfseLayout::cmToMm($this->cursorY);
-        $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
+        $largura = DanfseLayout::cmToMm($larguraCm);
         $altura = DanfseLayout::cmToMm(self::ALTURA_CANHOTO_CM);
         $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
 
@@ -778,7 +792,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // a folha.
         $col1Cm = 4.50;
         $col2Cm = 4.50;
-        $col3Cm = DanfseLayout::CONTENT_WIDTH_CM - $col1Cm - $col2Cm;
+        $col3Cm = $larguraCm - $col1Cm - $col2Cm;
 
         // Linhas divisórias entre as colunas (visual de tabela, como o
         // restante do documento).
@@ -788,12 +802,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->pdf->Line($marginX + DanfseLayout::cmToMm($col1Cm + $col2Cm), $y,
             $marginX + DanfseLayout::cmToMm($col1Cm + $col2Cm), $y + $altura);
 
-        $this->renderCelula(DanfseLayout::MARGIN_X_CM, $this->cursorY, $col1Cm, self::ALTURA_CANHOTO_CM,
+        $this->renderCelula($xInicioCm, $this->cursorY, $col1Cm, self::ALTURA_CANHOTO_CM,
             'Data Cientificação', $dataHoraEmissao, labelCaixaAlta: true);
-        $this->renderCelula(DanfseLayout::MARGIN_X_CM + $col1Cm, $this->cursorY, $col2Cm,
+        $this->renderCelula($xInicioCm + $col1Cm, $this->cursorY, $col2Cm,
             self::ALTURA_CANHOTO_CM, 'Identificação e Assinatura', $preenchido ? $dataHoraEmissao : '',
             labelCaixaAlta: true);
-        $this->renderCelulaAutoFit(DanfseLayout::MARGIN_X_CM + $col1Cm + $col2Cm, $this->cursorY, $col3Cm,
+        $this->renderCelulaAutoFit($xInicioCm + $col1Cm + $col2Cm, $this->cursorY, $col3Cm,
             self::ALTURA_CANHOTO_CM, 'Nº NFS-e / Chave NFS-e', $numeroChave, labelCaixaAlta: true);
 
         $this->cursorY += self::ALTURA_CANHOTO_CM;
