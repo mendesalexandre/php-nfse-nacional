@@ -93,8 +93,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // Moldura externa da folha por ÚLTIMO (estilo V1 — linha ao redor de
         // toda a página). Como agora encosta exatamente nas células
         // sombreadas (MARGEM_FOLHA_CM = MARGIN_X_CM), precisa ser desenhada
-        // por cima de tudo — senão o fundo cinza de EMITENTE/SITUAÇÃO/
-        // FINALIDADE e VALOR LÍQUIDO cobre um pedaço da linha.
+        // por cima de tudo — senão o fundo cinza de EMITENTE DA NFS-e e
+        // VALOR LÍQUIDO cobre um pedaço da linha.
         $this->renderBordaFolha();
     }
 
@@ -233,12 +233,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             sombreado: true);
         $this->renderCelula(5.41, $this->cursorY, 5.09, $alturaLinha, 'SITUAÇÃO DA NFS-e',
             $this->labelSituacao((int) ($dados->identificacao['cStat'] ?? 0)),
-            tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
-            sombreado: true);
+            tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true);
         $this->renderCelula(10.51, $this->cursorY, 5.09, $alturaLinha, 'FINALIDADE',
             $this->labelFinalidade($dados->identificacao['finalidade'] ?? null),
-            tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
-            sombreado: true);
+            tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true);
         $this->cursorY += $alturaLinha;
     }
 

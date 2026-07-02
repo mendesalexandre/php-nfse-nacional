@@ -5,6 +5,13 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.7] — 2026-07-02
+
+### Alterado
+
+- Remove fundo cinza (sombreado) de "SITUAÇÃO DA NFS-e" e "FINALIDADE" —
+  "EMITENTE DA NFS-e" (mesma linha) mantém o destaque.
+
 ## [0.26.6] — 2026-07-02
 
 ### Alterado
