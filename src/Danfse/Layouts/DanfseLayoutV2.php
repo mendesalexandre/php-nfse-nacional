@@ -8,6 +8,7 @@ use PhpNfseNacional\Danfse\DanfseCustomizacao;
 use PhpNfseNacional\Danfse\DanfseDados;
 use PhpNfseNacional\Danfse\DanfseLayout;
 use PhpNfseNacional\Enums\DanfseVersao;
+use PhpNfseNacional\Enums\TipoCanhoto;
 use PhpNfseNacional\Support\IbgeMunicipios;
 use TCPDF;
 
@@ -38,6 +39,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     /** Altura do título do bloco (item 2.4.1 — 7pt bold MAIÚSCULAS) */
     private const ALTURA_TITULO_BLOCO_CM = 0.40;
+
+    /** Altura do bloco "Canhoto" opcional (item 2.1.13), quando ativado */
+    private const ALTURA_CANHOTO_CM = 1.30;
 
     /** Espessura mínima de linha em mm pra 0,5pt (item 2.2.3) */
     private const ESPESSURA_LINHA_MM = 0.176;
@@ -81,6 +85,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderTributacaoIbsCbs($dados);
         $this->renderValorTotal($dados);
         $this->renderInformacoesComplementares($dados);
+        $this->renderCanhoto($dados);
     }
 
     // ================================================================
@@ -716,9 +721,43 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         );
 
         $texto = implode("\n", $linhas);
-        $alturaRestante = max(2.0, 28.7 - $this->cursorY);
+        $limiteInferior = 28.7 - ($this->custom?->temCanhoto() === true ? self::ALTURA_CANHOTO_CM : 0.0);
+        $alturaRestante = max(2.0, $limiteInferior - $this->cursorY);
         $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, $alturaRestante, $texto);
         $this->cursorY += $alturaRestante;
+    }
+
+    // ================================================================
+    // BLOCO 13 — CANHOTO (item 2.1.13, opcional)
+    // ================================================================
+
+    private function renderCanhoto(DanfseDados $dados): void
+    {
+        if (!($this->custom?->temCanhoto() ?? false)) {
+            return;
+        }
+
+        $preenchido = $this->custom->canhoto === TipoCanhoto::PreenchidoAutomaticamente;
+        $dataHoraEmissao = $preenchido
+            ? DanfseLayout::formatarDataHora($dados->identificacao['data_emissao_nfse'] ?? null)
+            : '';
+        $numeroChave = trim(($dados->identificacao['numero'] ?? '-') . ' / ' . ($dados->identificacao['chave'] ?? '-'));
+
+        $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $y = DanfseLayout::cmToMm($this->cursorY);
+        $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
+        $altura = DanfseLayout::cmToMm(self::ALTURA_CANHOTO_CM);
+        $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
+
+        $larguraColuna = DanfseLayout::CONTENT_WIDTH_CM / 3;
+        $this->renderCelula(DanfseLayout::MARGIN_X_CM, $this->cursorY, $larguraColuna, self::ALTURA_CANHOTO_CM,
+            'Data Cientificação', $dataHoraEmissao);
+        $this->renderCelula(DanfseLayout::MARGIN_X_CM + $larguraColuna, $this->cursorY, $larguraColuna,
+            self::ALTURA_CANHOTO_CM, 'Identificação e Assinatura', $preenchido ? $dataHoraEmissao : '');
+        $this->renderCelula(DanfseLayout::MARGIN_X_CM + 2 * $larguraColuna, $this->cursorY, $larguraColuna,
+            self::ALTURA_CANHOTO_CM, 'Nº NFS-e / Chave NFS-e', $numeroChave);
+
+        $this->cursorY += self::ALTURA_CANHOTO_CM;
     }
 
     // ================================================================

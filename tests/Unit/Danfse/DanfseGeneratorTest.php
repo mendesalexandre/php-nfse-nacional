@@ -74,4 +74,58 @@ final class DanfseGeneratorTest extends TestCase
             ->gerarDoXml($xml, new DanfseCustomizacao(cancelada: true));
         self::assertStringStartsWith('%PDF-', $pdf);
     }
+
+    private function textoDoPdf(string $pdf): string
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível no ambiente');
+        }
+        return $texto;
+    }
+
+    public function test_sem_customizacao_nao_renderiza_canhoto(): void
+    {
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringNotContainsString('Data Cientificação', $texto);
+    }
+
+    public function test_canhoto_preenchido_automaticamente_repete_data_emissao(): void
+    {
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml(
+            $xml,
+            new DanfseCustomizacao(canhoto: \PhpNfseNacional\Enums\TipoCanhoto::PreenchidoAutomaticamente),
+        );
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringContainsString('Data Cientificação', $texto);
+        self::assertStringContainsString('Identificação e Assinatura', $texto);
+        self::assertStringContainsString('Nº NFS-e / Chave NFS-e', $texto);
+        // A data de emissão (15/01/2026 10:00:00, da fixture) aparece 3x:
+        // bloco DADOS DA NFS-e + "Data Cientificação" + "Identificação e
+        // Assinatura" (ambos preenchidos automaticamente no canhoto).
+        self::assertSame(3, substr_count($texto, '15/01/2026 10:00:00'));
+    }
+
+    public function test_canhoto_em_branco_nao_repete_data_emissao(): void
+    {
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml(
+            $xml,
+            new DanfseCustomizacao(canhoto: \PhpNfseNacional\Enums\TipoCanhoto::EmBranco),
+        );
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringContainsString('Data Cientificação', $texto);
+        // Sem preenchimento automático — a data de emissão aparece só 1x
+        // (no bloco DADOS DA NFS-e), não duplicada no canhoto.
+        self::assertSame(1, substr_count($texto, '15/01/2026 10:00:00'));
+    }
 }

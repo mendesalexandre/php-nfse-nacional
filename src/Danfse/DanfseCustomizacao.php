@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Danfse;
 
+use PhpNfseNacional\Enums\TipoCanhoto;
 use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
@@ -71,6 +72,19 @@ final class DanfseCustomizacao
          * `listarEventos()`. `null` = usa o XML; default do parser é `false`.
          */
         public readonly ?bool $substituida = null,
+
+        /**
+         * Bloco "Canhoto" opcional (item 2.1.13 do Anexo I, NT 008/2026):
+         * "Data de cientificação", "Identificação e Assinatura", "Nº da
+         * NFS-e / Chave da NFS-e", no rodapé da folha.
+         *
+         * Default `null` = **não renderiza** (comportamento anterior).
+         * `TipoCanhoto::EmBranco` = linhas vazias, pra assinatura física.
+         * `TipoCanhoto::PreenchidoAutomaticamente` = preenche "Data de
+         * cientificação" e "Identificação e Assinatura" com a data/hora
+         * de emissão da NFS-e — sem exigir assinatura física.
+         */
+        public readonly ?TipoCanhoto $canhoto = null,
     ) {
         $errors = [];
 
@@ -100,5 +114,10 @@ final class DanfseCustomizacao
     public function temObservacoesAdicionais(): bool
     {
         return $this->observacoesAdicionais !== null && trim($this->observacoesAdicionais) !== '';
+    }
+
+    public function temCanhoto(): bool
+    {
+        return $this->canhoto !== null;
     }
 }

@@ -5,6 +5,22 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-07-02
+
+### Adicionado — Bloco "Canhoto" opcional na DANFSe local (item 2.1.13, Anexo I)
+
+- `DanfseCustomizacao::$canhoto` (novo, `?TipoCanhoto`, default `null` =
+  não renderiza — comportamento anterior inalterado). Rodapé com "Data de
+  cientificação", "Identificação e Assinatura", "Nº da NFS-e / Chave da
+  NFS-e", conforme item 2.1.13 do Anexo I (NT 008/2026), marcado como
+  "Opcional" no leiaute.
+- `TipoCanhoto::EmBranco` — linhas vazias, pra assinatura física do
+  tomador ao receber o DANFSe impresso (uso clássico de "canhoto").
+- `TipoCanhoto::PreenchidoAutomaticamente` — preenche "Data de
+  cientificação" e "Identificação e Assinatura" com a data/hora de
+  emissão da NFS-e, sem exigir assinatura física — só registro formal.
+- Implementado só no `DanfseLayoutV2` (V1 sem alteração).
+
 ## [0.25.0] — 2026-07-02
 
 ### Adicionado — `cCredPres` e `gTribRegular` no grupo IBSCBS
