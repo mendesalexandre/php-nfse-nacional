@@ -204,4 +204,24 @@ final class DanfseGeneratorTest extends TestCase
         self::assertStringContainsString('Ambiente Gerador: Sistema Próprio', $texto);
         self::assertStringNotContainsString('Sistema Nacional', $texto);
     }
+
+    public function test_nome_tomador_longo_nao_sobrepoe_municipio(): void
+    {
+        // Bug real (02/07/2026): "Nome / Nome Empresarial" usava Cell()
+        // sem wrap/auto-fit — nomes institucionais longos (comuns em
+        // cartórios, ex: "OFICIAL DE REGISTRO CIVIL DAS PESSOAS NATURAIS
+        // E TABELIÃO DE NOTAS DO DISTRITO DE...") vazavam pra cima da
+        // coluna "Município / Sigla UF" ao lado.
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $nomeLongo = 'OFICIAL DE REGISTRO CIVIL DAS PESSOAS NATURAIS E TABELIAO DE '
+            . 'NOTAS DO DISTRITO DE OURO BRANCO COMARCA';
+        $xml = str_replace('JOAO DA SILVA', $nomeLongo, $xml);
+
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertStringContainsString($nomeLongo, $texto);
+        self::assertStringContainsString('São Paulo / SP', $texto);
+    }
 }

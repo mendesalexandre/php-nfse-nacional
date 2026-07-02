@@ -5,6 +5,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.9] — 2026-07-02
+
+### Corrigido
+
+- **"Nome / Nome Empresarial" sobrepondo "Município / Sigla UF"**: os 4
+  blocos que têm esse campo (Prestador, Tomador, Destinatário,
+  Intermediário) usavam `Cell()` sem wrap/auto-fit — nomes institucionais
+  longos (comuns em cartórios: "OFICIAL DE REGISTRO CIVIL DAS PESSOAS
+  NATURAIS E TABELIÃO DE NOTAS DO DISTRITO DE...") vazavam pra cima da
+  coluna vizinha. Trocado por `renderCelulaAutoFit()` (mesma técnica da
+  chave de acesso no canhoto, v0.26.1) — reduz a fonte em degraus até
+  caber.
+
 ## [0.26.8] — 2026-07-02
 
 ### Corrigido

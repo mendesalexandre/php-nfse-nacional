@@ -291,7 +291,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarTelefone($p['telefone']));
         $this->cursorY += $h;
 
-        $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
+        $this->renderCelulaAutoFit(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
             $p['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($p));
@@ -336,7 +336,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarTelefone($t['telefone']));
         $this->cursorY += $h;
 
-        $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
+        $this->renderCelulaAutoFit(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial',
             $t['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($t));
@@ -375,7 +375,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarTelefone($d['telefone']));
         $this->cursorY += $h;
 
-        $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial', $d['nome'] ?? '-');
+        $this->renderCelulaAutoFit(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial', $d['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($d));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
@@ -410,7 +410,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarTelefone($i['telefone'] ?? null));
         $this->cursorY += $h;
 
-        $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial', $i['nome'] ?? '-');
+        $this->renderCelulaAutoFit(0.30, $this->cursorY, 10.19, $h, 'Nome / Nome Empresarial', $i['nome'] ?? '-');
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($i));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
