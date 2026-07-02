@@ -456,26 +456,41 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             ($municipioIncidencia ?? '-') . ' / ' . ($ufIncidencia ?? '-') . ' / BR');
         $this->cursorY += $h;
 
+        // Nota "**" do Anexo I: linha suprimida quando não há dado em NENHUM
+        // campo dela. Regime Especial "Nenhum" (código 0/ausente) conta como
+        // sem dado — só o valor explícito (1-9) é informativo.
         $regimeCodigo = (int) ($dados->prestador['regime_especial'] ?? 0);
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Regime Especial de Tributação do ISSQN',
-            DanfseLayout::regimesEspeciais()[$regimeCodigo] ?? '-');
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Tipo de Imunidade do ISSQN',
-            $this->s($t['tipo_imunidade'] ?? null));
-        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Suspensão da Exigibilidade do ISSQN',
-            $this->s($t['tipo_suspensao'] ?? null));
-        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Número Processo Suspensão',
-            $this->s($t['numero_processo_suspensao'] ?? null));
-        $this->cursorY += $h;
+        $temRegimeEspecial = $regimeCodigo !== 0
+            || ($t['tipo_imunidade'] ?? null) !== null
+            || ($t['tipo_suspensao'] ?? null) !== null
+            || ($t['numero_processo_suspensao'] ?? null) !== null;
+        if ($temRegimeEspecial) {
+            $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Regime Especial de Tributação do ISSQN',
+                DanfseLayout::regimesEspeciais()[$regimeCodigo] ?? '-');
+            $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Tipo de Imunidade do ISSQN',
+                $this->s($t['tipo_imunidade'] ?? null));
+            $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Suspensão da Exigibilidade do ISSQN',
+                $this->s($t['tipo_suspensao'] ?? null));
+            $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Número Processo Suspensão',
+                $this->s($t['numero_processo_suspensao'] ?? null));
+            $this->cursorY += $h;
+        }
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Benefício Municipal',
-            $this->s($t['beneficio_municipal'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Cálculo do BM',
-            DanfseLayout::formatarMoeda($t['calculo_bm'] ?? null));
-        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Total Deduções/Reduções',
-            DanfseLayout::formatarMoeda($t['total_deducoes_reducoes'] ?? null));
-        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Desconto Incondicionado',
-            DanfseLayout::formatarMoeda($t['desconto_incondicionado'] ?? null));
-        $this->cursorY += $h;
+        $temBeneficioMunicipal = ($t['beneficio_municipal'] ?? null) !== null
+            || ($t['calculo_bm'] ?? null) !== null
+            || ($t['total_deducoes_reducoes'] ?? null) !== null
+            || ($t['desconto_incondicionado'] ?? null) !== null;
+        if ($temBeneficioMunicipal) {
+            $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Benefício Municipal',
+                $this->s($t['beneficio_municipal'] ?? null));
+            $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Cálculo do BM',
+                DanfseLayout::formatarMoeda($t['calculo_bm'] ?? null));
+            $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Total Deduções/Reduções',
+                DanfseLayout::formatarMoeda($t['total_deducoes_reducoes'] ?? null));
+            $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Desconto Incondicionado',
+                DanfseLayout::formatarMoeda($t['desconto_incondicionado'] ?? null));
+            $this->cursorY += $h;
+        }
 
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'BC ISSQN',
             DanfseLayout::formatarMoeda($t['base_calculo_issqn'] ?? null));
@@ -522,24 +537,34 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             corFundo: $this->corDestaqueSePossuirValor($f['contribuicoes_sociais_retidas'] ?? null));
         $this->cursorY += $h;
 
-        // "Descrição Contrib. Sociais - Retidas" expõe o tpRetPisCofins
-        // (1=Retido, 2=NãoRetido). Só destaca quando há retenção efetiva
-        // (código '1') e a flag de conferência está ligada. PIS/COFINS de
-        // apuração própria (débito) não são retenções — não recebem destaque.
-        $tpPC = (string) ($f['descricao_contrib_sociais'] ?? '');
-        $pisCofRetido = $tpPC !== '' && $tpPC !== '0' && $tpPC !== '2';
-        $corFundoPisCofins = ($this->destacarRetencoes && $pisCofRetido)
-            ? DanfseLayout::COR_AMARELO_DESTAQUE
-            : null;
+        // Nota "***" do Anexo I (NT 008): a linha PIS/COFINS/Descrição só é
+        // impressa pra NFS-e com competência até DATA_LIMITE_LINHA_PIS_COFINS
+        // — regra transitória da rampa da Reforma Tributária. Sem dCompet
+        // (nunca deveria acontecer numa NFS-e autorizada), imprime por padrão.
+        $competencia = $dados->identificacao['data_competencia'] ?? null;
+        $imprimirPisCofins = $competencia === null
+            || $competencia <= DanfseLayout::DATA_LIMITE_LINHA_PIS_COFINS;
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'PIS - Débito Apuração Própria',
-            DanfseLayout::formatarMoeda($f['pis_debito'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'COFINS - Débito Apuração Própria',
-            DanfseLayout::formatarMoeda($f['cofins_debito'] ?? null));
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Descrição Contrib. Sociais - Retidas',
-            $this->s($f['descricao_contrib_sociais'] ?? null),
-            corFundo: $corFundoPisCofins);
-        $this->cursorY += $h;
+        if ($imprimirPisCofins) {
+            // "Descrição Contrib. Sociais - Retidas" expõe o tpRetPisCofins
+            // (1=Retido, 2=NãoRetido). Só destaca quando há retenção efetiva
+            // (código '1') e a flag de conferência está ligada. PIS/COFINS de
+            // apuração própria (débito) não são retenções — não recebem destaque.
+            $tpPC = (string) ($f['descricao_contrib_sociais'] ?? '');
+            $pisCofRetido = $tpPC !== '' && $tpPC !== '0' && $tpPC !== '2';
+            $corFundoPisCofins = ($this->destacarRetencoes && $pisCofRetido)
+                ? DanfseLayout::COR_AMARELO_DESTAQUE
+                : null;
+
+            $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'PIS - Débito Apuração Própria',
+                DanfseLayout::formatarMoeda($f['pis_debito'] ?? null));
+            $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'COFINS - Débito Apuração Própria',
+                DanfseLayout::formatarMoeda($f['cofins_debito'] ?? null));
+            $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Descrição Contrib. Sociais - Retidas',
+                $this->s($f['descricao_contrib_sociais'] ?? null),
+                corFundo: $corFundoPisCofins);
+            $this->cursorY += $h;
+        }
     }
 
     // ================================================================

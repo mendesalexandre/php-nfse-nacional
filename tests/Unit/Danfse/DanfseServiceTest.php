@@ -232,4 +232,85 @@ final class DanfseServiceTest extends TestCase
 
         self::assertStringNotContainsString('NFS-e SEM VALIDADE JURÍDICA', $texto);
     }
+
+    public function test_pdf_mostra_linha_pis_cofins_com_competencia_ate_a_data_limite(): void
+    {
+        // Fixture tem dCompet=2026-01-15, antes de DATA_LIMITE_LINHA_PIS_COFINS
+        // (2026-12-31) — a linha "***" do Anexo I deve aparecer.
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        self::assertStringContainsString('PIS - Débito Apuração Própria', $texto);
+    }
+
+    public function test_pdf_suprime_linha_pis_cofins_apos_data_limite(): void
+    {
+        // Nota "***" do Anexo I (NT 008): competência posterior a
+        // DATA_LIMITE_LINHA_PIS_COFINS não deve mais imprimir a linha —
+        // regra transitória da rampa da Reforma Tributária.
+        $xml = str_replace('<dCompet>2026-01-15</dCompet>', '<dCompet>2027-01-15</dCompet>', $this->xmlAutorizado());
+
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($xml);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        self::assertStringNotContainsString('PIS - Débito Apuração Própria', $texto);
+    }
+
+    public function test_pdf_suprime_linha_regime_especial_quando_todos_os_campos_vazios(): void
+    {
+        // Nota "**" do Anexo I: fixture tem regEspTrib=0 (Nenhum) e nenhum
+        // dado de imunidade/suspensão — linha inteira deve sumir.
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        self::assertStringNotContainsString('Regime Especial de Tributação do ISSQN', $texto);
+    }
+
+    public function test_pdf_mostra_linha_regime_especial_quando_populada(): void
+    {
+        $xml = str_replace('<regEspTrib>0</regEspTrib>', '<regEspTrib>6</regEspTrib>', $this->xmlAutorizado());
+        self::assertNotSame($xml, $this->xmlAutorizado(), 'fixture precisa conter <regEspTrib>0</regEspTrib>');
+
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($xml);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+        self::assertStringContainsString('Regime Especial de Tributação do ISSQN', $texto);
+        self::assertStringContainsString('Microempreendedor Individual (MEI)', $texto);
+    }
 }

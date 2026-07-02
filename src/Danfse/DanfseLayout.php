@@ -31,6 +31,19 @@ namespace PhpNfseNacional\Danfse;
  */
 final class DanfseLayout
 {
+    // ================================================================
+    // REGRA TRANSITÓRIA — nota "***" do Anexo I (NT 008). ATUALIZAR AQUI
+    // se a SE/CGNFS-e estender/alterar o prazo.
+    // ================================================================
+    /**
+     * Data-limite (`dCompet`) até a qual a linha "PIS - Débito Apuração
+     * Própria / COFINS - Débito Apuração Própria / Descrição Contrib.
+     * Sociais - Retidas" (bloco TRIBUTAÇÃO FEDERAL) é impressa no DANFSe.
+     * NFS-e com competência POSTERIOR a esta data não imprimem a linha —
+     * regra transitória da rampa da Reforma Tributária.
+     */
+    public const DATA_LIMITE_LINHA_PIS_COFINS = '2026-12-31';
+
     // ============ Dimensões da página (A4 retrato) ============
     public const PAGE_WIDTH_MM = 210.0;
     public const PAGE_HEIGHT_MM = 297.0;

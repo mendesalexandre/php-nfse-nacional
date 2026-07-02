@@ -5,6 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-07-02
+
+### Adicionado — Regras de supressão do Anexo I na DANFSe V2 (notas `**`/`***`)
+
+- **Linha PIS/COFINS transitória (nota `***`)** — "PIS - Débito Apuração
+  Própria / COFINS - Débito Apuração Própria / Descrição Contrib. Sociais -
+  Retidas" (bloco TRIBUTAÇÃO FEDERAL) só é impressa pra NFS-e com
+  competência até `DanfseLayout::DATA_LIMITE_LINHA_PIS_COFINS` — regra
+  transitória da rampa da Reforma Tributária prevista no Anexo I. Const
+  isolada e comentada (default `2026-12-31`) pra facilitar atualização se
+  a SE/CGNFS-e estender o prazo.
+- **Linhas `**` suprimidas quando vazias** — "Regime Especial de Tributação
+  do ISSQN" (+ Imunidade/Suspensão/Processo) e "Benefício Municipal" (+
+  Cálculo do BM/Deduções/Desconto) somem do bloco TRIBUTAÇÃO MUNICIPAL
+  quando nenhum dos 4 campos da linha tem dado no XML, conforme nota `**`
+  do Anexo I. Regime Especial "Nenhum" (código `0`/ausente) conta como sem
+  dado.
+- Escopo: só no leiaute V2 (segue o Anexo I da NT 008/2026). V1 é o layout
+  legado do ADN e não segue essas notas de rodapé.
+
 ## [0.21.0] — 2026-06-25
 
 ### Alterado — `NFSe::estaCancelada()` renomeado para `verificarCancelamento()`
