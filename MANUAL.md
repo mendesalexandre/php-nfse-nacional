@@ -543,28 +543,38 @@ $cache->set('dfe_ultimo_nsu', $resp->ultimoNsu);
 
 ### DANFSe local
 
-> **⚠ Em refino.** Esse renderizador local é a implementação da **NT 008/2026** no SDK e **ainda está em maturação** — ajustes de leiaute, posicionamento, blocos opcionais e edge cases continuam saindo a cada release minor/patch. Bugs já corrigidos: tarja indevida em produção via Sistema Nacional (v0.18.1), grid do cabeçalho (v0.10.1), labels `tribISSQN` invertidos (v0.9.1), entre outros.
+> **⚠ Caminho ativo desde 01/07/2026.** O ADN desativou o download oficial do
+> DANFSe (`baixarPdf($chave)` via ADN) nessa data — a geração local passou a
+> ser o único caminho pra obter o PDF. Esse renderizador implementa a **NT
+> 008/2026** e segue recebendo ajustes de leiaute a cada release minor/patch
+> (ver [CHANGELOG](CHANGELOG.md) — 15 fixes de posicionamento/overflow só na
+> v0.26.x, encontrados comparando com DANFSe reais de outros emissores).
 >
-> **Em produção, prefira [`baixarPdf($chave)`](#download-de-xml-e-pdf)** (PDF gerado pelo próprio SEFIN/ADN). Use o `danfseLocal()` para: (a) fallback quando o ADN está instável (HTTP 502 já visto em homologação), (b) customização (logo do prestador, observações), (c) **após 01/07/2026**, quando o ADN desativa o endpoint `/danfse/{chave}` e a geração local vira o caminho oficial.
->
-> Quando usar em produção, mantenha o SDK atualizado e teste o PDF gerado contra o leiaute oficial antes de imprimir/enviar pra cliente.
+> Quando usar em produção, mantenha o SDK atualizado e valide o PDF gerado
+> visualmente (`pdftoppm`) antes de assumir que um ajuste de leiaute está
+> correto — texto pode renderizar sem erro e ainda assim se sobrepor
+> visualmente a outro campo.
 
 ```php
 $nfse->danfseLocal(string $xmlNfse, ?DanfseCustomizacao $custom = null): string
 $nfse->danfseLocalDeDados(DanfseDados $dados, ?DanfseCustomizacao $custom = null): string
-$nfse->danfse()->parser(): DanfseXmlParser
+
+// Acesso ao parser sem instanciar o facade completo (sem certificado):
+(new \PhpNfseNacional\Services\DanfseService())->parser(): DanfseXmlParser
 ```
 
 #### Customização opcional
 
 ```php
 use PhpNfseNacional\Danfse\DanfseCustomizacao;
+use PhpNfseNacional\Enums\TipoCanhoto;
 
 $custom = new DanfseCustomizacao(
     logoPrestadorPath:    '/var/cartorio/logo.png',  // opcional, PNG/JPG
     observacoesAdicionais: 'Esta NFS-e refere-se a serviço cartorial. ' .
                            'Para autenticidade consulte https://...',  // opcional, max 2000 chars
     destacarRetencoes:    true,                       // opcional, default false
+    canhoto:              TipoCanhoto::PreenchidoAutomaticamente, // opcional, default null (não renderiza)
 );
 
 $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
@@ -575,6 +585,7 @@ $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 | `logoPrestadorPath` | Canto superior direito do bloco PRESTADOR (4cm × 1.26cm) | qualquer formato suportado pelo TCPDF (PNG/JPG/GIF) |
 | `observacoesAdicionais` | Concatenado ao bloco INFORMAÇÕES COMPLEMENTARES (após o `<xOutInf>` do XML) | 2000 chars |
 | `destacarRetencoes` | Pinta de amarelo os campos de retenção efetiva (leiaute V2) | flag opt-in, default `false` |
+| `canhoto` | Rodapé "Data de Cientificação / Identificação e Assinatura / Nº NFS-e-Chave NFS-e" (item 2.1.13, Anexo I) | `null` = não renderiza (default); `TipoCanhoto::EmBranco` (assinatura física) ou `PreenchidoAutomaticamente` (preenche com a data/hora de emissão) |
 
 > **`destacarRetencoes` — conferência de retenções.** Quando `true`, o leiaute V2 destaca em amarelo os campos de retenção **de fato**, ajudando o contador a validar os valores retidos na fonte:
 > - **ISSQN** (`Retenção do ISSQN` + `ISSQN Apurado`) — só se `tpRetISSQN` for `2` (Retido pelo Tomador) ou `3` (Retido pelo Intermediário) **e** valor > 0;
@@ -583,9 +594,17 @@ $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 >
 > Sem a flag (default), o DANFSe sai idêntico ao anterior — nenhum campo amarelo.
 
+> **`canhoto` — item 2.1.13 do Anexo I, "Opcional" no leiaute.** `EmBranco`
+> deixa "Data de Cientificação" e "Identificação e Assinatura" vazios (pro
+> tomador assinar fisicamente ao receber o documento impresso).
+> `PreenchidoAutomaticamente` preenche os dois com a data/hora de emissão da
+> NFS-e (`dhEmi`), sem exigir assinatura física — uso comum quando o DANFSe
+> nunca é impresso fisicamente. "Nº NFS-e / Chave NFS-e" sempre vem
+> preenchido nos dois modos.
+
 > **Logo institucional NFSe NÃO pode ser substituído** — é obrigatório no cabeçalho conforme item 2.2.4 da NT 008/2026. O logo do prestador é renderizado em espaço dedicado dentro do bloco PRESTADOR.
 
-Gera o DANFSe (PDF) localmente seguindo o leiaute **NT 008/2026** — todos os 13 blocos do Anexo I. **Não exige certificado.** Substitui o download oficial após 01/07/2026 quando o ADN desativa.
+Gera o DANFSe (PDF) localmente seguindo o leiaute **NT 008/2026** — todos os 13 blocos do Anexo I + canhoto opcional. **Não exige certificado.** Único caminho pra obter o PDF desde que o ADN desativou o download oficial (01/07/2026).
 
 | Caminho | Uso |
 |---|---|
@@ -762,6 +781,7 @@ final class Servico
         ListaServicosNacional|string $cTribNac = '210101',         // LC 116 — aceita enum ou string
         ListaNbs|string $cNBS = '113040000',                       // NBS — aceita enum ou string
         public readonly string $cIndOp = '100301',
+        public readonly ?string $cTribMun = null,                  // <cTribMun> — código municipal, 3 dígitos, opcional
         public readonly ?InformacoesComplementares $infoCompl = null, // <serv/infoCompl>
         public readonly ?ComercioExterior $comExt = null,          // <serv/comExt> — obrigatório em exportação
         public readonly ?InformacaoObra $obra = null,              // <serv/obra> — construção civil
@@ -769,6 +789,15 @@ final class Servico
     );
 }
 ```
+
+> **`cTribMun` (v0.24.0+) — só existe pra municípios com codificação
+> própria.** Além do `cTribNac` nacional (LC 116/2003), alguns municípios
+> mantêm um código de tributação municipal adicional, cadastrado junto ao
+> SEFIN Nacional pela própria prefeitura. Formato: 3 dígitos
+> (`TCCodTribMun`). A maioria dos municípios **não usa** — deixe `null`
+> (default) se o seu não exigir. Enviar um valor não cadastrado dá
+> `cStat=314` ("código não existe ou não está administrado pelo
+> município"). Confirme com a prefeitura antes de preencher.
 
 #### Quebras de linha na discriminação (v0.19.0+)
 
@@ -1002,6 +1031,11 @@ final class Valores
         public readonly ?float $valorRetidoIrrf = null,                  // <vRetIRRF>
         public readonly ?float $valorRetidoCp = null,                    // <vRetCP>
         public readonly ?float $valorRetidoCsll = null,                  // <vRetCSLL>
+        // <IBSCBS> — Reforma Tributária, opt-in via Config::incluirIbsCbs
+        public readonly string $cstIbsCbs = '000',                       // <gIBSCBS/CST>, 3 dígitos
+        public readonly string $cClassTrib = '000001',                   // <gIBSCBS/cClassTrib>, 6 dígitos
+        public readonly ?string $cCredPres = null,                       // <gIBSCBS/cCredPres>, 2 dígitos
+        public readonly ?TribRegular $tribRegular = null,                // <gIBSCBS/gTribRegular>
     );
 
     public function baseCalculo(): float;   // valorServicos − descIncond − deducoesReducoes
@@ -1009,10 +1043,37 @@ final class Valores
 }
 ```
 
+> **Grupo `<IBSCBS>` (v0.21.0+) — Reforma Tributária, opt-in.** Só é
+> emitido no DPS quando `Config::incluirIbsCbs = true` (default `false`).
+> **Atenção:** ativar isso faz o SEFIN **calcular e somar IBS/CBS real**
+> em cima do valor da nota (não é só um campo declaratório) — em 2026
+> (ano de teste, art. 130 ADCT) isso pode inflar o total exibido sem que
+> o prestador tenha cobrado esse valor do cliente. Confirme com seu
+> contador antes de ligar em produção.
+>
+> - `$cstIbsCbs`/`$cClassTrib` — default `'000'`/`'000001'` = Tributação
+>   Regular. O SDK **não valida** a combinação CST×cClassTrib contra a
+>   tabela oficial da Reforma — só o formato (3/6 dígitos). Consulte a
+>   tabela oficial (Portal Nacional da NF-e → Documentos → Diversos →
+>   "Tabela de Código de Classificação Tributária do IBS e da CBS") pro
+>   código certo do seu segmento — pra registros públicos/notariais não
+>   existe classificação de imunidade/redução, `000001` é o único
+>   aplicável.
+> - `$cCredPres` — Código de Crédito Presumido (2 dígitos), opcional.
+>   Aplicável a operações com direito a crédito presumido (agropecuário,
+>   insumos, etc). `null` = omitido.
+> - `$tribRegular` — DTO `TribRegular(cstReg, cClassTribReg)`, referência
+>   à classificação regular quando a operação usa uma classificação
+>   diferente (redução, isenção, diferimento). Só faz sentido quando
+>   `cstIbsCbs !== '000'`.
+
 #### Campos novos (resumo desde v0.10)
 
 | Campo | Vai pra | Notas |
 |---|---|---|
+| `$cstIbsCbs`/`$cClassTrib` | `<gIBSCBS/CST>`/`<gIBSCBS/cClassTrib>` | Reforma Tributária, opt-in via `Config::incluirIbsCbs`. Default = Tributação Regular. **v0.21.0** |
+| `$cCredPres` | `<gIBSCBS/cCredPres>` | Crédito Presumido IBS/CBS, 2 dígitos, opcional. **v0.25.0** |
+| `$tribRegular` | `<gIBSCBS/gTribRegular>` | DTO `TribRegular` — referência à classificação regular. **v0.25.0** |
 | `$tipoRetencaoIssqn` | `<tpRetISSQN>` | enum 3 estados: NaoRetido, RetidoPeloTomador, RetidoPeloIntermediario. **BC-break v0.14.0** (era `bool $issqnRetido`) |
 | `$motivoDispensaIssqn` | `<indTotTrib>0</indTotTrib>` | enum 4 cases pra justificar dispensa. Null = sem dispensa (emite `<pTotTrib>`). **BC-break v0.14.0** (era `bool $dispensadoIssqn`). Aceito só pra optantes SN — Não Optante recebe cStat=713 |
 | `$tributacaoIssqn` | `<tribISSQN>` | 1=Tributável (default), 2=Imunidade, 3=Exportação, 4=NãoIncidência |

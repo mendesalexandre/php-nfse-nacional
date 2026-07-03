@@ -25,7 +25,7 @@ manifestação, download (com retry), DANFSe NT 008/2026 e Distribuição de DFe
 **PIS/COFINS e retenções federais** (`<tribFed>`), `<tribMun>` completo
 (imunidade, exportação, benefício municipal, exigibilidade suspensa).
 **XSDs oficiais** versionados em `docs/schemas/`. PHPStan level 8 limpo,
-**286 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
+**336 testes verdes**, validado ponta-a-ponta em homologação SEFIN. Pré-1.0 —
 API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 
 ## Por que
@@ -56,7 +56,7 @@ API pode sofrer ajustes minor antes do `1.0.0`; ver [CHANGELOG](CHANGELOG.md).
 - **Eventos** (`<atvEvento>`) — shows, conferências, etc.
 - **Endereço internacional** (`<endExt>`) em Tomador e Intermediário —
   exportação, marketplace global, tomador estrangeiro
-- Testes desde o dia 1 — **286 testes verdes** em CI (PHP 8.1–8.5)
+- Testes desde o dia 1 — **336 testes verdes** em CI (PHP 8.1–8.5)
 
 ## Requisitos
 
@@ -487,7 +487,7 @@ src/
 - [x] Enums das tabelas oficiais: `ListaServicosNacional` (335), `ListaNbs` (917),
       `TipoBeneficioMunicipal`, `TipoImunidadeIssqn`, `TipoExigibilidadeSuspensa`,
       `RegimeApuracaoSimplesNacional`, `TipoRetencaoIssqn`, `TipoTributacaoIssqn`
-- [x] PHPStan level 8 limpo, 219 testes unitários
+- [x] PHPStan level 8 limpo, 336 testes unitários
 - [x] CI no GitHub Actions (PHP 8.1 – 8.5)
 - [x] Validação ponta-a-ponta em homologação SEFIN
 - [x] Examples completos do ciclo de vida
@@ -502,6 +502,14 @@ src/
       `<atvEvento>` (eventos) — v0.15.0. `<explRod>` e `<lsadppu>`
       fora-de-escopo (removidos do leiaute entre v1.00 e v1.01)
 - [x] Endereço internacional (`endExt`) em Tomador e Intermediário — v0.16.0
+- [x] **Grupo `<IBSCBS>` configurável** (Reforma Tributária) — `Valores::$cstIbsCbs`/`$cClassTrib`
+      (v0.21.0), `$cCredPres`/`$tribRegular` (v0.25.0). Opt-in via `Config::incluirIbsCbs`
+- [x] **`Servico::$cTribMun`** (código de tributação municipal do ISSQN, opcional) — v0.24.0
+- [x] **DANFSe local — bloco "Canhoto"** (item 2.1.13, Anexo I) — `DanfseCustomizacao::$canhoto`
+      (`EmBranco` \| `PreenchidoAutomaticamente`) — v0.26.0
+- [x] **DANFSe local — 15 fixes de leiaute V2** (canhoto sem overflow, moldura sem gap,
+      auto-fit de fonte com truncamento pra nomes/chaves longas, Ambiente Gerador correto,
+      descrição de serviço com altura dinâmica, entre outros) — v0.26.1 a v0.26.10
 - [ ] Endereço internacional em Prestador (caso raro: prestador estrangeiro)
 - [ ] Grupo `<fornec>` dentro de `<docDedRed>` (fornecedor do documento de dedução)
 
