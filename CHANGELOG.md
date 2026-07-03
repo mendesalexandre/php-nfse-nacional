@@ -5,6 +5,18 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.11] — 2026-07-03
+
+### Corrigido
+
+- **"Exclusões e Reduções da Base de Cálculo" (bloco TRIBUTAÇÃO IBS / CBS)
+  fabricava valor sem IBS/CBS real**: quando a operação não declara
+  `<gIBSCBS>` no DPS (CST/cClassTrib "- / -"), o campo mostrava
+  `somarExclusoes()` — na prática o ISSQN municipal + PIS/COFINS débito,
+  nada a ver com IBS/CBS — como se fosse uma exclusão de base do IBS/CBS.
+  Agora mostra "-" quando não há IBS/CBS declarado. Bug real em produção
+  (NFS-e 11454, vISSQN=3.69 aparecendo nesse campo).
+
 ## [0.26.10] — 2026-07-02
 
 ### Alterado

@@ -244,4 +244,45 @@ final class DanfseGeneratorTest extends TestCase
         self::assertStringContainsString($nomeModerado, $texto);
         self::assertStringNotContainsString($nomeModerado . '...', $texto);
     }
+
+    public function test_exclusoes_ibscbs_nao_fabrica_valor_sem_gibscbs_no_dps(): void
+    {
+        // Bug real (03/07/2026, NFS-e 11454): quando a operação NÃO declara
+        // <gIBSCBS> no DPS (comum — a maioria das notas do cartório não
+        // liga IBS/CBS), o bloco "TRIBUTAÇÃO IBS / CBS" segue aparecendo
+        // (CST/cClassTrib "- / -", normal pra um bloco com todos os campos
+        // opcionais), mas "Exclusões e Reduções da Base de Cálculo" mostrava
+        // um valor FABRICADO (na verdade o ISSQN municipal + PIS/COFINS
+        // débito via `somarExclusoes()`, nada a ver com IBS/CBS — nessa
+        // nota, vISSQN=3.69 aparecia como se fosse exclusão do IBS/CBS).
+        // Correto: mostrar "-" nesse campo quando não há IBS/CBS real.
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $xmlSemIbscbs = preg_replace('#<IBSCBS>.*?</IBSCBS>#s', '', $xml);
+        self::assertNotNull($xmlSemIbscbs);
+        self::assertStringNotContainsString('IBSCBS', $xmlSemIbscbs);
+
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xmlSemIbscbs);
+        $texto = $this->textoDoPdf($pdf);
+
+        // Bloco continua presente (não suprimido)...
+        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringContainsString('CST / cClassTrib', $texto);
+        self::assertStringContainsString('Exclusões e Reduções da Base de Cálculo', $texto);
+        // ...mas a LINHA DE VALORES logo abaixo do label (label e valor
+        // ficam em linhas separadas no PDF, igual todo `renderCelula`) não
+        // pode ter "R$" — tem que ser "-" (sem IBS/CBS real, sem exclusão).
+        $linhas = explode("\n", $texto);
+        $idxLabel = null;
+        foreach ($linhas as $idx => $linha) {
+            if (str_contains($linha, 'Exclusões e Reduções da Base de Cálculo')) {
+                $idxLabel = $idx;
+                break;
+            }
+        }
+        self::assertNotNull($idxLabel, 'label "Exclusões e Reduções da Base de Cálculo" não encontrado no PDF');
+        $linhaValor = $linhas[$idxLabel + 1] ?? '';
+        self::assertStringNotContainsString('R$', $linhaValor);
+        self::assertMatchesRegularExpression('/^-\s/', $linhaValor);
+    }
 }

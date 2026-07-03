@@ -621,7 +621,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             . ($dados->prestador['uf'] ?? '-'));
         $this->cursorY += $h;
 
-        $exclusoes = $this->somarExclusoes($dados);
+        // "Exclusões e Reduções da Base de Cálculo" só faz sentido quando a
+        // operação DE FATO declarou <gIBSCBS> no DPS — sem isso, somarExclusoes()
+        // fabricava um valor (na verdade o ISSQN municipal + PIS/COFINS
+        // débito, via `somarExclusoes()`, nada a ver com IBS/CBS) mesmo com
+        // CST/cClassTrib vazios ("- / -"). Bug real em produção 03/07/2026,
+        // NFS-e 11454 (vISSQN=3.69 aparecendo como "exclusão" do IBS/CBS
+        // numa nota que nem declarou o grupo).
+        $temIbsCbs = ($i['cst'] ?? null) !== null || ($i['cclass_trib'] ?? null) !== null;
+        $exclusoes = $temIbsCbs ? $this->somarExclusoes($dados) : null;
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Exclusões e Reduções da Base de Cálculo',
             DanfseLayout::formatarMoeda($exclusoes));
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Base de Cálculo Após Exclusões e Reduções',
