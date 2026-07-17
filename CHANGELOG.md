@@ -5,6 +5,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.26.12] — 2026-07-17
+
+### Corrigido
+
+- **`xInfComp` (Informações Complementares) perdia quebra de linha**:
+  `DpsBuilder::montarServ()` chamava `TextoSanitizador::paraNFSe()` sem
+  `preservarQuebras: true` pra esse campo — diferente de `xDescServ`
+  (Descrição do Serviço), que já tinha o parâmetro desde a v0.19.0. Como
+  o colapso acontece na sanitização, ANTES do XML ser montado, qualquer
+  `\n`/`\n\n` virava um espaço só e a quebra nunca chegava no SEFIN —
+  nem uma DANFSe renderizada de novo a partir do XML autorizado recupera
+  o parágrafo. Notas já emitidas antes deste fix mantêm o texto corrido;
+  só emissões novas se beneficiam.
+
 ## [0.26.11] — 2026-07-03
 
 ### Corrigido

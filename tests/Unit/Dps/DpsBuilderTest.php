@@ -1175,6 +1175,39 @@ final class DpsBuilderTest extends TestCase
         );
     }
 
+    public function test_infoCompl_xInfComp_preserva_quebra_de_linha(): void
+    {
+        // Regressão: DpsBuilder chamava TextoSanitizador::paraNFSe() sem
+        // preservarQuebras pro xInfComp (só xDescServ tinha o parâmetro),
+        // colapsando qualquer \n num espaço só antes do XML ser montado —
+        // paragrafos de observação viravam uma linha só na DANFSe.
+        $servico = new Servico(
+            discriminacao: 'Servico com observacoes',
+            codigoMunicipioPrestacao: '3550308',
+            infoCompl: new \PhpNfseNacional\DTO\InformacoesComplementares(
+                xInfComp: "OBS - texto manual do operador\n\nDetalhamento tributário - Total ISSQN: R$ 2,89",
+            ),
+        );
+
+        $builder = new DpsBuilder($this->configPadrao());
+        $xml = $builder->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 0.00, 4.00),
+        );
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(
+            "OBS - texto manual do operador\n\nDetalhamento tributário - Total ISSQN: R\$ 2,89",
+            $xpath->query('//n:serv/n:infoCompl/n:xInfComp')->item(0)?->nodeValue,
+        );
+    }
+
     public function test_infoCompl_ordem_filhos_idDocTec_docRef_xInfComp(): void
     {
         $servico = new Servico(

@@ -417,7 +417,7 @@ final class DpsBuilder
             }
             if ($servico->infoCompl->xInfComp !== null) {
                 $infoCompl->appendChild($this->el($doc, 'xInfComp',
-                    TextoSanitizador::paraNFSe($servico->infoCompl->xInfComp, 2000),
+                    TextoSanitizador::paraNFSe($servico->infoCompl->xInfComp, 2000, preservarQuebras: true),
                 ));
             }
             $serv->appendChild($infoCompl);
