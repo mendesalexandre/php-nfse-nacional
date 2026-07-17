@@ -5,7 +5,24 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
-## [0.26.12] — 2026-07-17
+## [0.26.13] — 2026-07-17
+
+### Corrigido
+
+- **Reverte v0.26.12** — `xInfComp` (Informações Complementares) voltou a
+  colapsar `\n` em espaço, como era antes. O fix da v0.26.12 partiu de um
+  diagnóstico errado: assumi que a assimetria com `xDescServ` era um bug
+  de sanitização. Na verdade é o próprio XSD oficial do SEFIN
+  (`tiposSimples_v1.01.xsd`) que diferencia os dois campos — `xDescServ`
+  é `TSDesc2000` (base `TSStringComQuebraDeLinha`, pattern com `\s\S`,
+  aceita `\n`), `xInfComp` é `TSDescInfCompl` (base `TSString`, pattern
+  **sem** `\s\S`, não aceita `\n`). A v0.26.12 causou rejeição real do
+  SEFIN em produção: `cStat=1235` ("Falha no esquema XML do DF-e") em
+  qualquer emissão com quebra de linha no campo. Descoberto ao testar em
+  homologação antes do texto com \n ir pra produção de verdade — nenhuma
+  nota real chegou a ser emitida com o bug.
+
+## [0.26.12] — 2026-07-17 (⚠️ com bug, ver v0.26.13)
 
 ### Corrigido
 

@@ -416,8 +416,13 @@ final class DpsBuilder
                 ));
             }
             if ($servico->infoCompl->xInfComp !== null) {
+                // NÃO usar preservarQuebras aqui — diferente de xDescServ (TSDesc2000,
+                // base TSStringComQuebraDeLinha), o xInfComp é TSDescInfCompl (base
+                // TSString, pattern sem \s\S) no XSD oficial (tiposSimples_v1.01.xsd).
+                // \n literal nesse campo é rejeitado pelo SEFIN com cStat=1235
+                // ("Falha no esquema XML do DF-e") — não é bug de sanitização.
                 $infoCompl->appendChild($this->el($doc, 'xInfComp',
-                    TextoSanitizador::paraNFSe($servico->infoCompl->xInfComp, 2000, preservarQuebras: true),
+                    TextoSanitizador::paraNFSe($servico->infoCompl->xInfComp, 2000),
                 ));
             }
             $serv->appendChild($infoCompl);

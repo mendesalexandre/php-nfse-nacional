@@ -1175,12 +1175,16 @@ final class DpsBuilderTest extends TestCase
         );
     }
 
-    public function test_infoCompl_xInfComp_preserva_quebra_de_linha(): void
+    public function test_infoCompl_xInfComp_colapsa_quebra_de_linha_em_espaco(): void
     {
-        // Regressão: DpsBuilder chamava TextoSanitizador::paraNFSe() sem
-        // preservarQuebras pro xInfComp (só xDescServ tinha o parâmetro),
-        // colapsando qualquer \n num espaço só antes do XML ser montado —
-        // paragrafos de observação viravam uma linha só na DANFSe.
+        // xInfComp é TSDescInfCompl no XSD oficial (tiposSimples_v1.01.xsd), que
+        // restringe base TSString — pattern SEM \s\S, ou seja \n literal é
+        // inválido pro schema (SEFIN rejeita com cStat=1235 "Falha no esquema
+        // XML do DF-e"). Diferente de xDescServ (TSDesc2000, base
+        // TSStringComQuebraDeLinha, que inclui \s\S e por isso aceita \n).
+        // Uma tentativa de "consertar" isso passando preservarQuebras:true pro
+        // xInfComp (v0.26.12, revertido) quebrou emissão real em produção —
+        // não repetir.
         $servico = new Servico(
             discriminacao: 'Servico com observacoes',
             codigoMunicipioPrestacao: '3550308',
@@ -1203,7 +1207,7 @@ final class DpsBuilderTest extends TestCase
         $xpath->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
 
         self::assertSame(
-            "OBS - texto manual do operador\n\nDetalhamento tributário - Total ISSQN: R\$ 2,89",
+            'OBS - texto manual do operador Detalhamento tributário - Total ISSQN: R$ 2,89',
             $xpath->query('//n:serv/n:infoCompl/n:xInfComp')->item(0)?->nodeValue,
         );
     }
