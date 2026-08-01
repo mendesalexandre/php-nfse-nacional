@@ -6,6 +6,7 @@ namespace PhpNfseNacional\Certificate;
 
 use DateTimeImmutable;
 use PhpNfseNacional\Exceptions\CertificateException;
+use PhpNfseNacional\Support\Documento;
 
 /**
  * Certificado digital A1 (.pfx) carregado em memória.
@@ -68,9 +69,14 @@ final class Certificate
         // (padrão ICP-Brasil pra cert de PJ — empresa pode ter CNPJ
         // só na SAN sem aparecer no CN, especialmente em certs antigos
         // ou de modelos exóticos).
+        //
+        // CNPJ alfanumérico (rollout nacional a partir de jul/2026): o CN
+        // continua no formato "RAZÃO SOCIAL:CNPJ", mas os 14 caracteres
+        // finais podem ter letras (raiz+ordem alfanuméricos, DV sempre
+        // numérico) — âncora no ':' final em vez de casar só dígitos.
         $cnpj = '';
-        if (preg_match('/(\d{14})/', $cn, $m)) {
-            $cnpj = $m[1];
+        if (preg_match('/:\s*([A-Za-z0-9]{14})\s*$/', $cn, $m) && Documento::ehCnpj($m[1])) {
+            $cnpj = Documento::limpar($m[1]);
         }
         if ($cnpj === '') {
             $cnpj = self::extrairCnpjDaSan($certs['cert']) ?? '';
@@ -89,12 +95,17 @@ final class Certificate
      * Extrai CNPJ da extensão SAN (Subject Alternative Name) do cert ICP-Brasil.
      *
      * Padrão DOC-ICP-04: PJ tem o CNPJ codificado num otherName com OID
-     * 2.16.76.1.3.3, formato BCD: 14 dígitos numéricos. O OpenSSL devolve
-     * essa extensão como string ASN.1 dump — fazemos um regex sobre o
-     * texto/binário do cert PEM porque `openssl_x509_parse` não decodifica
-     * otherNames de forma estruturada.
+     * 2.16.76.1.3.3. O OpenSSL devolve essa extensão como string ASN.1
+     * dump — fazemos um regex sobre o texto/binário do cert PEM porque
+     * `openssl_x509_parse` não decodifica otherNames de forma estruturada.
      *
-     * Retorna 14 dígitos ou null se não achar.
+     * Retorna 14 caracteres (dígitos, ou alfanuméricos + 2 dígitos de DV
+     * pro novo CNPJ alfanumérico) ou null se não achar.
+     *
+     * NOTA: a busca por 14 alfanuméricos aqui é generalização não
+     * validada empiricamente contra um cert real com CNPJ alfanumérico —
+     * o ITI ainda não publicou/testamos a revisão do DOC-ICP-04 pra esse
+     * caso. Validar em homologação assim que houver um cert desses.
      */
     private static function extrairCnpjDaSan(string $certPem): ?string
     {
@@ -117,12 +128,13 @@ final class Certificate
         }
 
         // Depois do OID vem o conteúdo do otherName. Procura nos próximos
-        // 64 bytes uma sequência de 14 dígitos seguidos no início (formato
-        // ICP-Brasil: NNNNNNNNNNNNNNNJJJJJJJJJJJJJJJJJ — primeiros 14 são
-        // CNPJ, depois vem nome empresarial / dados do titular).
+        // bytes uma sequência de 14 caracteres alfanuméricos seguidos no
+        // início (formato ICP-Brasil: CCCCCCCCCCCCCCJJJJJJJJJJJJJJJJJ —
+        // primeiros 14 são CNPJ, depois vem nome empresarial / dados do
+        // titular).
         $segmento = substr($der, $pos + strlen($oidDer), 256);
-        if (preg_match('/(\d{14})/', $segmento, $m)) {
-            return $m[1];
+        if (preg_match('/([A-Za-z0-9]{14})/', $segmento, $m) && Documento::ehCnpj($m[1])) {
+            return Documento::limpar($m[1]);
         }
         return null;
     }

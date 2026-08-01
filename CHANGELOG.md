@@ -5,6 +5,48 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-08-01
+
+### Adicionado
+
+- **Guia: como consultar uma NFS-e e verificar cancelamento** —
+  `docs/consultar-nfse-e-cancelamento.md` consolida `consultar()`,
+  `verificarCancelamento()`, `listarEventos()` e a geração da DANFSe com
+  a tarja "CANCELADA", incluindo a ressalva de eventual consistency do
+  ADN (confirmada de novo em smoke real). `MANUAL.md` ganhou
+  cross-references e um exemplo enganoso (`$resp->cancelada()` sem o
+  alerta) foi corrigido.
+- **CNPJ alfanumérico** — `Documento::ehCnpj()`/`formatar()` agora
+  aceitam o novo formato da Receita Federal (12 caracteres alfanuméricos
+  na raiz+ordem + 2 DVs numéricos, ex: `00.000.000/E08G-12`, primeiro
+  emitido de fato pelo Banco do Brasil). `Documento::calcularDvCnpj()` e
+  `validarDvCnpj()` (novos) implementam o algoritmo oficial SERPRO
+  (módulo 11). `Certificate` também passou a extrair CNPJ alfanumérico
+  do CN/SAN do certificado digital. Ver `docs/cnpj-alfanumerico.md`.
+- **DANFSe: regra transitória de destaque do IBS/CBS** —
+  `DanfseCustomizacao::$exibirValoresIbsCbs` (novo, `?bool`, default
+  `null`) controla se o bloco "TRIBUTAÇÃO IBS / CBS" e as colunas "Total
+  do IBS/CBS" / "VALOR LÍQUIDO DA NFS-e + IBS/CBS" mostram valor real ou
+  "-" no PDF. Sem override, decide pela `dCompet`: suprime antes de
+  `DanfseLayout::DATA_INICIO_DESTAQUE_IBSCBS` (2027-01-01), exibe a
+  partir dela — reflete `vTotNF = vLiq` (2026) vs. `vTotNF = vLiq + vCBS
+  + vIBSTot` (2027+) da rampa da Reforma Tributária. O grupo `<IBSCBS>`
+  já pode ser enviado no DPS antes disso via `Config::$incluirIbsCbs`
+  (existente desde antes) sem que o DANFSe o destaque.
+
+### Corrigido
+
+- **`Documento::limpar()` descartava letras** — usava `preg_replace('/\D/', ...)`
+  (remove tudo que não é dígito), o que quebrava silenciosamente
+  qualquer CNPJ alfanumérico passado pro SDK (viraria uma string
+  numérica truncada, sem erro). Agora remove só a máscara (`.`, `/`,
+  `-`, espaços).
+- **`DanfseLayout::formatarDocumento()` tinha o mesmo bug**, numa cópia
+  própria da lógica de máscara — descartava as letras do CNPJ
+  alfanumérico na exibição da DANFSe. Encontrado num smoke real em
+  homologação (tomador CNPJ do Banco do Brasil saindo truncado no PDF).
+  Agora delega pra `Documento::formatar()`.
+
 ## [0.26.13] — 2026-07-17
 
 ### Corrigido

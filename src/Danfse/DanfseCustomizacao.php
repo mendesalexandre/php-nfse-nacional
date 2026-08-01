@@ -85,6 +85,17 @@ final class DanfseCustomizacao
          * de emissão da NFS-e — sem exigir assinatura física.
          */
         public readonly ?TipoCanhoto $canhoto = null,
+
+        /**
+         * Override de quando destacar os valores de IBS/CBS no DANFSe
+         * (bloco "TRIBUTAÇÃO IBS / CBS" + colunas "Total do IBS/CBS" /
+         * "VALOR LÍQUIDO DA NFS-e + IBS/CBS" do bloco VALOR TOTAL DA
+         * NFS-E). `null` (default) decide pela `dCompet` da NFS-e:
+         * suprime antes de `DanfseLayout::DATA_INICIO_DESTAQUE_IBSCBS`
+         * (2027-01-01), exibe a partir dela. `true`/`false` força
+         * independente da competência.
+         */
+        public readonly ?bool $exibirValoresIbsCbs = null,
     ) {
         $errors = [];
 

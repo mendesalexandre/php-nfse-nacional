@@ -36,6 +36,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private float $cursorY = 0.0;
     private ?DanfseCustomizacao $custom = null;
     private bool $destacarRetencoes = false;
+    private bool $exibirIbsCbs = false;
 
     /** Altura do título do bloco (item 2.4.1 — 7pt bold MAIÚSCULAS) */
     private const ALTURA_TITULO_BLOCO_CM = 0.40;
@@ -69,6 +70,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->custom = $custom;
         $this->cursorY = 0.0;
         $this->destacarRetencoes = $custom !== null && $custom->destacarRetencoes;
+        $this->exibirIbsCbs = $this->deveExibirIbsCbs($dados, $custom);
 
         // Borda externa da página (1pt, item 2.2.3)
         $this->pdf->SetLineWidth(self::ESPESSURA_BORDA_MM);
@@ -85,6 +87,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderServico($dados);
         $this->renderTributacaoMunicipal($dados);
         $this->renderTributacaoFederal($dados);
+        // Bloco sempre presente (estrutura fixa da NT 008) — os VALORES é que
+        // ficam "-" antes de DATA_INICIO_DESTAQUE_IBSCBS (ver deveExibirIbsCbs()).
         $this->renderTributacaoIbsCbs($dados);
         $this->renderValorTotal($dados);
         $this->renderInformacoesComplementares($dados);
@@ -96,6 +100,23 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // por cima de tudo — senão o fundo cinza de EMITENTE DA NFS-e e
         // VALOR LÍQUIDO cobre um pedaço da linha.
         $this->renderBordaFolha();
+    }
+
+    /**
+     * Decide se o bloco/colunas de IBS-CBS destacam valor no DANFSe.
+     * Override explícito (`DanfseCustomizacao::$exibirValoresIbsCbs`)
+     * sempre vence; sem override, decide pela `dCompet` da NFS-e contra
+     * `DanfseLayout::DATA_INICIO_DESTAQUE_IBSCBS` — regra transitória da
+     * rampa da Reforma Tributária (o IBS/CBS pode já estar sendo ENVIADO
+     * no DPS antes disso, só não é destacado no documento auxiliar).
+     */
+    private function deveExibirIbsCbs(DanfseDados $dados, ?DanfseCustomizacao $custom): bool
+    {
+        if ($custom !== null && $custom->exibirValoresIbsCbs !== null) {
+            return $custom->exibirValoresIbsCbs;
+        }
+        $competencia = $dados->identificacao['data_competencia'] ?? null;
+        return $competencia !== null && $competencia >= DanfseLayout::DATA_INICIO_DESTAQUE_IBSCBS;
     }
 
     // ================================================================
@@ -607,7 +628,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     private function renderTributacaoIbsCbs(DanfseDados $dados): void
     {
-        $i = $dados->tributacaoIbsCbs;
+        // Antes de DATA_INICIO_DESTAQUE_IBSCBS trata como se não houvesse
+        // grupo IBS/CBS real — mesmo efeito de uma nota sem <gIBSCBS> no DPS
+        // (todos os campos caem no fallback "-" já existente abaixo).
+        $i = $this->exibirIbsCbs ? $dados->tributacaoIbsCbs : [];
         $this->iniciarBloco('TRIBUTAÇÃO IBS / CBS');
         $h = 0.63;
 
@@ -701,10 +725,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarMoeda($v['valor_liquido'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
             sombreado: true);
+        // Antes de DATA_INICIO_DESTAQUE_IBSCBS o IBS/CBS já pode estar sendo
+        // enviado no DPS, mas não é destacado aqui — vTotNF = vLiq (ver
+        // deveExibirIbsCbs()).
+        $totalIbscbs = $this->exibirIbsCbs ? ($v['total_ibscbs'] ?? null) : null;
+        $valorLiquidoMaisIbscbs = $this->exibirIbsCbs ? ($v['valor_liquido_mais_ibscbs'] ?? null) : null;
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Total do IBS/CBS',
-            DanfseLayout::formatarMoeda($v['total_ibscbs'] ?? null));
+            DanfseLayout::formatarMoeda($totalIbscbs));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS',
-            DanfseLayout::formatarMoeda($v['valor_liquido_mais_ibscbs'] ?? null),
+            DanfseLayout::formatarMoeda($valorLiquidoMaisIbscbs),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
             sombreado: true);
         $this->cursorY += $h;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Danfse;
 
+use PhpNfseNacional\Support\Documento;
+
 /**
  * Constantes de layout pro DANFSe conforme NT 008/2026 (SE/CGNFS-e v1.0).
  *
@@ -43,6 +45,19 @@ final class DanfseLayout
      * regra transitória da rampa da Reforma Tributária.
      */
     public const DATA_LIMITE_LINHA_PIS_COFINS = '2026-12-31';
+
+    /**
+     * Data-limite (`dCompet`) a partir da qual o bloco "TRIBUTAÇÃO IBS /
+     * CBS" e as colunas "Total do IBS/CBS" / "VALOR LÍQUIDO DA NFS-e +
+     * IBS/CBS" (bloco VALOR TOTAL DA NFS-E) passam a ser impressos no
+     * DANFSe. Antes disso o IBS/CBS já pode ser ENVIADO no DPS (evita
+     * rejeição do SEFIN quando o grupo se tornar obrigatório), mas não é
+     * destacado no documento auxiliar — reflete a regra `vTotNF = vLiq`
+     * (2026) vs. `vTotNF = vLiq + vCBS + vIBSTot` (a partir de 2027) da
+     * rampa da Reforma Tributária. Override manual via
+     * `DanfseCustomizacao::$exibirValoresIbsCbs`.
+     */
+    public const DATA_INICIO_DESTAQUE_IBSCBS = '2027-01-01';
 
     // ============ Dimensões da página (A4 retrato) ============
     public const PAGE_WIDTH_MM = 210.0;
@@ -256,17 +271,19 @@ final class DanfseLayout
         return number_format((float) $valor, 2, ',', '.') . ' %';
     }
 
+    /**
+     * Formata CPF/CNPJ pra exibição na DANFSe — delega pra `Documento`
+     * (mesma normalização usada na emissão) pra não descartar as letras
+     * do CNPJ alfanumérico. NIF/documento estrangeiro (nem 11 nem 14
+     * caracteres) sai como veio do XML, sem máscara.
+     */
     public static function formatarDocumento(?string $valor): string
     {
         if ($valor === null) {
             return '-';
         }
-        $digitos = preg_replace('/\D/', '', $valor) ?? '';
-        return match (strlen($digitos)) {
-            11 => preg_replace('/^(\d{3})(\d{3})(\d{3})(\d{2})$/', '$1.$2.$3-$4', $digitos) ?? $digitos,
-            14 => preg_replace('/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/', '$1.$2.$3/$4-$5', $digitos) ?? $digitos,
-            default => $digitos !== '' ? $digitos : '-',
-        };
+        $formatado = Documento::formatar($valor);
+        return $formatado !== '' ? $formatado : '-';
     }
 
     public static function formatarCep(?string $valor): string

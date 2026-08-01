@@ -298,9 +298,10 @@ $nfse->consultarEventos(
 ```php
 $resp = $nfse->consultar('35503082212345678000195000000000005712345678901234');
 
-if ($resp->cancelada()) { /* ... */ }
 echo $resp->numeroNfse;
 ```
+
+> ⚠️ **Não use `$resp->cancelada()` pra saber se a NFS-e foi cancelada** — `consultar()` sempre devolve `cStat=100`, mesmo depois de cancelada (cancelamento é evento vinculado, não altera o registro original). Guia completo, com exemplos e a ressalva de eventual consistency do ADN: [`docs/consultar-nfse-e-cancelamento.md`](docs/consultar-nfse-e-cancelamento.md).
 
 ### Cancelamento
 
@@ -575,6 +576,7 @@ $custom = new DanfseCustomizacao(
                            'Para autenticidade consulte https://...',  // opcional, max 2000 chars
     destacarRetencoes:    true,                       // opcional, default false
     canhoto:              TipoCanhoto::PreenchidoAutomaticamente, // opcional, default null (não renderiza)
+    exibirValoresIbsCbs:  null,                        // opcional, default null (decide pela dCompet)
 );
 
 $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
@@ -586,6 +588,7 @@ $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 | `observacoesAdicionais` | Concatenado ao bloco INFORMAÇÕES COMPLEMENTARES (após o `<xOutInf>` do XML) | 2000 chars |
 | `destacarRetencoes` | Pinta de amarelo os campos de retenção efetiva (leiaute V2) | flag opt-in, default `false` |
 | `canhoto` | Rodapé "Data de Cientificação / Identificação e Assinatura / Nº NFS-e-Chave NFS-e" (item 2.1.13, Anexo I) | `null` = não renderiza (default); `TipoCanhoto::EmBranco` (assinatura física) ou `PreenchidoAutomaticamente` (preenche com a data/hora de emissão) |
+| `exibirValoresIbsCbs` | Valores do bloco "TRIBUTAÇÃO IBS / CBS" e das colunas "Total do IBS/CBS" / "VALOR LÍQUIDO DA NFS-e + IBS/CBS" (bloco VALOR TOTAL DA NFS-E) | `null` (default) = decide pela `dCompet` (ver nota abaixo); `true`/`false` força independente da competência |
 
 > **`destacarRetencoes` — conferência de retenções.** Quando `true`, o leiaute V2 destaca em amarelo os campos de retenção **de fato**, ajudando o contador a validar os valores retidos na fonte:
 > - **ISSQN** (`Retenção do ISSQN` + `ISSQN Apurado`) — só se `tpRetISSQN` for `2` (Retido pelo Tomador) ou `3` (Retido pelo Intermediário) **e** valor > 0;
@@ -601,6 +604,18 @@ $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 > NFS-e (`dhEmi`), sem exigir assinatura física — uso comum quando o DANFSe
 > nunca é impresso fisicamente. "Nº NFS-e / Chave NFS-e" sempre vem
 > preenchido nos dois modos.
+
+> **`exibirValoresIbsCbs` — regra transitória da Reforma Tributária.** O
+> grupo `<IBSCBS>` pode já estar sendo **enviado** no DPS (via
+> `Config::$incluirIbsCbs = true`, pra não ser rejeitado quando o SEFIN
+> passar a exigir) sem que o DANFSe o **destaque** — são decisões
+> independentes. Sem override (`null`, default), o SDK compara a
+> `dCompet` da NFS-e contra `DanfseLayout::DATA_INICIO_DESTAQUE_IBSCBS`
+> (`2027-01-01`): antes disso os campos do bloco "TRIBUTAÇÃO IBS / CBS" e
+> as duas colunas de total saem como `-` (o bloco em si continua presente
+> — é estrutura fixa da NT 008), a partir dela saem com valor real. Isso
+> reflete a regra oficial `vTotNF = vLiq` (2026) vs. `vTotNF = vLiq + vCBS
+> + vIBSTot` (2027+). Use `true`/`false` pra forçar independente da data.
 
 > **Logo institucional NFSe NÃO pode ser substituído** — é obrigatório no cabeçalho conforme item 2.2.4 da NT 008/2026. O logo do prestador é renderizado em espaço dedicado dentro do bloco PRESTADOR.
 
@@ -660,7 +675,7 @@ Imutável. `xmlRetorno` é útil pra arquivar em S3; `rawResponse` é só pra de
 
 > ⚠️ **`$nfse->consultar($chave)->cancelada()` NÃO detecta cancelamento de NFS-e.** O método verifica `cStat ∈ {101, 102, 135, 155}` — mas o `consultar()` retorna sempre cStat=100 (autorizada) mesmo após o cancelamento, porque o cancelamento é um EVENTO separado, não muda o cStat da NFS-e original.
 >
-> Para detectar cancelamento de uma NFS-e específica, use [`$nfse->verificarCancelamento($chave)`](#listagem-de-eventos-por-nfs-e) (busca eventos no ADN; `estaCancelada()` é alias `@deprecated`) ou [`$resp->foiCancelada($chave)`](#respostadfe--itemdfe) sobre um lote DFe.
+> Para detectar cancelamento de uma NFS-e específica, use [`$nfse->verificarCancelamento($chave)`](#listagem-de-eventos-por-nfs-e) (busca eventos no ADN; `estaCancelada()` é alias `@deprecated`) ou [`$resp->foiCancelada($chave)`](#respostadfe--itemdfe) sobre um lote DFe. Guia passo a passo (inclui como gerar a DANFSe local com a tarja "CANCELADA" e a ressalva de eventual consistency do ADN): [`docs/consultar-nfse-e-cancelamento.md`](docs/consultar-nfse-e-cancelamento.md).
 
 ### `RespostaDfe` + `ItemDfe`
 

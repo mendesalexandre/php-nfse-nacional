@@ -28,6 +28,13 @@ final class DanfseGeneratorTest extends TestCase
         return (new DanfseXmlParser())->parse($xml);
     }
 
+    private function xmlAutorizado(): string
+    {
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        return $xml;
+    }
+
     public function test_sem_override_e_nota_regular_nao_tem_marca(): void
     {
         self::assertNull(DanfseGenerator::definirMarcaAgua($this->dadosRegular(), null));
@@ -284,5 +291,72 @@ final class DanfseGeneratorTest extends TestCase
         $linhaValor = $linhas[$idxLabel + 1] ?? '';
         self::assertStringNotContainsString('R$', $linhaValor);
         self::assertMatchesRegularExpression('/^-\s/', $linhaValor);
+    }
+
+    /** Linha imediatamente após a primeira ocorrência do label no texto do PDF. */
+    private function linhaApos(string $texto, string $label): string
+    {
+        $linhas = explode("\n", $texto);
+        foreach ($linhas as $idx => $linha) {
+            if (str_contains($linha, $label)) {
+                return $linhas[$idx + 1] ?? '';
+            }
+        }
+        self::fail("label \"{$label}\" não encontrado no PDF");
+    }
+
+    // ================================================================
+    // Regra transitória: destaque de IBS/CBS só a partir de 2027
+    // ================================================================
+
+    public function test_ibscbs_suprimido_antes_de_2027(): void
+    {
+        // Fixture tem dCompet=2026-01-15 e <IBSCBS> completo (vIBSTot=1.04,
+        // vCBS=1.86) — o SDK já pode enviar isso no DPS, mas o DANFSe não
+        // destaca antes da rampa 2027 da Reforma Tributária. O bloco em si
+        // continua presente (estrutura fixa da NT 008), só os valores ficam
+        // "-", igual a uma nota sem <gIBSCBS> real (mesmo comportamento do
+        // fix de "Exclusões e Reduções" acima).
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($this->xmlAutorizado());
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
+        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'Total do IBS/CBS'));
+        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-E + IBS/CBS'));
+    }
+
+    public function test_ibscbs_exibido_a_partir_de_2027(): void
+    {
+        $xml = str_replace('<dCompet>2026-01-15</dCompet>', '<dCompet>2027-01-15</dCompet>', $this->xmlAutorizado());
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        // Total do IBS/CBS = vIBSTot (1.04) + vCBS (1.86) = 2.90
+        self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
+        // VALOR LÍQUIDO + IBS/CBS = vLiq (32.97) + 2.90 = 35.87
+        self::assertStringContainsString('35,87', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-E + IBS/CBS'));
+    }
+
+    public function test_override_exibirValoresIbsCbs_forca_exibicao_antes_de_2027(): void
+    {
+        $custom = new DanfseCustomizacao(exibirValoresIbsCbs: true);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($this->xmlAutorizado(), $custom);
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
+    }
+
+    public function test_override_exibirValoresIbsCbs_false_suprime_mesmo_apos_2027(): void
+    {
+        $xml = str_replace('<dCompet>2026-01-15</dCompet>', '<dCompet>2027-01-15</dCompet>', $this->xmlAutorizado());
+        $custom = new DanfseCustomizacao(exibirValoresIbsCbs: false);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml, $custom);
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
+        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'Total do IBS/CBS'));
     }
 }

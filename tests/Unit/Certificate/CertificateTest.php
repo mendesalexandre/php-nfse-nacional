@@ -116,6 +116,18 @@ final class CertificateTest extends TestCase
         self::assertSame('12345678000195', $cert->cnpj);
     }
 
+    /**
+     * CNPJ alfanumérico (raiz+ordem com letras) no subject CN — mesmo
+     * formato "RAZÃO SOCIAL:CNPJ" do ICP-Brasil, mas com o novo padrão
+     * de CNPJ que a Receita começou a emitir em 2026.
+     */
+    public function test_cnpj_alfanumerico_extraido_do_subjectCN(): void
+    {
+        $gen = $this->gerarPfxSelfSigned(cnpj: '00000000E08G12');
+        $cert = Certificate::fromPfxContent($gen['pfx'], self::SENHA);
+        self::assertSame('00000000E08G12', $cert->cnpj);
+    }
+
     public function test_construtor_direto_aceita_PEMs_pre_decodificados(): void
     {
         // Caminho avançado — quem já tem PEM decomposto (ex: armazenado em DB)
