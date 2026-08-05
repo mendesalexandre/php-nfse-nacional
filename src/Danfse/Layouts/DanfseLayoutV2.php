@@ -151,11 +151,17 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
         $xCentro = $marginX + DanfseLayout::cmToMm(5.41);
         $larguraCentro = DanfseLayout::cmToMm(10.19);
+        // Título + subtítulo (7.5mm de altura junto) ficam verticalmente
+        // centralizados no cabeçalho (11.6mm). Em homologação entra uma
+        // 3ª linha (tarja vermelha) logo abaixo, preenchendo o espaço —
+        // sem ela, as duas linhas ficavam "grudadas" no topo em vez de
+        // centralizadas (a pedido, 05/08/2026).
+        $deslocamentoVerticalTitulo = $dados->homologacao ? 0.0 : 2.0;
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_CABECALHO_TITULO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
-        $this->pdf->SetXY($xCentro, $y + 1);
+        $this->pdf->SetXY($xCentro, $y + 1 + $deslocamentoVerticalTitulo);
         $this->pdf->Cell($larguraCentro, 4, DanfseLayout::TEXTO_DANFSE_TITULO, 0, 0, 'C');
-        $this->pdf->SetXY($xCentro, $y + 4);
+        $this->pdf->SetXY($xCentro, $y + 4 + $deslocamentoVerticalTitulo);
         $this->pdf->Cell($larguraCentro, 3.5, DanfseLayout::TEXTO_DANFSE_SUBTITULO, 0, 0, 'C');
 
         if ($dados->homologacao) {

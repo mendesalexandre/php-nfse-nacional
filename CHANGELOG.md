@@ -5,6 +5,18 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.36.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: título "DANFSe v2.0" / "Documento Auxiliar da NFS-e" ficava
+  grudado no topo do cabeçalho fora de homologação** — as duas linhas
+  usavam a mesma posição Y pensada pra 3 linhas (título + subtítulo +
+  tarja vermelha "SEM VALIDADE JURÍDICA"); sem a tarja (produção), sobrava
+  espaço vazio embaixo em vez de centralizar. Título/subtítulo agora
+  recebem um deslocamento vertical quando não é homologação, ficando
+  centralizados nos 1,16cm do cabeçalho.
+
 ## [0.35.0] — 2026-08-05
 
 ### Corrigido
