@@ -202,16 +202,24 @@ final class DanfseLayout
     }
 
     /**
-     * Labels do código `opSimpNac` (Simples Nacional na Data de Competência).
+     * Labels do código `opSimpNac` (Simples Nacional na Data de
+     * Competência). Texto conforme o domínio oficial do leiaute (CSV
+     * Anexo IV, campo `opSimpNac`) — os valores 2/3 são bem mais longos
+     * que só "MEI"/"ME EPP" (valor anterior, errado) e truncam com
+     * reticências em telas estreitas, confirmado contra DANFSe real
+     * (`renderCelulaAutoFit`). "Não optante" com "o" minúsculo confirmado
+     * em 2 DANFSe reais (05/08/2026) — só a primeira letra da frase é
+     * maiúscula, "Microempreendedor Individual"/"Microempresa..." seguem
+     * maiúsculos por serem nome do regime, não por regra de frase.
      *
      * @return array<int, string>
      */
     public static function simplesNacionalLabels(): array
     {
         return [
-            1 => 'Não Optante',
-            2 => 'MEI',
-            3 => 'ME EPP (Simples Nacional)',
+            1 => 'Não optante',
+            2 => 'Optante - Microempreendedor Individual (MEI)',
+            3 => 'Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)',
         ];
     }
 

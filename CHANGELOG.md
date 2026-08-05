@@ -5,6 +5,25 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: rótulo "Indicador Municipal" faltava "(Inscrição)"** —
+  oficial é "Indicador Municipal (Inscrição)" (PRESTADOR, TOMADOR e
+  INTERMEDIÁRIO).
+- **DANFSe: texto do regime Simples Nacional estava errado** —
+  `DanfseLayout::simplesNacionalLabels()` tinha `2 => 'MEI'` e
+  `3 => 'ME EPP (Simples Nacional)'`, mas o oficial mostra o texto
+  completo do domínio do leiaute: "Optante - Microempreendedor
+  Individual (MEI)" e "Optante - Microempresa ou Empresa de Pequeno
+  Porte (ME/EPP)" (truncados com reticências quando não cabem — célula
+  trocada pra `renderCelulaAutoFit`). "Não Optante" também virou "Não
+  optante" (confirmado em 2 DANFSe reais).
+
+Achados confirmados comparando com DANFSe reais do portal nacional
+(gov.br) 05/08/2026.
+
 ## [0.31.0] — 2026-08-05
 
 ### Corrigido
@@ -12,8 +31,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 - **DANFSe: Código IBGE, CEP, Código de Tributação Nacional e Código NBS
   saíam sem a formatação oficial** — o portal nacional agrupa esses
   códigos com pontos conforme a estrutura de cada um:
-  - Código IBGE (`cMun`, 7 dígitos): `UF.MMMMM` — ex. `5107909` →
-    `51.07909`
+  - Código IBGE (`cMun`, 7 dígitos): `UF.MMMMM` — ex. `3550308` →
+    `35.50308`
   - CEP (8 dígitos): `DD.DDD-DDD` — ex. `01310100` → `01.310-100`
     (tem um ponto a mais que o formato comum de CEP)
   - Código de Tributação Nacional (`cTribNac`, 6 dígitos): `XX.XX.XX`

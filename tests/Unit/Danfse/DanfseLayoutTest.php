@@ -55,4 +55,18 @@ final class DanfseLayoutTest extends TestCase
         self::assertSame('1.1304.00.00', DanfseLayout::formatarNbs('113040000'));
         self::assertSame('-', DanfseLayout::formatarNbs(null));
     }
+
+    /**
+     * Texto oficial do domínio `opSimpNac` (CSV Anexo IV) — valor anterior
+     * ("MEI"/"ME EPP (Simples Nacional)") não batia com o que o portal
+     * nacional mostra de fato. "Não optante" com "o" minúsculo confirmado
+     * em 2 DANFSe reais 05/08/2026.
+     */
+    public function test_simplesNacionalLabels_texto_oficial_do_dominio(): void
+    {
+        $labels = DanfseLayout::simplesNacionalLabels();
+        self::assertSame('Não optante', $labels[1]);
+        self::assertSame('Optante - Microempreendedor Individual (MEI)', $labels[2]);
+        self::assertSame('Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)', $labels[3]);
+    }
 }

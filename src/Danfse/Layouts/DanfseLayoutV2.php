@@ -309,7 +309,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($p['documento']));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
             $p['inscricao_municipal'] ?? '-');
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($p['telefone']));
@@ -329,7 +329,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             $p['email'] ?? '-');
         $this->cursorY += $h;
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Simples Nacional na Data de Competência',
+        $this->renderCelulaAutoFit(0.30, $this->cursorY, 5.09, $h, 'Simples Nacional na Data de Competência',
             $this->labelSimplesNacional($p['opta_simples'] ?? null));
         $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Regime de Apuração Tributária pelo SN',
             $p['regime_apuracao_sn'] ?? '-');
@@ -354,7 +354,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $h = 0.63;
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($t['documento']));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
             $t['inscricao_municipal'] ?? '-');
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($t['telefone']));
@@ -428,7 +428,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $h = 0.63;
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($i['documento'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
             $i['inscricao_municipal'] ?? '-');
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($i['telefone'] ?? null));
