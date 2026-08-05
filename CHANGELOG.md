@@ -5,6 +5,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.37.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: título dos blocos (PRESTADOR/FORNECEDOR, TOMADOR/ADQUIRENTE
+  etc.) sem o fundo cinza claro** — o próprio comentário da constante
+  `DanfseLayout::COR_SOMBREAMENTO` já dizia "cabeçalho, títulos de
+  blocos, Emitente", mas o preenchimento nunca tinha sido implementado
+  em `renderTituloBloco()` (só o texto em negrito, sem `Rect(...,'F')`).
+  Confirmado contra DANFSe real do portal nacional 05/08/2026 — sem o
+  fundo, a barra de título ficava visualmente colada na linha de dados
+  logo abaixo.
+
 ## [0.36.0] — 2026-08-05
 
 ### Corrigido

@@ -1037,14 +1037,20 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     private function renderTituloBloco(float $yCm, string $titulo): void
     {
-        // Estilo V1: linha divisória fina acima do título + negrito MAIÚSCULAS,
-        // sem faixa cinza de fundo.
+        // Linha divisória fina acima do título + negrito MAIÚSCULAS, com
+        // fundo cinza claro (COR_SOMBREAMENTO, #f2f2f2) — confirmado
+        // contra DANFSe real do portal nacional 05/08/2026 (item 2.2 da
+        // NT 008 já previa "sombreamento cinza claro" pros títulos de
+        // bloco, mas o fill nunca tinha sido implementado aqui).
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($yCm);
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
         $altura = DanfseLayout::cmToMm(0.32);
 
         $this->linhaSeparadora($yCm);
+
+        $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
+        $this->pdf->Rect($marginX, $y, $largura, $altura, 'F');
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
