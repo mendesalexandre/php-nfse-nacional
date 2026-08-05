@@ -75,7 +75,7 @@ final class Certificate
         // finais podem ter letras (raiz+ordem alfanuméricos, DV sempre
         // numérico) — âncora no ':' final em vez de casar só dígitos.
         $cnpj = '';
-        if (preg_match('/:\s*([A-Za-z0-9]{14})\s*$/', $cn, $m) && Documento::ehCnpj($m[1])) {
+        if (preg_match('/:\s*([A-Za-z0-9]{14})\s*$/', $cn, $m) && Documento::isCNPJ($m[1])) {
             $cnpj = Documento::limpar($m[1]);
         }
         if ($cnpj === '') {
@@ -133,7 +133,7 @@ final class Certificate
         // primeiros 14 são CNPJ, depois vem nome empresarial / dados do
         // titular).
         $segmento = substr($der, $pos + strlen($oidDer), 256);
-        if (preg_match('/([A-Za-z0-9]{14})/', $segmento, $m) && Documento::ehCnpj($m[1])) {
+        if (preg_match('/([A-Za-z0-9]{14})/', $segmento, $m) && Documento::isCNPJ($m[1])) {
             return Documento::limpar($m[1]);
         }
         return null;

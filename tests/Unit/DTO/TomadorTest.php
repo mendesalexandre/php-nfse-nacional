@@ -27,14 +27,20 @@ final class TomadorTest extends TestCase
     {
         $tomador = new Tomador('12345678909', 'João da Silva', $this->endereco());
         self::assertSame('12345678909', $tomador->documento);
-        self::assertTrue($tomador->ehPessoaFisica());
+        self::assertTrue($tomador->isPessoaFisica());
     }
 
     public function test_aceita_cnpj_valido(): void
     {
         $tomador = new Tomador('12345678000195', 'Empresa LTDA', $this->endereco());
         self::assertSame('12345678000195', $tomador->documento);
-        self::assertFalse($tomador->ehPessoaFisica());
+        self::assertFalse($tomador->isPessoaFisica());
+    }
+
+    public function test_ehPessoaFisica_alias_deprecado_delega(): void
+    {
+        $tomador = new Tomador('12345678909', 'João da Silva', $this->endereco());
+        self::assertTrue($tomador->ehPessoaFisica());
     }
 
     public function test_normaliza_documento_com_mascara(): void

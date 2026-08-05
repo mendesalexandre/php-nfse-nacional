@@ -5,6 +5,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-08-05
+
+### Alterado
+
+- **Nomenclatura de booleanos: `eh*` → `is*`** — `Documento::ehCpf()`/
+  `ehCnpj()`, `Tomador`/`Intermediario::ehPessoaFisica()` e
+  `CStat::ehSucesso()`/`ehErroSefin()`/`ehErroAdn()`/`ehErroSchema()`
+  foram renomeados pra `isCPF()`/`isCNPJ()`, `isPessoaFisica()` e
+  `isSucesso()`/`isErroSefin()`/`isErroAdn()`/`isErroSchema()`. CPF/CNPJ
+  ganharam a sigla toda em maiúscula (`isCPF`/`isCNPJ`); os demais
+  seguem camelCase padrão. Nomes antigos mantidos como aliases
+  `@deprecated` — não é breaking, mas recomendado migrar.
+
 ## [0.27.0] — 2026-08-01
 
 ### Adicionado

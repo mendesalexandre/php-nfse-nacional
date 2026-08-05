@@ -37,16 +37,16 @@ final class DocumentoTest extends TestCase
 
     public function test_eh_cpf_com_11_digitos(): void
     {
-        self::assertTrue(Documento::ehCpf('12345678900'));
-        self::assertTrue(Documento::ehCpf('123.456.789-00'));
-        self::assertFalse(Documento::ehCpf('12345678000190'));
+        self::assertTrue(Documento::isCPF('12345678900'));
+        self::assertTrue(Documento::isCPF('123.456.789-00'));
+        self::assertFalse(Documento::isCPF('12345678000190'));
     }
 
     public function test_eh_cnpj_com_14_digitos(): void
     {
-        self::assertTrue(Documento::ehCnpj('12345678000190'));
-        self::assertTrue(Documento::ehCnpj('12.345.678/0001-90'));
-        self::assertFalse(Documento::ehCnpj('12345678900'));
+        self::assertTrue(Documento::isCNPJ('12345678000190'));
+        self::assertTrue(Documento::isCNPJ('12.345.678/0001-90'));
+        self::assertFalse(Documento::isCNPJ('12345678900'));
     }
 
     public function test_formatar_cpf(): void
@@ -84,14 +84,14 @@ final class DocumentoTest extends TestCase
 
     public function test_eh_cnpj_aceita_alfanumerico(): void
     {
-        self::assertTrue(Documento::ehCnpj('12.ABC.345/01DE-35'));
-        self::assertTrue(Documento::ehCnpj('00.000.000/E08G-12'));
-        self::assertFalse(Documento::ehCnpj('12.ABC.345/01D-35')); // 13 chars
+        self::assertTrue(Documento::isCNPJ('12.ABC.345/01DE-35'));
+        self::assertTrue(Documento::isCNPJ('00.000.000/E08G-12'));
+        self::assertFalse(Documento::isCNPJ('12.ABC.345/01D-35')); // 13 chars
     }
 
     public function test_eh_cpf_continua_exigindo_so_digitos(): void
     {
-        self::assertFalse(Documento::ehCpf('123.456.78A-00'));
+        self::assertFalse(Documento::isCPF('123.456.78A-00'));
     }
 
     public function test_formatar_cnpj_alfanumerico(): void
@@ -136,5 +136,11 @@ final class DocumentoTest extends TestCase
         self::assertTrue(Documento::validarDvCnpj('00.000.000/E08G-12'));
         self::assertFalse(Documento::validarDvCnpj('12.ABC.345/01DE-00'));
         self::assertFalse(Documento::validarDvCnpj('123'));
+    }
+
+    public function test_ehCpf_e_ehCnpj_aliases_deprecados_delegam(): void
+    {
+        self::assertTrue(Documento::ehCpf('12345678900'));
+        self::assertTrue(Documento::ehCnpj('00.000.000/E08G-12'));
     }
 }

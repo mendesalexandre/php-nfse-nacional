@@ -272,7 +272,7 @@ final class DpsBuilder
         // child element").
 
         // CPF ou CNPJ (xs:choice)
-        if ($tomador->ehPessoaFisica()) {
+        if ($tomador->isPessoaFisica()) {
             $toma->appendChild($this->el($doc, 'CPF', $tomador->documento));
         } else {
             $toma->appendChild($this->el($doc, 'CNPJ', $tomador->documento));
@@ -329,7 +329,7 @@ final class DpsBuilder
         $interm = $this->el($doc, 'interm');
 
         // CPF ou CNPJ (xs:choice)
-        if ($intermediario->ehPessoaFisica()) {
+        if ($intermediario->isPessoaFisica()) {
             $interm->appendChild($this->el($doc, 'CPF', $intermediario->documento));
         } else {
             $interm->appendChild($this->el($doc, 'CNPJ', $intermediario->documento));

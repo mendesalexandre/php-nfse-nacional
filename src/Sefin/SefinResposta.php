@@ -68,7 +68,7 @@ final class SefinResposta
      * SEFIN/ADN). Use pra log/análise:
      *
      *   $stat = $resp->cStatTipado();
-     *   if ($stat?->ehErroSchema()) { ... }
+     *   if ($stat?->isErroSchema()) { ... }
      */
     public function cStatTipado(): ?CStat
     {

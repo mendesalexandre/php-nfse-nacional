@@ -187,7 +187,7 @@ enum CStat: int
     /**
      * Sucesso da operação (emissão, cancelamento, evento aceito).
      */
-    public function ehSucesso(): bool
+    public function isSucesso(): bool
     {
         return in_array($this, [
             self::Emitida,
@@ -204,9 +204,9 @@ enum CStat: int
      * regras de eventos básicos, schema XSD). Inclui também o 9996 que é
      * regra de habilitação do emissor.
      */
-    public function ehErroSefin(): bool
+    public function isErroSefin(): bool
     {
-        return !$this->ehSucesso() && !$this->ehErroAdn();
+        return !$this->isSucesso() && !$this->isErroAdn();
     }
 
     /**
@@ -214,7 +214,7 @@ enum CStat: int
      * bloqueio, compartilhamento). Códigos ≥ 1800 e < 3000 (faixa reservada
      * pra ADN no leiaute).
      */
-    public function ehErroAdn(): bool
+    public function isErroAdn(): bool
     {
         return $this->value >= 1800 && $this->value < 3000;
     }
@@ -222,9 +222,33 @@ enum CStat: int
     /**
      * Erro de schema (XSD failed). Geralmente indica DPS malformada.
      */
-    public function ehErroSchema(): bool
+    public function isErroSchema(): bool
     {
         return $this === self::ErroSchemaXml;
+    }
+
+    /** @deprecated Renomeado para {@see isSucesso()} */
+    public function ehSucesso(): bool
+    {
+        return $this->isSucesso();
+    }
+
+    /** @deprecated Renomeado para {@see isErroSefin()} */
+    public function ehErroSefin(): bool
+    {
+        return $this->isErroSefin();
+    }
+
+    /** @deprecated Renomeado para {@see isErroAdn()} */
+    public function ehErroAdn(): bool
+    {
+        return $this->isErroAdn();
+    }
+
+    /** @deprecated Renomeado para {@see isErroSchema()} */
+    public function ehErroSchema(): bool
+    {
+        return $this->isErroSchema();
     }
 
     /**

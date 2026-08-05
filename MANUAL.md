@@ -779,9 +779,12 @@ final class Tomador
         public readonly ?string $inscricaoMunicipal = null,  // <toma><IM> opcional
     );
 
-    public function ehPessoaFisica(): bool;     // strlen($documento) === 11
+    public function isPessoaFisica(): bool;     // strlen($documento) === 11
 }
 ```
+
+> `ehPessoaFisica()` (e o equivalente em `Intermediario`) foi renomeado
+> pra `isPessoaFisica()` na v0.28.0 — mantido como alias `@deprecated`.
 
 > **`inscricaoMunicipal`:** opcional. Útil quando o tomador é PJ no mesmo município do prestador — permite cruzamento de dados pela prefeitura e tratamento de imunidade tributária por IM. Em cartório de RI o tomador é majoritariamente PF, então fica null normalmente.
 
@@ -1366,10 +1369,10 @@ enum CStat: int {
     // 41 códigos AdnXXXX = 1800–2032 (eventos avançados ADN)
 
     public function descricao(): string;       // mensagem oficial
-    public function ehSucesso(): bool;
-    public function ehErroSefin(): bool;       // !sucesso && !ADN
-    public function ehErroAdn(): bool;         // 1800 ≤ value < 3000
-    public function ehErroSchema(): bool;      // === ErroSchemaXml
+    public function isSucesso(): bool;
+    public function isErroSefin(): bool;       // !sucesso && !ADN
+    public function isErroAdn(): bool;         // 1800 ≤ value < 3000
+    public function isErroSchema(): bool;      // === ErroSchemaXml
 
     public static function aceitosEvento(): array;    // [100, 135, 155, 840]
     public static function estadosCancelada(): array; // [101, 102, 135, 155]
@@ -1377,6 +1380,10 @@ enum CStat: int {
 ```
 
 > **Como usar:** `SefinResposta::$cStat` continua `?int` (qualquer código possível). Pra comparação tipada use `CStat::tryFrom($resp->cStat)` ou o helper `$resp->cStatTipado()`. Pra checagem rápida de idempotência: `$resp->eventoIdempotente()`.
+>
+> `ehSucesso()`/`ehErroSefin()`/`ehErroAdn()`/`ehErroSchema()` foram
+> renomeados pra `isSucesso()`/`isErroSefin()`/`isErroAdn()`/`isErroSchema()`
+> na v0.28.0 — mantidos como aliases `@deprecated`.
 
 > **`tpEmit` é "quem emitiu", não "modo contingência".** Diferente da NF-e (que usa tpEmit pra distinguir online/offline). Pra emissão tipo contingência no SefinNacional, ver a seção [Emissão retroativa (~contingência)](#emissão-retroativa-contingência) abaixo.
 

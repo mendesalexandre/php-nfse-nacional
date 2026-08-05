@@ -32,7 +32,7 @@ final class CStatTest extends TestCase
         }
     }
 
-    public function test_ehSucesso_classifica_corretamente(): void
+    public function test_isSucesso_classifica_corretamente(): void
     {
         $sucessos = [
             CStat::Emitida,
@@ -43,37 +43,45 @@ final class CStatTest extends TestCase
             CStat::EventoVinculado,
         ];
         foreach ($sucessos as $s) {
-            self::assertTrue($s->ehSucesso(), "{$s->name} deveria ser sucesso");
+            self::assertTrue($s->isSucesso(), "{$s->name} deveria ser sucesso");
         }
 
         // Erros não devem ser sucesso
-        self::assertFalse(CStat::ErroSchemaXml->ehSucesso());
-        self::assertFalse(CStat::ErroConvenioInativo->ehSucesso());
-        self::assertFalse(CStat::AdnAssinaturaComErro->ehSucesso());
+        self::assertFalse(CStat::ErroSchemaXml->isSucesso());
+        self::assertFalse(CStat::ErroConvenioInativo->isSucesso());
+        self::assertFalse(CStat::AdnAssinaturaComErro->isSucesso());
     }
 
-    public function test_ehErroSefin_classifica_erros_nao_adn(): void
+    public function test_isErroSefin_classifica_erros_nao_adn(): void
     {
-        self::assertTrue(CStat::ErroCompetPosteriorAoEmi->ehErroSefin());
-        self::assertTrue(CStat::ErroConvenioInativo->ehErroSefin());
-        self::assertTrue(CStat::ErroSchemaXml->ehErroSefin());          // 1235 — fora da faixa ADN
-        self::assertTrue(CStat::ErroEmitenteNaoHabilitado->ehErroSefin()); // 9996
+        self::assertTrue(CStat::ErroCompetPosteriorAoEmi->isErroSefin());
+        self::assertTrue(CStat::ErroConvenioInativo->isErroSefin());
+        self::assertTrue(CStat::ErroSchemaXml->isErroSefin());          // 1235 — fora da faixa ADN
+        self::assertTrue(CStat::ErroEmitenteNaoHabilitado->isErroSefin()); // 9996
 
         // Sucesso não é erro
-        self::assertFalse(CStat::Emitida->ehErroSefin());
+        self::assertFalse(CStat::Emitida->isErroSefin());
         // ADN nunca é SEFIN
-        self::assertFalse(CStat::AdnAssinaturaComErro->ehErroSefin());
+        self::assertFalse(CStat::AdnAssinaturaComErro->isErroSefin());
     }
 
-    public function test_ehErroAdn_classifica_codigos_1800_plus(): void
+    public function test_isErroAdn_classifica_codigos_1800_plus(): void
     {
-        self::assertTrue(CStat::AdnPrazoLeiauteExpirado->ehErroAdn());
-        self::assertTrue(CStat::AdnAssinaturaComErro->ehErroAdn());
-        self::assertTrue(CStat::AdnCancelImpedidoPorEvento->ehErroAdn());
+        self::assertTrue(CStat::AdnPrazoLeiauteExpirado->isErroAdn());
+        self::assertTrue(CStat::AdnAssinaturaComErro->isErroAdn());
+        self::assertTrue(CStat::AdnCancelImpedidoPorEvento->isErroAdn());
 
         // SEFIN core não é ADN
-        self::assertFalse(CStat::ErroSchemaXml->ehErroAdn());
-        self::assertFalse(CStat::Emitida->ehErroAdn());
+        self::assertFalse(CStat::ErroSchemaXml->isErroAdn());
+        self::assertFalse(CStat::Emitida->isErroAdn());
+    }
+
+    public function test_aliases_deprecados_eh_delegam_pra_is(): void
+    {
+        self::assertTrue(CStat::Emitida->ehSucesso());
+        self::assertTrue(CStat::ErroConvenioInativo->ehErroSefin());
+        self::assertTrue(CStat::AdnAssinaturaComErro->ehErroAdn());
+        self::assertTrue(CStat::ErroSchemaXml->ehErroSchema());
     }
 
     public function test_aceitosEvento_inclui_idempotente(): void

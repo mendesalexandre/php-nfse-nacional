@@ -29,7 +29,7 @@ final class Documento
         return strtoupper($semMascara);
     }
 
-    public static function ehCpf(string $valor): bool
+    public static function isCPF(string $valor): bool
     {
         return (bool) preg_match('/^\d{11}$/', self::limpar($valor));
     }
@@ -40,9 +40,21 @@ final class Documento
      * `validarDvCnpj()` pra isso). Aceita tanto CNPJ numérico clássico
      * quanto o novo alfanumérico.
      */
-    public static function ehCnpj(string $valor): bool
+    public static function isCNPJ(string $valor): bool
     {
         return (bool) preg_match('/^[A-Z0-9]{12}\d{2}$/', self::limpar($valor));
+    }
+
+    /** @deprecated Renomeado para {@see isCPF()} */
+    public static function ehCpf(string $valor): bool
+    {
+        return self::isCPF($valor);
+    }
+
+    /** @deprecated Renomeado para {@see isCNPJ()} */
+    public static function ehCnpj(string $valor): bool
+    {
+        return self::isCNPJ($valor);
     }
 
     /**
@@ -98,13 +110,13 @@ final class Documento
     /**
      * Valida se os 2 dígitos verificadores de um CNPJ completo (14
      * caracteres) batem com o cálculo a partir da raiz+ordem. Utilitário
-     * opt-in — `ehCnpj()` continua checando só formato/tamanho (a lib
+     * opt-in — `isCNPJ()` continua checando só formato/tamanho (a lib
      * valida sintaxe, não decide se um documento é fiscalmente válido).
      */
     public static function validarDvCnpj(string $valor): bool
     {
         $cnpj = self::limpar($valor);
-        if (!self::ehCnpj($cnpj)) {
+        if (!self::isCNPJ($cnpj)) {
             return false;
         }
         return substr($cnpj, -2) === self::calcularDvCnpj(substr($cnpj, 0, 12));

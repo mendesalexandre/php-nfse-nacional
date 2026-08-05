@@ -22,10 +22,12 @@ digital (`Certificate`) passam todos por ele.
   silenciosamente. Agora remove só os caracteres de máscara (`.`, `/`,
   `-`, espaços) e normaliza pra maiúsculas. CPF continua sempre numérico
   (a Receita não estendeu o formato alfanumérico pra CPF).
-- **`ehCnpj()`** — checa `^[A-Z0-9]{12}\d{2}$` (14 caracteres: 12
-  alfanuméricos + 2 dígitos) em vez de só tamanho. Continua sendo uma
-  checagem de **formato**, não de dígito verificador — consistente com o
-  resto da lib, que valida sintaxe e deixa a regra fiscal pro SEFIN.
+- **`isCNPJ()`** (`ehCnpj()` até v0.27.0, mantido como alias `@deprecated`)
+  — checa `^[A-Z0-9]{12}\d{2}$` (14 caracteres: 12 alfanuméricos + 2
+  dígitos) em vez de só tamanho. Continua sendo uma checagem de
+  **formato**, não de dígito verificador — consistente com o resto da
+  lib, que valida sintaxe e deixa a regra fiscal pro SEFIN. `isCPF()`
+  (`ehCpf()` deprecated) segue exigindo só dígitos.
 - **`formatar()`** — mesma máscara `00.000.000/0000-00`, agora com
   wildcard de caractere em vez de `\d` nos grupos que podem ter letra.
 - **`calcularDvCnpj(string $raiz): string`** (novo) — calcula os 2 DVs a
@@ -33,7 +35,7 @@ digital (`Certificate`) passam todos por ele.
   teste.
 - **`validarDvCnpj(string $cnpj): bool`** (novo) — valida um CNPJ
   completo (14 caracteres) contra o DV calculado. Opt-in — não é chamado
-  automaticamente por `ehCnpj()`.
+  automaticamente por `isCNPJ()`.
 
 `Certificate::fromPfxContent()` também foi ajustado: a extração de CNPJ
 do `CN` do certificado (formato `RAZÃO SOCIAL:CNPJ`) e da extensão SAN

@@ -52,7 +52,7 @@ final class Prestador
         $this->inscricaoMunicipal = $imNormalizada === '' ? null : $imNormalizada;
 
         $errors = [];
-        if (!Documento::ehCnpj($this->cnpj)) {
+        if (!Documento::isCNPJ($this->cnpj)) {
             $errors[] = "CNPJ do prestador inválido: {$cnpj}";
         }
         if (trim($razaoSocial) === '') {

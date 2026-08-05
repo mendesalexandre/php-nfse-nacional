@@ -47,7 +47,7 @@ final class Tomador
         $this->documento = Documento::limpar($documento);
 
         $errors = [];
-        if (!Documento::ehCpf($this->documento) && !Documento::ehCnpj($this->documento)) {
+        if (!Documento::isCPF($this->documento) && !Documento::isCNPJ($this->documento)) {
             $errors[] = "Documento do tomador inválido: {$documento} (esperado 11 ou 14 dígitos)";
         }
         if (trim($nome) === '') {
@@ -62,8 +62,14 @@ final class Tomador
         }
     }
 
-    public function ehPessoaFisica(): bool
+    public function isPessoaFisica(): bool
     {
         return strlen($this->documento) === 11;
+    }
+
+    /** @deprecated Renomeado para {@see isPessoaFisica()} */
+    public function ehPessoaFisica(): bool
+    {
+        return $this->isPessoaFisica();
     }
 }
