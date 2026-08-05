@@ -375,10 +375,14 @@ final class DanfseXmlParser
             'total_retencoes' => $this->float($xpath, '//n:infNFSe/n:valores/n:vTotalRet'),
             'valor_liquido' => $vLiq,
             'total_ibscbs' => $vTotIbsCbs,
-            // valor líquido + IBS/CBS: somatório (NT 008 item 2.1.11)
+            // valor líquido + IBS/CBS: somatório (NT 008 item 2.1.11).
+            // Sem IBS/CBS real ($vTotIbsCbs null), o portal nacional
+            // mostra "R$ 0,00" aqui — NÃO cai pra vLiq sozinho (confirmado
+            // contra DANFSe real 05/08/2026). Fallback é null (a camada
+            // de exibição decide o "0,00" default), não $vLiq.
             'valor_liquido_mais_ibscbs' => $vLiq !== null && $vTotIbsCbs !== null
                 ? $vLiq + $vTotIbsCbs
-                : $vLiq,
+                : null,
             'issqn_apurado' => $this->float($xpath, '//n:infNFSe/n:valores/n:vISSQN'),
             // Totais aproximados Lei 12.741/2012 (Transparência Fiscal).
             // Declaratórios — vêm do DPS <pTotTrib>.

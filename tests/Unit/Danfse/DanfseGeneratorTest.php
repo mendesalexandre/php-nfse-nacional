@@ -410,15 +410,20 @@ final class DanfseGeneratorTest extends TestCase
 
     public function test_ibscbs_total_mostra_zero_quando_nao_ha_gibscbs_real(): void
     {
-        // Confirmado contra DANFSe real do portal nacional: nota sem
-        // <IBSCBS> no DPS mostra "R$ 0,00" nesses dois campos, não "-".
+        // Confirmado contra DANFSe real do portal nacional 05/08/2026:
+        // nota sem <IBSCBS> no DPS mostra "R$ 0,00" nos dois campos, não
+        // "-". IMPORTANTE: "VALOR LÍQUIDO + IBS/CBS" fica "R$ 0,00" —
+        // NÃO cai pra "VALOR LÍQUIDO DA NFS-e" sozinho (parecia intuitivo
+        // vLiq+0=vLiq, mas não é isso que o SEFIN faz).
         $xmlSemIbscbs = preg_replace('#<IBSCBS>.*?</IBSCBS>#s', '', $this->xmlAutorizado());
         self::assertNotNull($xmlSemIbscbs);
 
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xmlSemIbscbs);
         $texto = $this->textoDoPdf($pdf);
 
-        self::assertStringContainsString('0,00', $this->linhaApos($texto, 'Total do IBS/CBS'));
-        self::assertStringNotContainsString('- ', $this->valorNaColuna($texto, 'Total do IBS/CBS'));
+        self::assertSame('R$ 0,00', $this->valorNaColuna($texto, 'Total do IBS/CBS'));
+        self::assertSame('R$ 0,00', $this->valorNaColuna($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
+        // vLiq "normal" continua correto, só o "+IBS/CBS" que fica 0,00
+        self::assertSame('R$ 32,97', $this->valorNaColuna($texto, 'VALOR LÍQUIDO DA NFS-e'));
     }
 }

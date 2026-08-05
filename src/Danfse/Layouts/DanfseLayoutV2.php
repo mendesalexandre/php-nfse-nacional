@@ -731,15 +731,17 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarMoeda($v['valor_liquido'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
             sombreado: true);
-        // Esses dois totais SEMPRE mostram valor real (0,00 quando não há
-        // IBS/CBS de fato) — confirmado contra DANFSe real do portal
-        // nacional (nota sem <IBSCBS> no DPS, dCompet 2026, mostra "R$ 0,00"
-        // nos dois, não "-"). "vTotNF = vLiq" (2026) se dá porque o total
-        // do IBS/CBS é 0, não porque o campo é escondido — diferente do
-        // bloco 10 (detalhe de CST/cClassTrib/alíquotas), que continua "-"
-        // sem gIBSCBS real (ver renderTributacaoIbsCbs).
+        // Esses dois totais SEMPRE mostram valor real, nunca "-" — mas sem
+        // IBS/CBS real (`<IBSCBS>` ausente) os DOIS ficam "R$ 0,00", e
+        // "VALOR LÍQUIDO + IBS/CBS" NÃO cai pra "VALOR LÍQUIDO" sozinho.
+        // Confirmado contra DANFSe real do portal nacional 05/08/2026
+        // (nota sem <IBSCBS>, VALOR LÍQUIDO=R$187,91, mas "+IBS/CBS"
+        // mostra R$ 0,00, não R$ 187,91 — parecia intuitivo somar vLiq+0,
+        // mas não é isso que o SEFIN faz). Diferente do bloco 10 (detalhe
+        // de CST/cClassTrib/alíquotas), que continua "-" sem gIBSCBS real
+        // ou antes de DATA_INICIO_DESTAQUE_IBSCBS (ver renderTributacaoIbsCbs).
         $totalIbscbs = (float) ($v['total_ibscbs'] ?? 0.0);
-        $valorLiquidoMaisIbscbs = (float) ($v['valor_liquido_mais_ibscbs'] ?? ($v['valor_liquido'] ?? 0.0));
+        $valorLiquidoMaisIbscbs = (float) ($v['valor_liquido_mais_ibscbs'] ?? 0.0);
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Total do IBS/CBS',
             DanfseLayout::formatarMoeda($totalIbscbs));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS',

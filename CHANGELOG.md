@@ -5,6 +5,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-08-05
+
+### Corrigido
+
+- **"VALOR LÍQUIDO DA NFS-e + IBS/CBS" caía pra "VALOR LÍQUIDO DA NFS-e"
+  sozinho quando não havia IBS/CBS real — devia ser "R$ 0,00".**
+  Corrigido na v0.33.0 pra não mostrar mais "-" nesse cenário, mas o
+  fallback usado (`$vLiq` quando `$vTotIbsCbs` é null) estava errado —
+  parecia intuitivo (vLiq + 0 = vLiq), mas não é isso que o SEFIN/portal
+  nacional faz: confirmado contra DANFSe real (nota sem `<IBSCBS>`,
+  VALOR LÍQUIDO = R$ 187,91, mas "+ IBS/CBS" mostra R$ 0,00, não R$
+  187,91). `DanfseXmlParser::extrairValorTotal()` não cai mais pra
+  `$vLiq` nesse caso — fallback é `0,00` na camada de exibição.
+
 ## [0.34.0] — 2026-08-05
 
 ### Corrigido
