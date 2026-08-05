@@ -5,6 +5,24 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.39.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: fundo cinza dos títulos de bloco cobria a linha preta que
+  separa as seções** — `linhaSeparadora()` era desenhada ANTES do
+  `Rect(...,'F')` cinza, na mesma posição Y, então o preenchimento
+  ficava por cima da linha. Ordem invertida (fill primeiro, linha
+  depois) em `renderTituloBloco()` e `iniciarBlocoNaLinha()`.
+
+### Alterado
+
+- **DANFSe: título "SERVIÇO PRESTADO" e "TRIBUTAÇÃO MUNICIPAL (ISSQN)"
+  também passam a ficar na mesma linha da 1ª linha de campos**, mesmo
+  padrão da v0.38.0. Em SERVIÇO PRESTADO, "Local da Prestação / Sigla UF
+  / País" perdeu a largura dupla (agora 1 coluna, como os outros 3
+  campos da linha).
+
 ## [0.38.0] — 2026-08-05
 
 ### Alterado

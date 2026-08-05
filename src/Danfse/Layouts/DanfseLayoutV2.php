@@ -456,15 +456,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private function renderServico(DanfseDados $dados): void
     {
         $s = $dados->servico;
-        $this->iniciarBloco('SERVIÇO PRESTADO');
         $h = 0.63;
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'SERVIÇO PRESTADO');
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Código de Tributação Nacional / Municipal',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Código de Tributação Nacional / Municipal',
             DanfseLayout::formatarCodigoTributacaoNacional($s['codigo_tributacao_nacional'] ?? null)
             . ' / ' . ($s['codigo_tributacao_municipal'] ?? '-'));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Código da NBS',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Código da NBS',
             DanfseLayout::formatarNbs($s['codigo_nbs'] ?? null));
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Local da Prestação / Sigla UF / País',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Local da Prestação / Sigla UF / País',
             ($s['municipio_prestacao'] ?? '-') . ' / BR');
         $this->cursorY += $h;
 
@@ -497,25 +497,24 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private function renderTributacaoMunicipal(DanfseDados $dados): void
     {
         $t = $dados->tributacaoMunicipal;
-        $this->iniciarBloco('TRIBUTAÇÃO MUNICIPAL (ISSQN)');
+        $h = 0.63;
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'TRIBUTAÇÃO MUNICIPAL (ISSQN)');
 
         if ($dados->operacaoNaoSujeitaIssqn()) {
-            $this->renderCaixaTextoUnico($this->cursorY, 0.63,
-                'TRIBUTAÇÃO MUNICIPAL (ISSQN) - OPERAÇÃO NÃO SUJEITA AO ISSQN');
-            $this->cursorY += 0.63;
+            $this->renderCaixaTextoUnico2(5.41, $this->cursorY, 15.29, $h,
+                'OPERAÇÃO NÃO SUJEITA AO ISSQN');
+            $this->cursorY += $h;
             return;
         }
 
-        $h = 0.63;
-
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Tipo de Tributação do ISSQN',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Tipo de Tributação do ISSQN',
             $this->labelTipoTributacaoIssqn($this->ns($t['tipo_tributacao_codigo'])));
         $municipioIncidencia = $dados->identificacao['local_incidencia']
             ?? IbgeMunicipios::buscar($dados->identificacao['cod_municipio_incidencia'] ?? null)['nome']
             ?? null;
         $ufIncidencia = IbgeMunicipios::buscar($dados->identificacao['cod_municipio_incidencia'] ?? null)['uf']
             ?? ($dados->prestador['uf'] ?? null);
-        $this->renderCelula(5.41, $this->cursorY, 15.29, $h, 'Município / Sigla UF / País de Incidência do ISSQN',
+        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Município / Sigla UF / País de Incidência do ISSQN',
             ($municipioIncidencia ?? '-') . ' / ' . ($ufIncidencia ?? '-') . ' / BR');
         $this->cursorY += $h;
 
@@ -1013,16 +1012,17 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->cursorY += $alturaCm;
     }
 
-    private function renderCaixaTextoUnico(float $yCm, float $alturaCm, string $texto): void
+    private function renderCaixaTextoUnico2(float $xCm, float $yCm, float $larguraCm, float $alturaCm, string $texto): void
     {
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $x = $marginX + DanfseLayout::cmToMm($xCm - DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($yCm);
-        $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
+        $largura = DanfseLayout::cmToMm($larguraCm);
         $altura = DanfseLayout::cmToMm($alturaCm);
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_CONTEUDO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
-        $this->pdf->SetXY($marginX, $y + $altura / 2 - 2);
+        $this->pdf->SetXY($x, $y + $altura / 2 - 2);
         $this->pdf->Cell($largura, 3, $texto, 0, 0, 'C');
     }
 
@@ -1044,8 +1044,6 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
      */
     private function iniciarBlocoNaLinha(float $xCm, float $larguraCm, float $alturaCm, string $titulo): void
     {
-        $this->linhaSeparadora($this->cursorY);
-
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $x = $marginX + DanfseLayout::cmToMm($xCm - DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($this->cursorY);
@@ -1054,6 +1052,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
         $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
         $this->pdf->Rect($x, $y, $largura, $altura, 'F');
+        // Linha divisória DEPOIS do fill (por cima) — senão o retângulo
+        // cinza cobria a linha preta que separa as seções (a pedido,
+        // 05/08/2026).
+        $this->linhaSeparadora($this->cursorY);
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_CAMPO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
@@ -1073,10 +1075,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
         $altura = DanfseLayout::cmToMm(0.32);
 
-        $this->linhaSeparadora($yCm);
-
         $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
         $this->pdf->Rect($marginX, $y, $largura, $altura, 'F');
+        // Linha divisória DEPOIS do fill (por cima) — senão o retângulo
+        // cinza cobria a linha preta que separa as seções (a pedido,
+        // 05/08/2026).
+        $this->linhaSeparadora($yCm);
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
