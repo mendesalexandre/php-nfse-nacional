@@ -320,7 +320,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($p));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
-            ($p['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($p['cep']));
+            DanfseLayout::formatarCodigoIbge($p['codigo_municipio'] ?? null) . ' / ' . DanfseLayout::formatarCep($p['cep']));
         $this->cursorY += $h;
 
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Endereço',
@@ -365,7 +365,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($t));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
-            ($t['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($t['cep']));
+            DanfseLayout::formatarCodigoIbge($t['codigo_municipio'] ?? null) . ' / ' . DanfseLayout::formatarCep($t['cep']));
         $this->cursorY += $h;
 
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Endereço', $this->montarEndereco($t));
@@ -403,7 +403,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($d));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
-            ($d['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($d['cep'] ?? null));
+            DanfseLayout::formatarCodigoIbge($d['codigo_municipio'] ?? null) . ' / ' . DanfseLayout::formatarCep($d['cep'] ?? null));
         $this->cursorY += $h;
 
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Endereço', $this->montarEndereco($d));
@@ -438,7 +438,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Município / Sigla UF',
             $this->municipioUf($i));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Código IBGE / CEP',
-            ($i['codigo_municipio'] ?? '-') . ' / ' . DanfseLayout::formatarCep($i['cep'] ?? null));
+            DanfseLayout::formatarCodigoIbge($i['codigo_municipio'] ?? null) . ' / ' . DanfseLayout::formatarCep($i['cep'] ?? null));
         $this->cursorY += $h;
 
         $this->renderCelula(0.30, $this->cursorY, 10.19, $h, 'Endereço', $this->montarEndereco($i));
@@ -457,8 +457,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $h = 0.63;
 
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Código de Tributação Nacional / Municipal',
-            ($s['codigo_tributacao_nacional'] ?? '-') . ' / ' . ($s['codigo_tributacao_municipal'] ?? '-'));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Código da NBS', $s['codigo_nbs'] ?? '-');
+            DanfseLayout::formatarCodigoTributacaoNacional($s['codigo_tributacao_nacional'] ?? null)
+            . ' / ' . ($s['codigo_tributacao_municipal'] ?? '-'));
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Código da NBS',
+            DanfseLayout::formatarNbs($s['codigo_nbs'] ?? null));
         $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Local da Prestação / Sigla UF / País',
             ($s['municipio_prestacao'] ?? '-') . ' / BR');
         $this->cursorY += $h;

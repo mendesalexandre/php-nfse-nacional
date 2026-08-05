@@ -286,6 +286,12 @@ final class DanfseLayout
         return $formatado !== '' ? $formatado : '-';
     }
 
+    /**
+     * `DD.DDD-DDD` — confirmado contra DANFSe reais do portal nacional
+     * (gov.br) 05/08/2026, ex: `01310100` → `01.310-100`. Difere do
+     * formato comum de CEP (`DDDDD-DDD`, sem o ponto) usado em outros
+     * contextos.
+     */
     public static function formatarCep(?string $valor): string
     {
         if ($valor === null) {
@@ -295,7 +301,60 @@ final class DanfseLayout
         if (strlen($d) !== 8) {
             return $d !== '' ? $d : '-';
         }
-        return substr($d, 0, 5) . '-' . substr($d, 5);
+        return substr($d, 0, 2) . '.' . substr($d, 2, 3) . '-' . substr($d, 5);
+    }
+
+    /**
+     * Código IBGE do município (`cMun`, 7 dígitos) formatado `UF.MMMMM`
+     * (2 dígitos da UF + 5 do município) — confirmado contra DANFSe reais
+     * do portal nacional 05/08/2026 (ex: código de 7 dígitos vira
+     * `UF.MMMMM`).
+     */
+    public static function formatarCodigoIbge(?string $valor): string
+    {
+        if ($valor === null) {
+            return '-';
+        }
+        $d = preg_replace('/\D/', '', $valor) ?? '';
+        if (strlen($d) !== 7) {
+            return $d !== '' ? $d : '-';
+        }
+        return substr($d, 0, 2) . '.' . substr($d, 2);
+    }
+
+    /**
+     * Código de Tributação Nacional (`cTribNac`, 6 dígitos) formatado
+     * `XX.XX.XX` (item.subitem.desdobro) — confirmado contra DANFSe reais
+     * do portal nacional 05/08/2026, ex: `210101` → `21.01.01`.
+     */
+    public static function formatarCodigoTributacaoNacional(?string $valor): string
+    {
+        if ($valor === null) {
+            return '-';
+        }
+        $d = preg_replace('/\D/', '', $valor) ?? '';
+        if (strlen($d) !== 6) {
+            return $d !== '' ? $d : '-';
+        }
+        return substr($d, 0, 2) . '.' . substr($d, 2, 2) . '.' . substr($d, 4, 2);
+    }
+
+    /**
+     * Código NBS (`cNBS`, 9 dígitos) formatado `S.CCCC.SS.II` (seção,
+     * capítulo, subcapítulo, item, conforme a Nomenclatura Brasileira de
+     * Serviços) — confirmado contra DANFSe reais do portal nacional
+     * 05/08/2026, ex: `113040000` → `1.1304.00.00`.
+     */
+    public static function formatarNbs(?string $valor): string
+    {
+        if ($valor === null) {
+            return '-';
+        }
+        $d = preg_replace('/\D/', '', $valor) ?? '';
+        if (strlen($d) !== 9) {
+            return $d !== '' ? $d : '-';
+        }
+        return substr($d, 0, 1) . '.' . substr($d, 1, 4) . '.' . substr($d, 5, 2) . '.' . substr($d, 7, 2);
     }
 
     public static function formatarTelefone(?string $valor): string

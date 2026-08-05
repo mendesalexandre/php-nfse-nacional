@@ -5,6 +5,29 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: Código IBGE, CEP, Código de Tributação Nacional e Código NBS
+  saíam sem a formatação oficial** — o portal nacional agrupa esses
+  códigos com pontos conforme a estrutura de cada um:
+  - Código IBGE (`cMun`, 7 dígitos): `UF.MMMMM` — ex. `5107909` →
+    `51.07909`
+  - CEP (8 dígitos): `DD.DDD-DDD` — ex. `01310100` → `01.310-100`
+    (tem um ponto a mais que o formato comum de CEP)
+  - Código de Tributação Nacional (`cTribNac`, 6 dígitos): `XX.XX.XX`
+    (item.subitem.desdobro) — ex. `210101` → `21.01.01`
+  - Código NBS (`cNBS`, 9 dígitos): `S.CCCC.SS.II` (seção, capítulo,
+    subcapítulo, item) — ex. `113040000` → `1.1304.00.00`
+
+  Novos `DanfseLayout::formatarCodigoIbge()`/`formatarCodigoTributacaoNacional()`/
+  `formatarNbs()`; `formatarCep()` ganhou o ponto extra. Confirmado
+  contra 3 DANFSe reais baixadas do portal nacional (gov.br) — API de
+  download oficial (`baixarPdf`) continua fora do ar em produção
+  também (`HTTP 503`, retestado 05/08/2026), `danfseLocal()` é o único
+  caminho viável.
+
 ## [0.30.0] — 2026-08-05
 
 ### Corrigido
