@@ -5,6 +5,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.43.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: título "INFORMAÇÕES COMPLEMENTARES" ganhou fundo cinza por
+  engano na v0.37.0** — esse bloco específico não leva sombreamento,
+  diferente dos demais títulos de bloco. Confirmado contra DANFSe real
+  do portal nacional 05/08/2026. `renderTituloBloco()` (único uso
+  restante é esse bloco) não preenche mais o fundo.
+
 ## [0.42.0] — 2026-08-05
 
 ### Corrigido

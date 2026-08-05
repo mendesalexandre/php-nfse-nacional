@@ -1088,26 +1088,19 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->pdf->Cell($largura - 1, 3, $this->caixaAlta($titulo), 0, 0, 'L');
     }
 
+    /**
+     * Só usado por INFORMAÇÕES COMPLEMENTARES hoje — os outros blocos
+     * migraram pra `iniciarBlocoNaLinha()`. SEM fundo cinza (diferente
+     * dos demais títulos de bloco) — confirmado contra DANFSe real do
+     * portal nacional 05/08/2026, esse bloco específico fica branco.
+     */
     private function renderTituloBloco(float $yCm, string $titulo): void
     {
-        // Linha divisória fina acima do título + negrito MAIÚSCULAS, com
-        // fundo cinza claro (COR_SOMBREAMENTO, #f2f2f2) — confirmado
-        // contra DANFSe real do portal nacional 05/08/2026 (item 2.2 da
-        // NT 008 já previa "sombreamento cinza claro" pros títulos de
-        // bloco, mas o fill nunca tinha sido implementado aqui).
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($yCm);
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
-        // Preenche a altura TODA reservada pro título (ALTURA_TITULO_BLOCO_CM
-        // = 0.40cm) — usava 0.32cm fixo, sobrando 0.08cm em branco embaixo
-        // do cinza antes do conteúdo seguinte começar (a pedido, 05/08/2026).
         $altura = DanfseLayout::cmToMm(self::ALTURA_TITULO_BLOCO_CM);
 
-        $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
-        $this->pdf->Rect($marginX, $y, $largura, $altura, 'F');
-        // Linha divisória DEPOIS do fill (por cima) — senão o retângulo
-        // cinza cobria a linha preta que separa as seções (a pedido,
-        // 05/08/2026).
         $this->linhaSeparadora($yCm);
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
