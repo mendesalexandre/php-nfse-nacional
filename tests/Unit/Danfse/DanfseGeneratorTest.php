@@ -289,17 +289,18 @@ final class DanfseGeneratorTest extends TestCase
         self::assertStringNotContainsString($nomeModerado . '...', $texto);
     }
 
-    public function test_exclusoes_ibscbs_nao_fabrica_valor_sem_gibscbs_no_dps(): void
+    public function test_exclusoes_ibscbs_mostra_issqn_mesmo_sem_gibscbs_no_dps(): void
     {
-        // Bug real (03/07/2026, NFS-e 11454): quando a operação NÃO declara
-        // <gIBSCBS> no DPS (comum — a maioria das notas do cartório não
-        // liga IBS/CBS), o bloco "TRIBUTAÇÃO IBS / CBS" segue aparecendo
-        // (CST/cClassTrib "- / -", normal pra um bloco com todos os campos
-        // opcionais), mas "Exclusões e Reduções da Base de Cálculo" mostrava
-        // um valor FABRICADO (na verdade o ISSQN municipal + PIS/COFINS
-        // débito via `somarExclusoes()`, nada a ver com IBS/CBS — nessa
-        // nota, vISSQN=3.69 aparecia como se fosse exclusão do IBS/CBS).
-        // Correto: mostrar "-" nesse campo quando não há IBS/CBS real.
+        // Reverte o fix de 03/07/2026 (v0.26.11) — aquele diagnóstico
+        // estava errado. "Exclusões e Reduções da Base de Cálculo" =
+        // ISSQN apurado + PIS/COFINS débito + desconto incondicionado é o
+        // valor CORRETO mesmo quando a operação não declara <gIBSCBS> no
+        // DPS: o ISSQN já recolhido é uma exclusão legítima da base do
+        // IBS/CBS durante a transição, e o SEFIN/portal nacional mostra
+        // esse valor de qualquer forma. Confirmado comparando com 2 DANFSe
+        // reais do portal nacional 05/08/2026 (nota sem gIBSCBS, "Exclusões"
+        // = ISSQN Apurado, não "-"). Fixture: vISSQN=0,92, sem PIS/COFINS/
+        // desconto — soma = 0,92.
         $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
         self::assertNotFalse($xml);
         $xmlSemIbscbs = preg_replace('#<IBSCBS>.*?</IBSCBS>#s', '', $xml);
@@ -309,25 +310,10 @@ final class DanfseGeneratorTest extends TestCase
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xmlSemIbscbs);
         $texto = $this->textoDoPdf($pdf);
 
-        // Bloco continua presente (não suprimido)...
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertStringContainsString('CST / cClassTrib', $texto);
         self::assertStringContainsString('Exclusões e Reduções da Base de Cálculo', $texto);
-        // ...mas a LINHA DE VALORES logo abaixo do label (label e valor
-        // ficam em linhas separadas no PDF, igual todo `renderCelula`) não
-        // pode ter "R$" — tem que ser "-" (sem IBS/CBS real, sem exclusão).
-        $linhas = explode("\n", $texto);
-        $idxLabel = null;
-        foreach ($linhas as $idx => $linha) {
-            if (str_contains($linha, 'Exclusões e Reduções da Base de Cálculo')) {
-                $idxLabel = $idx;
-                break;
-            }
-        }
-        self::assertNotNull($idxLabel, 'label "Exclusões e Reduções da Base de Cálculo" não encontrado no PDF');
-        $linhaValor = $linhas[$idxLabel + 1] ?? '';
-        self::assertStringNotContainsString('R$', $linhaValor);
-        self::assertMatchesRegularExpression('/^-\s/', $linhaValor);
+        self::assertSame('R$ 0,92', $this->valorNaColuna($texto, 'Exclusões e Reduções da Base de Cálculo'));
     }
 
     /** Linha imediatamente após a primeira ocorrência do label no texto do PDF. */

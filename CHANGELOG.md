@@ -5,6 +5,22 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-08-05
+
+### Corrigido
+
+- **REVERTE o fix de "Exclusões e Reduções da Base de Cálculo" da
+  v0.26.11 (03/07/2026) — aquele diagnóstico estava errado.** O fix
+  antigo suprimia esse campo (mostrava "-") quando a operação não
+  declarava `<gIBSCBS>` no DPS, presumindo que `somarExclusoes()`
+  (ISSQN apurado + PIS/COFINS débito + desconto incondicionado)
+  "fabricava" um valor sem relação com IBS/CBS. Comparação com 2 DANFSe
+  reais do portal nacional (gov.br) 05/08/2026 mostra o contrário: o
+  ISSQN já recolhido é uma exclusão LEGÍTIMA da base do IBS/CBS durante
+  a transição da Reforma Tributária (evita bitributação), e o SEFIN
+  mostra esse valor mesmo sem `<gIBSCBS>` declarado. Campo volta a
+  mostrar `somarExclusoes()` sempre, sem gate.
+
 ## [0.33.0] — 2026-08-05
 
 ### Corrigido
