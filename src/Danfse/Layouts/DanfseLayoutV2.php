@@ -730,11 +730,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::formatarMoeda($v['valor_liquido'] ?? null),
             tamanhoLabel: DanfseLayout::TAM_LABEL_IDENTIFICACAO, labelCaixaAlta: true,
             sombreado: true);
-        // Antes de DATA_INICIO_DESTAQUE_IBSCBS o IBS/CBS já pode estar sendo
-        // enviado no DPS, mas não é destacado aqui — vTotNF = vLiq (ver
-        // deveExibirIbsCbs()).
-        $totalIbscbs = $this->exibirIbsCbs ? ($v['total_ibscbs'] ?? null) : null;
-        $valorLiquidoMaisIbscbs = $this->exibirIbsCbs ? ($v['valor_liquido_mais_ibscbs'] ?? null) : null;
+        // Esses dois totais SEMPRE mostram valor real (0,00 quando não há
+        // IBS/CBS de fato) — confirmado contra DANFSe real do portal
+        // nacional (nota sem <IBSCBS> no DPS, dCompet 2026, mostra "R$ 0,00"
+        // nos dois, não "-"). "vTotNF = vLiq" (2026) se dá porque o total
+        // do IBS/CBS é 0, não porque o campo é escondido — diferente do
+        // bloco 10 (detalhe de CST/cClassTrib/alíquotas), que continua "-"
+        // sem gIBSCBS real (ver renderTributacaoIbsCbs).
+        $totalIbscbs = (float) ($v['total_ibscbs'] ?? 0.0);
+        $valorLiquidoMaisIbscbs = (float) ($v['valor_liquido_mais_ibscbs'] ?? ($v['valor_liquido'] ?? 0.0));
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Total do IBS/CBS',
             DanfseLayout::formatarMoeda($totalIbscbs));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS',

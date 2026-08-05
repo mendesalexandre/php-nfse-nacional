@@ -118,8 +118,8 @@ final class DanfseGenerator
         $pdf->SetFont(DanfseLayout::FONTE_TITULO, '', DanfseLayout::TAM_MARCA_AGUA);
         $pdf->SetTextColor(...DanfseLayout::COR_MARCA_AGUA);
         $pdf->SetAlpha(0.5);
-        $pdf->SetXY(0, DanfseLayout::PAGE_HEIGHT_MM / 2 - 15);
-        $pdf->Cell(DanfseLayout::PAGE_WIDTH_MM, 30, $texto, 0, 0, 'C');
+        $pdf->SetXY(0, DanfseLayout::PAGE_HEIGHT_MM / 2 - 30);
+        $pdf->Cell(DanfseLayout::PAGE_WIDTH_MM, 60, $texto, 0, 0, 'C');
         $pdf->SetAlpha(1);
         $pdf->StopTransform();
         $pdf->SetTextColor(...DanfseLayout::COR_TEXTO);

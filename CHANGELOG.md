@@ -5,6 +5,29 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: "Total do IBS/CBS" e "VALOR LÍQUIDO DA NFS-e + IBS/CBS"
+  ficavam "-" quando não havia IBS/CBS real, deveriam mostrar "R$ 0,00"**
+  — confirmado contra DANFSe real do portal nacional (nota sem
+  `<IBSCBS>` no DPS, `dCompet` 2026, mostra "R$ 0,00" nos dois campos,
+  nunca "-"). A regra `vTotNF = vLiq` (2026) se dá porque o total do
+  IBS/CBS é 0 na prática durante a rampa da Reforma Tributária, não
+  porque o campo é escondido — o `DanfseCustomizacao::$exibirValoresIbsCbs`
+  (e a data-limite `DATA_INICIO_DESTAQUE_IBSCBS`) agora só controlam o
+  DETALHE (bloco "TRIBUTAÇÃO IBS/CBS": CST/cClassTrib/alíquotas), não
+  mais esses dois totais.
+
+### Alterado
+
+- **Tamanho da tarja "CANCELADA"/"SUBSTITUÍDA" dobrado** — de 50pt
+  (mínimo da NT 008) para 100pt, a pedido do usuário.
+
+Achados/pedidos confirmados comparando com DANFSe reais do portal
+nacional (gov.br) 05/08/2026.
+
 ## [0.32.0] — 2026-08-05
 
 ### Corrigido

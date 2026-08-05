@@ -342,6 +342,26 @@ final class DanfseGeneratorTest extends TestCase
         self::fail("label \"{$label}\" não encontrado no PDF");
     }
 
+    /**
+     * Valor da MESMA coluna do label (não só "início da linha seguinte" —
+     * `linhaApos()` dá falso positivo quando o valor de uma coluna à
+     * esquerda também é "-", mascarando o valor real da coluna que a
+     * gente queria checar).
+     */
+    private function valorNaColuna(string $texto, string $label): string
+    {
+        $linhas = explode("\n", $texto);
+        foreach ($linhas as $idx => $linha) {
+            $colunas = preg_split('/\s{2,}/', trim($linha)) ?: [];
+            $pos = array_search($label, $colunas, true);
+            if ($pos !== false) {
+                $valores = preg_split('/\s{2,}/', trim($linhas[$idx + 1] ?? '')) ?: [];
+                return $valores[$pos] ?? '';
+            }
+        }
+        self::fail("label \"{$label}\" não encontrado no PDF (busca por coluna)");
+    }
+
     // ================================================================
     // Regra transitória: destaque de IBS/CBS só a partir de 2027
     // ================================================================
@@ -349,18 +369,19 @@ final class DanfseGeneratorTest extends TestCase
     public function test_ibscbs_suprimido_antes_de_2027(): void
     {
         // Fixture tem dCompet=2026-01-15 e <IBSCBS> completo (vIBSTot=1.04,
-        // vCBS=1.86) — o SDK já pode enviar isso no DPS, mas o DANFSe não
-        // destaca antes da rampa 2027 da Reforma Tributária. O bloco em si
-        // continua presente (estrutura fixa da NT 008), só os valores ficam
-        // "-", igual a uma nota sem <gIBSCBS> real (mesmo comportamento do
-        // fix de "Exclusões e Reduções" acima).
+        // vCBS=1.86) — o SDK já pode enviar isso no DPS, mas o DETALHE
+        // (bloco 10: CST/cClassTrib/alíquotas) não é destacado antes da
+        // rampa 2027 da Reforma Tributária. Os TOTAIS (bloco 11) sempre
+        // mostram o valor real (0,00 quando não há IBS/CBS; aqui há, então
+        // mostra 2,90/35,87) — confirmado contra DANFSe real do portal
+        // nacional, que nunca esconde esses dois campos com "-".
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($this->xmlAutorizado());
         $texto = $this->textoDoPdf($pdf);
 
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
-        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'Total do IBS/CBS'));
-        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
+        self::assertSame('R$ 2,90', $this->valorNaColuna($texto, 'Total do IBS/CBS'));
+        self::assertSame('R$ 35,87', $this->valorNaColuna($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
     }
 
     public function test_ibscbs_exibido_a_partir_de_2027(): void
@@ -370,6 +391,7 @@ final class DanfseGeneratorTest extends TestCase
         $texto = $this->textoDoPdf($pdf);
 
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
+        self::assertMatchesRegularExpression('/^000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
         // Total do IBS/CBS = vIBSTot (1.04) + vCBS (1.86) = 2.90
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
         // VALOR LÍQUIDO + IBS/CBS = vLiq (32.97) + 2.90 = 35.87
@@ -383,17 +405,34 @@ final class DanfseGeneratorTest extends TestCase
         $texto = $this->textoDoPdf($pdf);
 
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
+        self::assertMatchesRegularExpression('/^000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
     }
 
-    public function test_override_exibirValoresIbsCbs_false_suprime_mesmo_apos_2027(): void
+    public function test_override_exibirValoresIbsCbs_false_suprime_detalhe_mesmo_apos_2027(): void
     {
+        // O override só controla o DETALHE (bloco 10) — os totais (bloco
+        // 11) continuam mostrando o valor real independente da flag.
         $xml = str_replace('<dCompet>2026-01-15</dCompet>', '<dCompet>2027-01-15</dCompet>', $this->xmlAutorizado());
         $custom = new DanfseCustomizacao(exibirValoresIbsCbs: false);
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml, $custom);
         $texto = $this->textoDoPdf($pdf);
 
         self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
-        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'Total do IBS/CBS'));
+        self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
+    }
+
+    public function test_ibscbs_total_mostra_zero_quando_nao_ha_gibscbs_real(): void
+    {
+        // Confirmado contra DANFSe real do portal nacional: nota sem
+        // <IBSCBS> no DPS mostra "R$ 0,00" nesses dois campos, não "-".
+        $xmlSemIbscbs = preg_replace('#<IBSCBS>.*?</IBSCBS>#s', '', $this->xmlAutorizado());
+        self::assertNotNull($xmlSemIbscbs);
+
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xmlSemIbscbs);
+        $texto = $this->textoDoPdf($pdf);
+
+        self::assertStringContainsString('0,00', $this->linhaApos($texto, 'Total do IBS/CBS'));
+        self::assertStringNotContainsString('- ', $this->valorNaColuna($texto, 'Total do IBS/CBS'));
     }
 }

@@ -87,13 +87,18 @@ final class DanfseCustomizacao
         public readonly ?TipoCanhoto $canhoto = null,
 
         /**
-         * Override de quando destacar os valores de IBS/CBS no DANFSe
-         * (bloco "TRIBUTAÇÃO IBS / CBS" + colunas "Total do IBS/CBS" /
-         * "VALOR LÍQUIDO DA NFS-e + IBS/CBS" do bloco VALOR TOTAL DA
-         * NFS-E). `null` (default) decide pela `dCompet` da NFS-e:
+         * Override de quando destacar o DETALHE de IBS/CBS no DANFSe
+         * (bloco "TRIBUTAÇÃO IBS/CBS" — CST/cClassTrib, alíquotas, valores
+         * apurados). `null` (default) decide pela `dCompet` da NFS-e:
          * suprime antes de `DanfseLayout::DATA_INICIO_DESTAQUE_IBSCBS`
          * (2027-01-01), exibe a partir dela. `true`/`false` força
          * independente da competência.
+         *
+         * NÃO afeta as colunas "Total do IBS/CBS" / "VALOR LÍQUIDO DA
+         * NFS-e + IBS/CBS" (bloco VALOR TOTAL DA NFS-E) — essas sempre
+         * mostram o valor real (0,00 quando não há IBS/CBS), confirmado
+         * contra DANFSe real do portal nacional (nota sem `<IBSCBS>` no
+         * DPS mostra "R$ 0,00", não "-").
          */
         public readonly ?bool $exibirValoresIbsCbs = null,
     ) {

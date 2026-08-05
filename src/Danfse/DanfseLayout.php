@@ -47,15 +47,18 @@ final class DanfseLayout
     public const DATA_LIMITE_LINHA_PIS_COFINS = '2026-12-31';
 
     /**
-     * Data-limite (`dCompet`) a partir da qual o bloco "TRIBUTAÇÃO IBS /
-     * CBS" e as colunas "Total do IBS/CBS" / "VALOR LÍQUIDO DA NFS-e +
-     * IBS/CBS" (bloco VALOR TOTAL DA NFS-E) passam a ser impressos no
-     * DANFSe. Antes disso o IBS/CBS já pode ser ENVIADO no DPS (evita
-     * rejeição do SEFIN quando o grupo se tornar obrigatório), mas não é
-     * destacado no documento auxiliar — reflete a regra `vTotNF = vLiq`
-     * (2026) vs. `vTotNF = vLiq + vCBS + vIBSTot` (a partir de 2027) da
-     * rampa da Reforma Tributária. Override manual via
-     * `DanfseCustomizacao::$exibirValoresIbsCbs`.
+     * Data-limite (`dCompet`) a partir da qual o DETALHE do bloco
+     * "TRIBUTAÇÃO IBS/CBS" (CST/cClassTrib, alíquotas, valores apurados)
+     * passa a ser impresso no DANFSe. Antes disso o IBS/CBS já pode ser
+     * ENVIADO no DPS (evita rejeição do SEFIN quando o grupo se tornar
+     * obrigatório), mas o detalhe não é destacado no documento auxiliar.
+     * Override manual via `DanfseCustomizacao::$exibirValoresIbsCbs`.
+     *
+     * NÃO afeta as colunas "Total do IBS/CBS" / "VALOR LÍQUIDO DA NFS-e +
+     * IBS/CBS" (bloco VALOR TOTAL DA NFS-E) — essas sempre mostram o
+     * valor real (0,00 default), confirmado contra DANFSe real do portal
+     * nacional. `vTotNF = vLiq` (2026) se dá porque o total do IBS/CBS é
+     * 0 na prática durante a rampa, não porque o campo é escondido.
      */
     public const DATA_INICIO_DESTAQUE_IBSCBS = '2027-01-01';
 
@@ -122,7 +125,9 @@ final class DanfseLayout
 
     // ============ Marca d'água (item 2.5.1 NT 008) ============
     /** Tamanho mínimo da marca d'água "CANCELADA"/"SUBSTITUÍDA": 50pt */
-    public const TAM_MARCA_AGUA = 50;
+    // NT 008 exige mínimo 50pt (item 2.5.1) — dobrado a pedido do usuário
+    // (05/08/2026), tarja pequena demais na prática.
+    public const TAM_MARCA_AGUA = 100;
 
     // ============ Espessura de linhas (item 2.2.3) ============
     /** Linhas divisórias dos blocos: 0,5pt */
