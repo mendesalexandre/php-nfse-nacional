@@ -5,6 +5,21 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.41.0] — 2026-08-05
+
+### Alterado
+
+- **DANFSe: bloco "Canhoto" agora aparece por padrão** — o leiaute (item
+  2.1.13, Anexo I) marca o bloco como "Opcional", mas o portal nacional
+  sempre o inclui. `DanfseCustomizacao::$canhoto` passa a ter default
+  `TipoCanhoto::PreenchidoAutomaticamente` (era `null` = não renderiza).
+  Corrigido também pro caso de **nenhuma** `DanfseCustomizacao` ser
+  passada (`danfseLocal($xml)` sem segundo argumento) — o construtor da
+  customização nem roda nesse caso, então só mudar o default do
+  parâmetro não bastava; novo `DanfseLayoutV2::canhotoEfetivo()` cobre
+  os dois casos. Pra não renderizar, passe
+  `new DanfseCustomizacao(canhoto: null)` explicitamente.
+
 ## [0.40.0] — 2026-08-05
 
 ### Corrigido

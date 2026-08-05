@@ -95,11 +95,28 @@ final class DanfseGeneratorTest extends TestCase
         return $texto;
     }
 
-    public function test_sem_customizacao_nao_renderiza_canhoto(): void
+    public function test_sem_customizacao_renderiza_canhoto_por_padrao(): void
     {
+        // Canhoto é "Opcional" no leiaute (item 2.1.13), mas o portal
+        // nacional sempre inclui — default mudou pra
+        // TipoCanhoto::PreenchidoAutomaticamente na v0.41.0, mesmo sem
+        // passar nenhuma DanfseCustomizacao (nem `new DanfseCustomizacao()`).
         $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
         self::assertNotFalse($xml);
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringContainsString('DATA CIENTIFICAÇÃO', $texto);
+    }
+
+    public function test_customizacao_canhoto_null_explicito_suprime(): void
+    {
+        // Override explícito continua funcionando pra desligar.
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml(
+            $xml,
+            new DanfseCustomizacao(canhoto: null),
+        );
         $texto = $this->textoDoPdf($pdf);
         self::assertStringNotContainsString('DATA CIENTIFICAÇÃO', $texto);
     }

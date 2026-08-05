@@ -575,7 +575,7 @@ $custom = new DanfseCustomizacao(
     observacoesAdicionais: 'Esta NFS-e refere-se a serviço cartorial. ' .
                            'Para autenticidade consulte https://...',  // opcional, max 2000 chars
     destacarRetencoes:    true,                       // opcional, default false
-    canhoto:              TipoCanhoto::PreenchidoAutomaticamente, // opcional, default null (não renderiza)
+    canhoto:              TipoCanhoto::PreenchidoAutomaticamente, // opcional, já é o default — passe null pra não renderizar
     exibirValoresIbsCbs:  null,                        // opcional, default null (decide pela dCompet)
 );
 
@@ -587,7 +587,7 @@ $pdf = $nfse->danfseLocal($xmlAutorizado, $custom);
 | `logoPrestadorPath` | Canto superior direito do bloco PRESTADOR (4cm × 1.26cm) | qualquer formato suportado pelo TCPDF (PNG/JPG/GIF) |
 | `observacoesAdicionais` | Concatenado ao bloco INFORMAÇÕES COMPLEMENTARES (após o `<xOutInf>` do XML) | 2000 chars |
 | `destacarRetencoes` | Pinta de amarelo os campos de retenção efetiva (leiaute V2) | flag opt-in, default `false` |
-| `canhoto` | Rodapé "Data de Cientificação / Identificação e Assinatura / Nº NFS-e-Chave NFS-e" (item 2.1.13, Anexo I) | `null` = não renderiza (default); `TipoCanhoto::EmBranco` (assinatura física) ou `PreenchidoAutomaticamente` (preenche com a data/hora de emissão) |
+| `canhoto` | Rodapé "Data de Cientificação / Identificação e Assinatura / Nº NFS-e-Chave NFS-e" (item 2.1.13, Anexo I) | Default `TipoCanhoto::PreenchidoAutomaticamente` (o leiaute marca como "Opcional", mas o portal nacional sempre inclui — v0.41.0+, inclusive sem passar nenhuma `DanfseCustomizacao`). `TipoCanhoto::EmBranco` = assinatura física. `null` = não renderiza |
 | `exibirValoresIbsCbs` | Valores do bloco "TRIBUTAÇÃO IBS / CBS" e das colunas "Total do IBS/CBS" / "VALOR LÍQUIDO DA NFS-e + IBS/CBS" (bloco VALOR TOTAL DA NFS-E) | `null` (default) = decide pela `dCompet` (ver nota abaixo); `true`/`false` força independente da competência |
 
 > **`destacarRetencoes` — conferência de retenções.** Quando `true`, o leiaute V2 destaca em amarelo os campos de retenção **de fato**, ajudando o contador a validar os valores retidos na fonte:

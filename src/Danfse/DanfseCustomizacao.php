@@ -74,17 +74,19 @@ final class DanfseCustomizacao
         public readonly ?bool $substituida = null,
 
         /**
-         * Bloco "Canhoto" opcional (item 2.1.13 do Anexo I, NT 008/2026):
-         * "Data de cientificação", "Identificação e Assinatura", "Nº da
-         * NFS-e / Chave da NFS-e", no rodapé da folha.
+         * Bloco "Canhoto" (item 2.1.13 do Anexo I, NT 008/2026): "Data de
+         * cientificação", "Identificação e Assinatura", "Nº da NFS-e /
+         * Chave da NFS-e", no rodapé da folha.
          *
-         * Default `null` = **não renderiza** (comportamento anterior).
-         * `TipoCanhoto::EmBranco` = linhas vazias, pra assinatura física.
-         * `TipoCanhoto::PreenchidoAutomaticamente` = preenche "Data de
-         * cientificação" e "Identificação e Assinatura" com a data/hora
-         * de emissão da NFS-e — sem exigir assinatura física.
+         * Default `TipoCanhoto::PreenchidoAutomaticamente` — preenche
+         * "Data de cientificação" e "Identificação e Assinatura" com a
+         * data/hora de emissão da NFS-e, sem exigir assinatura física.
+         * O leiaute marca o bloco como "Opcional", mas o portal nacional
+         * sempre o inclui — o default acompanha isso (mudou na v0.41.0;
+         * antes era `null` = não renderiza). `TipoCanhoto::EmBranco` =
+         * linhas vazias, pra assinatura física. `null` = não renderiza.
          */
-        public readonly ?TipoCanhoto $canhoto = null,
+        public readonly ?TipoCanhoto $canhoto = TipoCanhoto::PreenchidoAutomaticamente,
 
         /**
          * Override de quando destacar o DETALHE de IBS/CBS no DANFSe

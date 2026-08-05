@@ -806,7 +806,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         );
 
         $texto = implode("\n", $linhas);
-        $limiteInferior = 28.7 - ($this->custom?->temCanhoto() === true ? self::ALTURA_CANHOTO_CM : 0.0);
+        $limiteInferior = 28.7 - ($this->canhotoEfetivo() !== null ? self::ALTURA_CANHOTO_CM : 0.0);
         $alturaRestante = max(2.0, $limiteInferior - $this->cursorY);
         $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, $alturaRestante, $texto);
         $this->cursorY += $alturaRestante;
@@ -823,13 +823,27 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
      */
     private const PADDING_CANHOTO_CM = 0.20;
 
+    /**
+     * Valor efetivo do canhoto considerando o default quando NENHUMA
+     * `DanfseCustomizacao` é passada (`$custom === null`) — nesse caso
+     * o construtor da customização nem chega a rodar, então seu default
+     * (`TipoCanhoto::PreenchidoAutomaticamente`) sozinho não bastava.
+     * Confirmado contra DANFSe real do portal nacional 05/08/2026: o
+     * canhoto é "Opcional" no leiaute, mas o portal sempre inclui.
+     */
+    private function canhotoEfetivo(): ?TipoCanhoto
+    {
+        return $this->custom !== null ? $this->custom->canhoto : TipoCanhoto::PreenchidoAutomaticamente;
+    }
+
     private function renderCanhoto(DanfseDados $dados): void
     {
-        if (!($this->custom?->temCanhoto() ?? false)) {
+        $canhoto = $this->canhotoEfetivo();
+        if ($canhoto === null) {
             return;
         }
 
-        $preenchido = $this->custom->canhoto === TipoCanhoto::PreenchidoAutomaticamente;
+        $preenchido = $canhoto === TipoCanhoto::PreenchidoAutomaticamente;
         $dataHoraEmissao = $preenchido
             ? DanfseLayout::formatarDataHora($dados->identificacao['data_emissao_nfse'] ?? null)
             : '';
