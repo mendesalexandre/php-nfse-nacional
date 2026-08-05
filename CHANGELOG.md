@@ -5,6 +5,18 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.42.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: título "INFORMAÇÕES COMPLEMENTARES" — fundo cinza cobria só
+  0,32cm de um espaço reservado de 0,40cm**, sobrando uma faixa branca
+  entre o título e o texto (parecia "sem fundo cinza" + "uma quebra de
+  linha a mais" antes do texto aparecer). Esse é o único bloco que ainda
+  usa `renderTituloBloco()` (os outros migraram pra
+  `iniciarBlocoNaLinha()` nas versões anteriores) — fill agora usa
+  `ALTURA_TITULO_BLOCO_CM` em vez de valor fixo menor.
+
 ## [0.41.0] — 2026-08-05
 
 ### Alterado

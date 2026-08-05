@@ -1098,7 +1098,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
         $y = DanfseLayout::cmToMm($yCm);
         $largura = DanfseLayout::cmToMm(DanfseLayout::CONTENT_WIDTH_CM);
-        $altura = DanfseLayout::cmToMm(0.32);
+        // Preenche a altura TODA reservada pro título (ALTURA_TITULO_BLOCO_CM
+        // = 0.40cm) — usava 0.32cm fixo, sobrando 0.08cm em branco embaixo
+        // do cinza antes do conteúdo seguinte começar (a pedido, 05/08/2026).
+        $altura = DanfseLayout::cmToMm(self::ALTURA_TITULO_BLOCO_CM);
 
         $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
         $this->pdf->Rect($marginX, $y, $largura, $altura, 'F');
