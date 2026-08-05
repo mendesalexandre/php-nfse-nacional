@@ -116,7 +116,7 @@ final class DanfseGeneratorTest extends TestCase
         // Labels em caixa alta (a pedido, 02/07/2026).
         self::assertStringContainsString('DATA CIENTIFICAÇÃO', $texto);
         self::assertStringContainsString('IDENTIFICAÇÃO E ASSINATURA', $texto);
-        self::assertStringContainsString('Nº NFS-E / CHAVE NFS-E', $texto);
+        self::assertStringContainsString('Nº NFS-e / CHAVE NFS-e', $texto);
         // A data de emissão (15/01/2026 10:00:00, da fixture) aparece 3x:
         // bloco DADOS DA NFS-e + "Data Cientificação" + "Identificação e
         // Assinatura" (ambos preenchidos automaticamente no canhoto).
@@ -140,7 +140,7 @@ final class DanfseGeneratorTest extends TestCase
 
     public function test_situacao_e_finalidade_nao_usam_o_mesmo_texto(): void
     {
-        // Bug real (02/07/2026): SITUAÇÃO DA NFS-E (fonte: cStat) copiava o
+        // Bug real (02/07/2026): SITUAÇÃO DA NFS-e (fonte: cStat) copiava o
         // texto de FINALIDADE (fonte: finNFSe) — "NFS-e regular" nas duas.
         // São campos com fontes de dados diferentes no XML.
         $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
@@ -310,7 +310,7 @@ final class DanfseGeneratorTest extends TestCase
         $texto = $this->textoDoPdf($pdf);
 
         // Bloco continua presente (não suprimido)...
-        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertStringContainsString('CST / cClassTrib', $texto);
         self::assertStringContainsString('Exclusões e Reduções da Base de Cálculo', $texto);
         // ...mas a LINHA DE VALORES logo abaixo do label (label e valor
@@ -357,10 +357,10 @@ final class DanfseGeneratorTest extends TestCase
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($this->xmlAutorizado());
         $texto = $this->textoDoPdf($pdf);
 
-        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
         self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'Total do IBS/CBS'));
-        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-E + IBS/CBS'));
+        self::assertMatchesRegularExpression('/^-\s/', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
     }
 
     public function test_ibscbs_exibido_a_partir_de_2027(): void
@@ -369,11 +369,11 @@ final class DanfseGeneratorTest extends TestCase
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
         $texto = $this->textoDoPdf($pdf);
 
-        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         // Total do IBS/CBS = vIBSTot (1.04) + vCBS (1.86) = 2.90
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
         // VALOR LÍQUIDO + IBS/CBS = vLiq (32.97) + 2.90 = 35.87
-        self::assertStringContainsString('35,87', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-E + IBS/CBS'));
+        self::assertStringContainsString('35,87', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
     }
 
     public function test_override_exibirValoresIbsCbs_forca_exibicao_antes_de_2027(): void
@@ -382,7 +382,7 @@ final class DanfseGeneratorTest extends TestCase
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($this->xmlAutorizado(), $custom);
         $texto = $this->textoDoPdf($pdf);
 
-        self::assertStringContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
     }
 

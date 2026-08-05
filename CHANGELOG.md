@@ -5,6 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: "NFS-e" virava "NFS-E" em texto caixa alta** — todo título de
+  bloco (`iniciarBloco`) e todo rótulo de campo com `labelCaixaAlta: true`
+  passavam por `mb_strtoupper()` puro, que não preserva a grafia oficial
+  da marca ("NFS-e", com "e" minúsculo). A DANFSe real do portal nacional
+  nunca mostra "NFS-E" em lugar nenhum — nem em "VALOR TOTAL DA NFS-e",
+  nem em "CHAVE DE ACESSO DA NFS-e", nem no canhoto ("Nº NFS-e / Chave
+  NFS-e"). Novo helper `DanfseLayoutV2::caixaAlta()` substitui
+  `mb_strtoupper()` nos 3 pontos que usavam (título de bloco + 2 no
+  `renderCelula`/`renderCelulaAutoFit`), preservando "NFS-e".
+- **DANFSe: título do bloco 10 tinha espaços em "IBS / CBS"** — oficial é
+  "TRIBUTAÇÃO IBS/CBS" (sem espaço ao redor da barra).
+
+Achados confirmados comparando com duas DANFSe reais baixadas do site
+gov.br (API de download oficial desativada 01/07/2026) — uma de
+prestador MEI, outra de prestador não optante.
+
 ## [0.29.0] — 2026-08-05
 
 ### Corrigido

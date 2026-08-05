@@ -635,7 +635,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // grupo IBS/CBS real — mesmo efeito de uma nota sem <gIBSCBS> no DPS
         // (todos os campos caem no fallback "-" já existente abaixo).
         $i = $this->exibirIbsCbs ? $dados->tributacaoIbsCbs : [];
-        $this->iniciarBloco('TRIBUTAÇÃO IBS / CBS');
+        $this->iniciarBloco('TRIBUTAÇÃO IBS/CBS');
         $h = 0.63;
 
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CST / cClassTrib',
@@ -887,7 +887,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_CAMPO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
         $this->pdf->SetXY($x + 0.5, $y + 0.3);
-        $this->pdf->Cell($largura - 1, 2.5, $labelCaixaAlta ? mb_strtoupper($label) : $label, 0, 0, 'L');
+        $this->pdf->Cell($largura - 1, 2.5, $labelCaixaAlta ? $this->caixaAlta($label) : $label, 0, 0, 'L');
 
         $tamanho = DanfseLayout::TAM_CONTEUDO;
         $larguraDisponivel = $largura - 1.0;
@@ -946,7 +946,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', $tamanhoLabel);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
         $this->pdf->SetXY($x + 0.5, $y + 0.3);
-        $this->pdf->Cell($largura - 1, 2.5, $labelCaixaAlta ? mb_strtoupper($label) : $label, 0, 0, 'L');
+        $this->pdf->Cell($largura - 1, 2.5, $labelCaixaAlta ? $this->caixaAlta($label) : $label, 0, 0, 'L');
 
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CONTEUDO);
         $this->pdf->SetXY($x + 0.5, $y + 2.8);
@@ -1034,7 +1034,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_BLOCO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
         $this->pdf->SetXY($marginX + 1, $y + 0.7);
-        $this->pdf->Cell($largura - 2, $altura - 0.5, mb_strtoupper($titulo), 0, 0, 'L');
+        $this->pdf->Cell($largura - 2, $altura - 0.5, $this->caixaAlta($titulo), 0, 0, 'L');
     }
 
     /**
@@ -1072,6 +1072,18 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private function setFonte(string $familia, string $estilo, float $tamanho): void
     {
         $this->pdf->SetFont($familia, $estilo, $tamanho);
+    }
+
+    /**
+     * Caixa alta (item 2.4.1/2.1.2 da NT 008), preservando "NFS-e" com o
+     * "e" minúsculo — grafia da marca mantida mesmo em texto maiúsculo,
+     * confirmado contra DANFSe real do portal nacional (ex: "VALOR TOTAL
+     * DA NFS-e", "SITUAÇÃO DA NFS-e" → valor "NFS-e Gerada"). `mb_strtoupper`
+     * puro vira "NFS-E", que a oficial nunca mostra.
+     */
+    private function caixaAlta(string $texto): string
+    {
+        return str_ireplace('NFS-E', 'NFS-e', mb_strtoupper($texto));
     }
 
     private function s(mixed $v): string

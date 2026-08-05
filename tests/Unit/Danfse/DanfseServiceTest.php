@@ -70,16 +70,16 @@ final class DanfseServiceTest extends TestCase
         $blocosObrigatorios = [
             'DANFSe v2.0',
             'Documento Auxiliar da NFS-e',
-            'CHAVE DE ACESSO DA NFS-E',
-            'NÚMERO DA NFS-E',
-            'COMPETÊNCIA DA NFS-E',
+            'CHAVE DE ACESSO DA NFS-e',
+            'NÚMERO DA NFS-e',
+            'COMPETÊNCIA DA NFS-e',
             'PRESTADOR / FORNECEDOR',
             'TOMADOR / ADQUIRENTE',
             'SERVIÇO PRESTADO',
             'TRIBUTAÇÃO MUNICIPAL (ISSQN)',
             'TRIBUTAÇÃO FEDERAL (EXCETO CBS)',
-            'TRIBUTAÇÃO IBS / CBS',
-            'VALOR TOTAL DA NFS-E',
+            'TRIBUTAÇÃO IBS/CBS',
+            'VALOR TOTAL DA NFS-e',
             'INFORMAÇÕES COMPLEMENTARES',
             'Totais Aproximados dos Tributos',
         ];
@@ -172,7 +172,7 @@ final class DanfseServiceTest extends TestCase
         // Label V1 — "Inscrição Municipal" (V2 usa "Indicador Municipal", bug do v0.19.1+)
         self::assertStringContainsString('Inscrição Municipal', $texto);
         // V1 não tem bloco IBS/CBS (Reforma ainda em rampa, ADN não inclui)
-        self::assertStringNotContainsString('TRIBUTAÇÃO IBS / CBS', $texto);
+        self::assertStringNotContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         // V1 tem bloco TOTAIS APROXIMADOS DOS TRIBUTOS dedicado
         self::assertStringContainsString('TOTAIS APROXIMADOS DOS TRIBUTOS', $texto);
         // EMITENTE + label-anchor "Prestador do Serviço"
