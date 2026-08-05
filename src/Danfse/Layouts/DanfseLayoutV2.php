@@ -282,8 +282,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private function renderPrestador(DanfseDados $dados): void
     {
         $p = $dados->prestador;
-        $this->iniciarBloco('PRESTADOR / FORNECEDOR');
         $h = 0.63;
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'PRESTADOR / FORNECEDOR');
 
         if ($this->custom !== null && $this->custom->temLogoPrestador()) {
             $logoLarguraCm = 4.0;
@@ -313,9 +313,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             }
         }
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($p['documento']));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
             $p['inscricao_municipal'] ?? '-');
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($p['telefone']));
@@ -355,12 +355,11 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             return;
         }
 
-        $this->iniciarBloco('TOMADOR / ADQUIRENTE');
-
         $h = 0.63;
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'TOMADOR / ADQUIRENTE');
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($t['documento']));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
             $t['inscricao_municipal'] ?? '-');
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($t['telefone']));
@@ -396,10 +395,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             return;
         }
 
-        $this->iniciarBloco('DESTINATÁRIO DA OPERAÇÃO');
-
         $h = 0.63;
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'DESTINATÁRIO DA OPERAÇÃO');
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($d['documento']));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($d['telefone']));
@@ -428,13 +426,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             return;
         }
 
-        $this->iniciarBloco('INTERMEDIÁRIO DA OPERAÇÃO');
-
         $i = $dados->intermediario;
         $h = 0.63;
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'INTERMEDIÁRIO DA OPERAÇÃO');
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'CNPJ / CPF / NIF',
             DanfseLayout::formatarDocumento($i['documento'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Indicador Municipal (Inscrição)',
             $i['inscricao_municipal'] ?? '-');
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Telefone',
             DanfseLayout::formatarTelefone($i['telefone'] ?? null));
@@ -1033,6 +1030,35 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     {
         $this->renderTituloBloco($this->cursorY, $titulo);
         $this->cursorY += self::ALTURA_TITULO_BLOCO_CM;
+    }
+
+    /**
+     * Título do bloco como 1ª coluna da 1ª linha de campos (em vez de
+     * barra própria full-width) — confirmado contra DANFSe real do
+     * portal nacional 05/08/2026: "PRESTADOR / FORNECEDOR" fica na MESMA
+     * linha de "CNPJ / CPF / NIF" etc., só a célula do título com fundo
+     * cinza. Desenha a linha divisória (como `iniciarBloco`), mas NÃO
+     * avança `cursorY` — quem chama ainda precisa desenhar os outros
+     * campos dessa linha e avançar pela altura da linha (não
+     * `ALTURA_TITULO_BLOCO_CM`).
+     */
+    private function iniciarBlocoNaLinha(float $xCm, float $larguraCm, float $alturaCm, string $titulo): void
+    {
+        $this->linhaSeparadora($this->cursorY);
+
+        $marginX = DanfseLayout::cmToMm(DanfseLayout::MARGIN_X_CM);
+        $x = $marginX + DanfseLayout::cmToMm($xCm - DanfseLayout::MARGIN_X_CM);
+        $y = DanfseLayout::cmToMm($this->cursorY);
+        $largura = DanfseLayout::cmToMm($larguraCm);
+        $altura = DanfseLayout::cmToMm($alturaCm);
+
+        $this->pdf->SetFillColor(...DanfseLayout::COR_SOMBREAMENTO);
+        $this->pdf->Rect($x, $y, $largura, $altura, 'F');
+
+        $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_CAMPO);
+        $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
+        $this->pdf->SetXY($x + 0.5, $y + ($altura / 2) - 1.5);
+        $this->pdf->MultiCell($largura - 1, 3, $this->caixaAlta($titulo), 0, 'L', false, 1);
     }
 
     private function renderTituloBloco(float $yCm, string $titulo): void

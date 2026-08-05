@@ -5,6 +5,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.38.0] — 2026-08-05
+
+### Alterado
+
+- **DANFSe: título dos blocos PRESTADOR/FORNECEDOR, TOMADOR/ADQUIRENTE,
+  DESTINATÁRIO DA OPERAÇÃO e INTERMEDIÁRIO DA OPERAÇÃO passa a ficar na
+  MESMA linha da 1ª linha de campos** (CNPJ/CPF/NIF, Indicador Municipal,
+  Telefone), ocupando a coluna 1 com fundo cinza — em vez de uma barra de
+  título própria full-width acima. Confirmado contra DANFSe real do
+  portal nacional 05/08/2026. Novo helper
+  `DanfseLayoutV2::iniciarBlocoNaLinha()`. Os demais blocos (SERVIÇO
+  PRESTADO, TRIBUTAÇÃO MUNICIPAL/FEDERAL/IBS-CBS, VALOR TOTAL,
+  INFORMAÇÕES COMPLEMENTARES) continuam com a barra de título própria.
+
 ## [0.37.0] — 2026-08-05
 
 ### Corrigido
