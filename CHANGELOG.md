@@ -5,6 +5,27 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.40.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: título em `iniciarBlocoNaLinha()` saía fora de ordem no
+  texto extraído do PDF** — a posição Y do título (centralizado no meio
+  da altura da linha) não batia com a posição Y do rótulo das outras
+  células da mesma linha (topo, `y + 0.3`), fazendo o `pdftotext`
+  agrupar esse texto como uma "linha" separada mesmo estando alinhado
+  visualmente. Título agora usa o mesmo Y dos rótulos — mais consistente
+  visualmente também.
+
+### Alterado
+
+- **DANFSe: título "TRIBUTAÇÃO FEDERAL (EXCETO CBS)", "TRIBUTAÇÃO
+  IBS/CBS" e "VALOR TOTAL DA NFS-e" também passam a ficar na mesma linha
+  da 1ª linha de campos**, mesmo padrão da v0.38.0/v0.39.0.
+- **DANFSe: cabeçalho — "Município"/"Ambiente Gerador"/"Tipo de
+  Ambiente" centralizados verticalmente** nos 1,16cm do cabeçalho, mesmo
+  ajuste do título "DANFSe v2.0" (v0.36.0).
+
 ## [0.39.0] — 2026-08-05
 
 ### Corrigido

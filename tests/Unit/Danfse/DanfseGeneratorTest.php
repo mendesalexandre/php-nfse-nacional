@@ -365,7 +365,7 @@ final class DanfseGeneratorTest extends TestCase
         $texto = $this->textoDoPdf($pdf);
 
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
-        self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
+        self::assertMatchesRegularExpression('/^\s*-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
         self::assertSame('R$ 2,90', $this->valorNaColuna($texto, 'Total do IBS/CBS'));
         self::assertSame('R$ 35,87', $this->valorNaColuna($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
     }
@@ -377,7 +377,7 @@ final class DanfseGeneratorTest extends TestCase
         $texto = $this->textoDoPdf($pdf);
 
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
-        self::assertMatchesRegularExpression('/^000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
+        self::assertMatchesRegularExpression('/^\s*000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
         // Total do IBS/CBS = vIBSTot (1.04) + vCBS (1.86) = 2.90
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
         // VALOR LÍQUIDO + IBS/CBS = vLiq (32.97) + 2.90 = 35.87
@@ -391,7 +391,7 @@ final class DanfseGeneratorTest extends TestCase
         $texto = $this->textoDoPdf($pdf);
 
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
-        self::assertMatchesRegularExpression('/^000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
+        self::assertMatchesRegularExpression('/^\s*000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
     }
 
@@ -404,7 +404,7 @@ final class DanfseGeneratorTest extends TestCase
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml, $custom);
         $texto = $this->textoDoPdf($pdf);
 
-        self::assertMatchesRegularExpression('/^-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
+        self::assertMatchesRegularExpression('/^\s*-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
     }
 

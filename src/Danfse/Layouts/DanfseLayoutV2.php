@@ -176,10 +176,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::QR_X_CM - 15.62 - 0.1,
         );
 
+        // As 3 linhas (Município/Ambiente Gerador/Tipo de Ambiente) ocupam
+        // 8.5mm de conteúdo dentro dos 11.6mm do cabeçalho — desloca 1mm
+        // pra centralizar verticalmente (a pedido, 05/08/2026), mesmo
+        // ajuste já feito no título "DANFSe v2.0" à esquerda.
+        $deslocamentoVerticalDireita = 1.0;
         $municipio = ($dados->prestador['municipio'] ?? '-')
             . ' - ' . ($dados->prestador['uf'] ?? '-');
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CABECALHO_MUNICIPIO);
-        $this->pdf->SetXY($xDir, $y + 0.5);
+        $this->pdf->SetXY($xDir, $y + 0.5 + $deslocamentoVerticalDireita);
         $this->pdf->Cell($larguraDir, 3, 'Município: ' . $municipio, 0, 0, 'L');
 
         // "Ambiente Gerador" e "Tipo de Ambiente" (item 2.4.3 + tabela 2.4.5
@@ -193,10 +198,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // (dígito), não um rótulo traduzido; reproduzimos exatamente isso
         // pra bater com a DANFSe do portal nacional.
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CABECALHO_AMBIENTE);
-        $this->pdf->SetXY($xDir, $y + 4);
+        $this->pdf->SetXY($xDir, $y + 4 + $deslocamentoVerticalDireita);
         $this->pdf->Cell($larguraDir, 2.5, 'Ambiente Gerador: ' . ($dados->identificacao['ambiente_gerador'] ?? '-'), 0, 0, 'L');
 
-        $this->pdf->SetXY($xDir, $y + 6.5);
+        $this->pdf->SetXY($xDir, $y + 6.5 + $deslocamentoVerticalDireita);
         $this->pdf->Cell($larguraDir, 2.5, 'Tipo de Ambiente: ' . ($dados->identificacao['tpAmb_dps'] ?? '-'), 0, 0, 'L');
 
         if ($dados->qrCodeUrl !== null) {
@@ -585,16 +590,16 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private function renderTributacaoFederal(DanfseDados $dados): void
     {
         $f = $dados->tributacaoFederal;
-        $this->iniciarBloco('TRIBUTAÇÃO FEDERAL (EXCETO CBS)');
         $h = 0.63;
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'TRIBUTAÇÃO FEDERAL (EXCETO CBS)');
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'IRRF',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'IRRF',
             DanfseLayout::formatarMoeda($f['irrf'] ?? null),
             corFundo: $this->corDestaqueSePossuirValor($f['irrf'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Contribuição Previdenciária - Retida',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Contribuição Previdenciária - Retida',
             DanfseLayout::formatarMoeda($f['contribuicao_previdenciaria'] ?? null),
             corFundo: $this->corDestaqueSePossuirValor($f['contribuicao_previdenciaria'] ?? null));
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Contribuições Sociais - Retidas',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Contribuições Sociais - Retidas',
             DanfseLayout::formatarMoeda($f['contribuicoes_sociais_retidas'] ?? null),
             corFundo: $this->corDestaqueSePossuirValor($f['contribuicoes_sociais_retidas'] ?? null));
         $this->cursorY += $h;
@@ -639,12 +644,12 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // grupo IBS/CBS real — mesmo efeito de uma nota sem <gIBSCBS> no DPS
         // (todos os campos caem no fallback "-" já existente abaixo).
         $i = $this->exibirIbsCbs ? $dados->tributacaoIbsCbs : [];
-        $this->iniciarBloco('TRIBUTAÇÃO IBS/CBS');
         $h = 0.63;
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'TRIBUTAÇÃO IBS/CBS');
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'CST / cClassTrib',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'CST / cClassTrib',
             ($i['cst'] ?? '-') . ' / ' . ($i['cclass_trib'] ?? '-'));
-        $this->renderCelula(5.41, $this->cursorY, 15.29, $h,
+        $this->renderCelula(10.51, $this->cursorY, 10.19, $h,
             'Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF',
             ($i['cod_indicador_operacao'] ?? '-') . ' / '
             . ($i['cod_localidade_incidencia'] ?? '-') . ' / '
@@ -715,14 +720,14 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private function renderValorTotal(DanfseDados $dados): void
     {
         $v = $dados->valorTotal;
-        $this->iniciarBloco('VALOR TOTAL DA NFS-E');
         $h = 0.67;
+        $this->iniciarBlocoNaLinha(0.30, 5.09, $h, 'VALOR TOTAL DA NFS-E');
 
-        $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Valor da Operação / Serviço',
+        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Valor da Operação / Serviço',
             DanfseLayout::formatarMoeda($v['valor_servicos'] ?? null));
-        $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Desconto Incondicionado',
+        $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Desconto Incondicionado',
             DanfseLayout::formatarMoeda($v['desconto_incondicionado'] ?? null));
-        $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Desconto Condicionado',
+        $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Desconto Condicionado',
             DanfseLayout::formatarMoeda($v['desconto_condicionado'] ?? null));
         $this->cursorY += $h;
 
@@ -1059,8 +1064,14 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
         $this->setFonte(DanfseLayout::FONTE_TITULO, 'B', DanfseLayout::TAM_LABEL_CAMPO);
         $this->pdf->SetTextColor(...DanfseLayout::COR_TEXTO);
-        $this->pdf->SetXY($x + 0.5, $y + ($altura / 2) - 1.5);
-        $this->pdf->MultiCell($largura - 1, 3, $this->caixaAlta($titulo), 0, 'L', false, 1);
+        // Mesmo Y do rótulo em renderCelula() (y + 0.3) — não "centralizado
+        // no meio da linha": alinhamento diferente fazia o pdftotext
+        // extrair esse texto fora de ordem (linha própria, longe das
+        // outras células da mesma linha visual), quebrando testes que
+        // dependem da ordem do texto, além de ficar visualmente
+        // desalinhado dos rótulos ao lado.
+        $this->pdf->SetXY($x + 0.5, $y + 0.3);
+        $this->pdf->Cell($largura - 1, 3, $this->caixaAlta($titulo), 0, 0, 'L');
     }
 
     private function renderTituloBloco(float $yCm, string $titulo): void
