@@ -7,6 +7,7 @@ namespace PhpNfseNacional\Tests\Unit\Danfse;
 use PhpNfseNacional\Danfse\DanfseCustomizacao;
 use PhpNfseNacional\Danfse\DanfseGenerator;
 use PhpNfseNacional\Danfse\DanfseXmlParser;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class DanfseGeneratorTest extends TestCase
@@ -199,16 +200,52 @@ final class DanfseGeneratorTest extends TestCase
         );
     }
 
-    public function test_ambiente_gerador_e_sempre_sistema_proprio(): void
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function casosSituacaoNfse(): array
     {
-        // O SDK só gera DANFSe LOCALMENTE (nunca via ADN nesse fluxo) —
-        // "Ambiente Gerador" tem que refletir isso, não "Sistema Nacional"
-        // (que era o valor hardcoded errado antes, 02/07/2026).
+        return [
+            'cStat 100 = gerada'                     => ['100', 'NFS-e Gerada'],
+            'cStat 101 = substituição gerada'         => ['101', 'NFS-e de Substituição Gerada'],
+            'cStat 102 = decisão judicial'            => ['102', 'NFS-e de Decisão Judicial'],
+            'cStat 103 = avulsa'                      => ['103', 'NFS-e Avulsa'],
+        ];
+    }
+
+    #[DataProvider('casosSituacaoNfse')]
+    public function test_situacao_da_nfse_usa_dominio_do_infNFSe_cStat(string $cStat, string $esperado): void
+    {
+        // `infNFSe/cStat` (Anexo IV, campo 17) é um domínio PRÓPRIO e
+        // restrito a {100,101,102,103} — DIFERENTE do cStat de resposta de
+        // emissão/evento (enum `CStat`, onde 101/102 = cancelada/cancelada
+        // por substituição). Cancelamento é evento, não muda esse campo.
+        // Bug real: versões anteriores mapeavam 101→"NFS-e Cancelada" e
+        // 102→"NFS-e Cancelada por Substituição", herdado por engano do
+        // domínio errado — confirmado contra o CSV oficial (Anexo IV).
+        $xml = str_replace('<cStat>100</cStat>', "<cStat>{$cStat}</cStat>", $this->xmlAutorizado());
+        $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        $texto = $this->textoDoPdf($pdf);
+        self::assertStringContainsString($esperado, $texto);
+        self::assertStringNotContainsString('NFS-e Cancelada', $texto);
+    }
+
+    public function test_ambiente_gerador_e_tipo_de_ambiente_reproduzem_valor_cru_do_xml(): void
+    {
+        // "Ambiente Gerador" (ambGer) e "Tipo de Ambiente" (tpAmb) são campos
+        // do XML da NFS-e (tabela 2.4.5, NT 008, "Tam. do Campo: 1") — o
+        // oficial imprime o dígito cru, não um rótulo traduzido. Hardcoded
+        // "Sistema Próprio"/"Sistema Nacional" eram os dois valores errados
+        // de versões anteriores (02/07/2026 e depois). Fixture: ambGer=2,
+        // tpAmb=2 — igual ao que o portal nacional mostra pra NFS-e emitidas
+        // via API SEFIN Nacional.
         $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
         self::assertNotFalse($xml);
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
         $texto = $this->textoDoPdf($pdf);
-        self::assertStringContainsString('Ambiente Gerador: Sistema Próprio', $texto);
+        self::assertStringContainsString('Ambiente Gerador: 2', $texto);
+        self::assertStringContainsString('Tipo de Ambiente: 2', $texto);
+        self::assertStringNotContainsString('Sistema Próprio', $texto);
         self::assertStringNotContainsString('Sistema Nacional', $texto);
     }
 

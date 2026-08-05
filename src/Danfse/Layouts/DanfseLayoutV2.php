@@ -176,19 +176,22 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->pdf->SetXY($xDir, $y + 0.5);
         $this->pdf->Cell($larguraDir, 3, 'Município: ' . $municipio, 0, 0, 'L');
 
-        // "Ambiente Gerador" (item 2.1.1/2.4.3 do Anexo I) indica QUEM gerou
-        // o DOCUMENTO PDF — "Sistema Nacional" só se aplica ao DANFSe oficial
-        // baixado do ADN. Esse SDK só gera localmente (danfseLocal), nunca
-        // via ADN nesse fluxo — então é sempre "Sistema Próprio", igual ao
-        // que outros sistemas terceiros mostram nas suas DANFSe locais.
-        $ambienteGerador = 'Sistema Próprio';
+        // "Ambiente Gerador" e "Tipo de Ambiente" (item 2.4.3 + tabela 2.4.5
+        // do Anexo I, NT 008) são campos do PRÓPRIO XML da NFS-e — `ambGer`
+        // (quem AUTORIZOU a NFS-e: 1=Sistema do Município, 2=Sefin Nacional)
+        // e `tpAmb` (1=Produção, 2=Homologação) — não descrevem "quem gerou
+        // este PDF". Como a emissão sempre passa pelo SEFIN Nacional nesse
+        // SDK, `ambGer` normalmente vem "2" independente de quem renderiza
+        // o DANFSe (local ou portal oficial). A tabela 2.4.5 marca os dois
+        // campos com "Tam. do Campo: 1" — o oficial imprime o valor CRU
+        // (dígito), não um rótulo traduzido; reproduzimos exatamente isso
+        // pra bater com a DANFSe do portal nacional.
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CABECALHO_AMBIENTE);
         $this->pdf->SetXY($xDir, $y + 4);
-        $this->pdf->Cell($larguraDir, 2.5, 'Ambiente Gerador: ' . $ambienteGerador, 0, 0, 'L');
+        $this->pdf->Cell($larguraDir, 2.5, 'Ambiente Gerador: ' . ($dados->identificacao['ambiente_gerador'] ?? '-'), 0, 0, 'L');
 
-        $tipoAmb = $dados->homologacao ? 'Homologação' : 'Produção';
         $this->pdf->SetXY($xDir, $y + 6.5);
-        $this->pdf->Cell($larguraDir, 2.5, 'Tipo: ' . $tipoAmb, 0, 0, 'L');
+        $this->pdf->Cell($larguraDir, 2.5, 'Tipo de Ambiente: ' . ($dados->identificacao['tpAmb_dps'] ?? '-'), 0, 0, 'L');
 
         if ($dados->qrCodeUrl !== null) {
             $this->pdf->write2DBarcode(
@@ -1145,10 +1148,23 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // "NFS-e regular" é exemplo oficial da NT 008 pra Finalidade, não
         // pra Situação; usava-se por engano aqui (bug encontrado 02/07/2026
         // comparando com DANFSe real de outro sistema próprio).
+        //
+        // ATENÇÃO: este `cStat` é o campo `infNFSe/cStat` (Anexo IV, campo
+        // 17) — domínio PRÓPRIO e restrito a {100,101,102,103}, DIFERENTE
+        // do cStat de resposta de emissão/evento (`CStat` enum, ~54 casos,
+        // onde 101/102 = cancelada/cancelada por substituição). Cancelamento
+        // é EVENTO e não muda esse campo — 101/102 aqui significam "NFS-e
+        // GERADA como substituição" / "gerada por decisão judicial", nada a
+        // ver com cancelamento. Confirmado contra o CSV oficial (campo 17,
+        // "Situações possíveis: 100/101/102/103") — corrigido v0.29.0, o
+        // mapeamento anterior (101→Cancelada, 102→Cancelada por
+        // Substituição) nunca esteve certo, só passou despercebido porque
+        // cancelamento real não passa por aqui (ver DanfseCustomizacao::$cancelada).
         return match ($cStat) {
             100 => 'NFS-e Gerada',
-            101 => 'NFS-e Cancelada',
-            102 => 'NFS-e Cancelada por Substituição',
+            101 => 'NFS-e de Substituição Gerada',
+            102 => 'NFS-e de Decisão Judicial',
+            103 => 'NFS-e Avulsa',
             default => $cStat > 0 ? "cStat={$cStat}" : 'NFS-e Gerada',
         };
     }

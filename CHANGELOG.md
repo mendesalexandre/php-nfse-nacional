@@ -5,6 +5,28 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-08-05
+
+### Corrigido
+
+- **DANFSe: "SITUAÇÃO DA NFS-e" usava domínio errado de `cStat`** —
+  `DanfseLayoutV2::labelSituacao()` mapeava `infNFSe/cStat` 101/102 pra
+  "NFS-e Cancelada"/"Cancelada por Substituição", herdando por engano o
+  domínio do `CStat` enum (resposta de emissão/evento). O campo
+  `infNFSe/cStat` (Anexo IV, campo 17) é um domínio próprio, restrito a
+  100/101/102/103 = Gerada/Substituição Gerada/Decisão Judicial/Avulsa —
+  cancelamento é evento e nunca muda esse campo. Corrigido conforme o
+  CSV oficial do leiaute.
+- **DANFSe: `Ambiente Gerador`/`Tipo de Ambiente` mostravam rótulo
+  traduzido em vez do valor cru do XML** — a NT 008 (tabela 2.4.5)
+  define esses campos com "Tam. do Campo: 1" (dígito cru de
+  `ambGer`/`tpAmb`), igual ao que a DANFSe oficial do portal nacional
+  imprime (`Ambiente Gerador: 2` / `Tipo de Ambiente: 1`). O SDK
+  hardcodeava "Sistema Próprio" e traduzia `tpAmb` pra "Produção"/
+  "Homologação" — ambos os campos já vinham extraídos do XML pelo
+  parser, só não eram usados. Achados confirmados comparando com uma
+  DANFSe real baixada do site gov.br.
+
 ## [0.28.0] — 2026-08-05
 
 ### Alterado
