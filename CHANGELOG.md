@@ -5,6 +5,21 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.45.0] — 2026-08-06
+
+### Adicionado
+
+- **Validação estrutural CST × cClassTrib do grupo IBS/CBS** (RN 627 do
+  ADN, achado analisando `nfse-nacional/nfse-php`) — `Valores` e
+  `TribRegular` agora exigem que os 3 primeiros dígitos de
+  `cClassTrib`/`cClassTribReg` sejam iguais ao `cstIbsCbs`/`cstReg`
+  informado, lançando `ValidationException` quando não bate. Continua
+  fora de escopo validar a lista completa de códigos válidos por CST
+  contra a tabela oficial da Reforma Tributária (regra de negócio,
+  fica por conta do SEFIN) — só a consistência estrutural entre os dois
+  campos, que é fixa pelo domínio (todo `cClassTrib` é namespaceado
+  pelo próprio CST).
+
 ## [0.44.0] — 2026-08-06
 
 ### Adicionado

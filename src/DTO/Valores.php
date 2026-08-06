@@ -171,9 +171,12 @@ final class Valores
          * `'000001'` (Tributação Regular) preserva o comportamento
          * anterior à parametrização.
          *
-         * A combinação CST × cClassTrib precisa ser válida conforme a
-         * tabela oficial da Reforma Tributária (SE/CGNFS-e) — o SDK não
-         * valida a combinação, só o formato (6 dígitos).
+         * A tabela oficial da Reforma Tributária (SE/CGNFS-e) namespacea
+         * cClassTrib pelo CST — os 3 primeiros dígitos de cClassTrib são
+         * sempre o próprio CST (RN 627 do ADN). O SDK valida essa
+         * consistência estrutural; a lista completa de códigos válidos por
+         * CST (ex: quais cClassTrib "010xxx" existem) fica por conta do
+         * SEFIN — validação de negócio, fora do escopo da lib.
          */
         public readonly string $cClassTrib = '000001',
         /**
@@ -198,6 +201,9 @@ final class Valores
         }
         if (!preg_match('/^\d{6}$/', $cClassTrib)) {
             $errors[] = "cClassTrib inválido: '{$cClassTrib}' (esperado 6 dígitos)";
+        } elseif (preg_match('/^\d{3}$/', $cstIbsCbs) && !str_starts_with($cClassTrib, $cstIbsCbs)) {
+            $errors[] = "cClassTrib ('{$cClassTrib}') não pertence ao grupo do CST informado "
+                . "('{$cstIbsCbs}') — os 3 primeiros dígitos de cClassTrib devem ser o CST";
         }
         if ($cCredPres !== null && !preg_match('/^\d{2}$/', $cCredPres)) {
             $errors[] = "cCredPres inválido: '{$cCredPres}' (esperado 2 dígitos)";

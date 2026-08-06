@@ -68,6 +68,32 @@ final class ValoresTest extends TestCase
         new Valores(100.0, 0.0, 15.0);
     }
 
+    public function test_cclasstrib_deve_comecar_com_cst_informado(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('não pertence ao grupo do CST informado');
+        new Valores(
+            valorServicos: 100.0,
+            deducoesReducoes: 0.0,
+            aliquotaIssqnPercentual: 4.0,
+            cstIbsCbs: '010',
+            cClassTrib: '000001',
+        );
+    }
+
+    public function test_cclasstrib_condizente_com_cst_eh_aceito(): void
+    {
+        $v = new Valores(
+            valorServicos: 100.0,
+            deducoesReducoes: 0.0,
+            aliquotaIssqnPercentual: 4.0,
+            cstIbsCbs: '200',
+            cClassTrib: '200001',
+        );
+        self::assertSame('200', $v->cstIbsCbs);
+        self::assertSame('200001', $v->cClassTrib);
+    }
+
     public function test_caso_real_padrao_os_543624(): void
     {
         // Cenário com 3 atos: vServ=73,30, vDR=22,00 (deduções + ISSQN por dentro)

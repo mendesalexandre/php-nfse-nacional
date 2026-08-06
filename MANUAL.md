@@ -1086,20 +1086,24 @@ final class Valores
 > contador antes de ligar em produção.
 >
 > - `$cstIbsCbs`/`$cClassTrib` — default `'000'`/`'000001'` = Tributação
->   Regular. O SDK **não valida** a combinação CST×cClassTrib contra a
->   tabela oficial da Reforma — só o formato (3/6 dígitos). Consulte a
->   tabela oficial (Portal Nacional da NF-e → Documentos → Diversos →
->   "Tabela de Código de Classificação Tributária do IBS e da CBS") pro
->   código certo do seu segmento — pra registros públicos/notariais não
->   existe classificação de imunidade/redução, `000001` é o único
->   aplicável.
+>   Regular. O SDK valida o formato (3/6 dígitos) **e** a consistência
+>   estrutural: os 3 primeiros dígitos de `cClassTrib` precisam ser o
+>   próprio `cstIbsCbs` (RN 627 do ADN — `ValidationException` se não
+>   bater). O SDK **não valida** a lista completa de códigos válidos por
+>   CST contra a tabela oficial da Reforma (isso é regra de negócio,
+>   fica por conta do SEFIN). Consulte a tabela oficial (Portal Nacional
+>   da NF-e → Documentos → Diversos → "Tabela de Código de Classificação
+>   Tributária do IBS e da CBS") pro código certo do seu segmento — pra
+>   registros públicos/notariais não existe classificação de
+>   imunidade/redução, `000001` é o único aplicável.
 > - `$cCredPres` — Código de Crédito Presumido (2 dígitos), opcional.
 >   Aplicável a operações com direito a crédito presumido (agropecuário,
 >   insumos, etc). `null` = omitido.
 > - `$tribRegular` — DTO `TribRegular(cstReg, cClassTribReg)`, referência
 >   à classificação regular quando a operação usa uma classificação
 >   diferente (redução, isenção, diferimento). Só faz sentido quando
->   `cstIbsCbs !== '000'`.
+>   `cstIbsCbs !== '000'`. Mesma validação de consistência estrutural
+>   (`cClassTribReg` deve começar com `cstReg`) se aplica aqui.
 
 #### Campos novos (resumo desde v0.10)
 

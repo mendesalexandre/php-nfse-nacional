@@ -27,6 +27,9 @@ final class TribRegular
         }
         if (!preg_match('/^\d{6}$/', $cClassTribReg)) {
             $errors[] = "cClassTribReg inválido: '{$cClassTribReg}' (esperado 6 dígitos)";
+        } elseif (preg_match('/^\d{3}$/', $cstReg) && !str_starts_with($cClassTribReg, $cstReg)) {
+            $errors[] = "cClassTribReg ('{$cClassTribReg}') não pertence ao grupo do CSTReg informado "
+                . "('{$cstReg}') — os 3 primeiros dígitos de cClassTribReg devem ser o CSTReg";
         }
 
         if (!empty($errors)) {
