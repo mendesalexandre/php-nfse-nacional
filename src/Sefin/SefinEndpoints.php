@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Sefin;
 
+use PhpNfseNacional\DTO\EndpointPersonalizado;
 use PhpNfseNacional\Enums\Ambiente;
 
 /**
@@ -21,15 +22,24 @@ final class SefinEndpoints
     private const URL_HOMOLOGACAO = 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
 
     // ADN (Ambiente Digital Nacional) — usado pra download de DANFSE.
+    // Sempre nacional, mesmo com $endpointPersonalizado — infraestrutura
+    // compartilhada que municípios não replicam.
     private const URL_ADN_PRODUCAO = 'https://adn.nfse.gov.br';
     private const URL_ADN_HOMOLOGACAO = 'https://adn.producaorestrita.nfse.gov.br';
 
     public function __construct(
         public readonly Ambiente $ambiente,
+        private readonly ?EndpointPersonalizado $endpointPersonalizado = null,
     ) {}
 
     public function baseUrl(): string
     {
+        if ($this->endpointPersonalizado !== null) {
+            return match ($this->ambiente) {
+                Ambiente::Producao => $this->endpointPersonalizado->producao,
+                Ambiente::Homologacao => $this->endpointPersonalizado->homologacao,
+            };
+        }
         return match ($this->ambiente) {
             Ambiente::Producao => self::URL_PRODUCAO,
             Ambiente::Homologacao => self::URL_HOMOLOGACAO,

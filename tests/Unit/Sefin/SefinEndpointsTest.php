@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional\Tests\Unit\Sefin;
 
+use PhpNfseNacional\DTO\EndpointPersonalizado;
 use PhpNfseNacional\Enums\Ambiente;
 use PhpNfseNacional\Sefin\SefinEndpoints;
 use PHPUnit\Framework\TestCase;
@@ -62,5 +63,34 @@ final class SefinEndpointsTest extends TestCase
         $url = $ep->listarEventosNfse($chave);
         self::assertStringContainsString('adn.nfse.gov.br', $url);
         self::assertStringEndsWith('/contribuintes/NFSe/' . $chave . '/Eventos', $url);
+    }
+
+    public function test_endpointPersonalizado_sobrescreve_baseUrl(): void
+    {
+        // Município que segue o leiaute nacional mas hospeda infraestrutura
+        // própria (ex: Catanduva/SP, achado comparando com outro SDK).
+        $custom = new EndpointPersonalizado(
+            producao: 'https://164.152.60.237/nota/nacional',
+            homologacao: 'https://catanduva.prefeitura.rlz.com.br/nota/nacional',
+        );
+
+        $epProd = new SefinEndpoints(Ambiente::Producao, $custom);
+        self::assertSame('https://164.152.60.237/nota/nacional/nfse', $epProd->enviarDps());
+
+        $epHomol = new SefinEndpoints(Ambiente::Homologacao, $custom);
+        self::assertStringStartsWith('https://catanduva.prefeitura.rlz.com.br/nota/nacional', $epHomol->baseUrl());
+    }
+
+    public function test_endpointPersonalizado_nao_afeta_adn(): void
+    {
+        // ADN é infraestrutura nacional compartilhada — município não
+        // replica isso, mesmo hospedando o SEFIN próprio.
+        $custom = new EndpointPersonalizado(
+            producao: 'https://164.152.60.237/nota/nacional',
+            homologacao: 'https://catanduva.prefeitura.rlz.com.br/nota/nacional',
+        );
+
+        $ep = new SefinEndpoints(Ambiente::Producao, $custom);
+        self::assertStringContainsString('adn.nfse.gov.br', $ep->adnBaseUrl());
     }
 }

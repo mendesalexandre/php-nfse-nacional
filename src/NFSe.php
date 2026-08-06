@@ -77,7 +77,7 @@ final class NFSe
         ?LoggerInterface $logger = null,
     ): self {
         $logger ??= new NullLogger();
-        $endpoints = new SefinEndpoints($config->ambiente);
+        $endpoints = new SefinEndpoints($config->ambiente, $config->endpointPersonalizado);
         $client = new SefinClient($config, $certificate, $endpoints, $http, $logger);
         $signer = new Signer($certificate);
 

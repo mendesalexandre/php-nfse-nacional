@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpNfseNacional;
 
+use PhpNfseNacional\DTO\EndpointPersonalizado;
 use PhpNfseNacional\DTO\Prestador;
 use PhpNfseNacional\Enums\Ambiente;
 use PhpNfseNacional\Exceptions\ValidationException;
@@ -61,6 +62,16 @@ final class Config
          * não o emissor.
          */
         public readonly bool $incluirIbsCbs = false,
+        /**
+         * Override das URLs base do SEFIN Nacional pro município do
+         * prestador, quando ele hospeda infraestrutura própria em vez de
+         * usar `sefin.nfse.gov.br` diretamente (alguns municípios seguem
+         * o leiaute nacional, mas respondem só na URL própria — ex.
+         * IP/subdomínio da prefeitura). Default `null` = usa os domínios
+         * nacionais padrão. Não afeta ADN (download de DANFSe,
+         * sincronização de DFe) — só as chamadas SEFIN.
+         */
+        public readonly ?EndpointPersonalizado $endpointPersonalizado = null,
     ) {
         $errors = [];
         if ($timeoutSegundos < 5 || $timeoutSegundos > 300) {

@@ -5,6 +5,22 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.44.0] — 2026-08-06
+
+### Adicionado
+
+- **`Config::$endpointPersonalizado`** (novo `DTO\EndpointPersonalizado`)
+  — override das URLs base do SEFIN Nacional pra municípios que seguem
+  o leiaute nacional mas hospedam infraestrutura própria (IP/subdomínio
+  da prefeitura) em vez de `sefin.nfse.gov.br`. Default `null` = domínios
+  nacionais padrão, comportamento inalterado. Não afeta ADN (download
+  de DANFSe oficial, sincronização de DFe) — infraestrutura
+  compartilhada que municípios não replicam. O SDK não mantém uma lista
+  curada de municípios que precisam disso (fora do escopo de manutenção
+  — quem integra passa explicitamente). Achado analisando o SDK
+  comunitário `nfse-nacional/nfse-php`, que documenta pelo menos um caso
+  real (Catanduva/SP).
+
 ## [0.43.0] — 2026-08-05
 
 ### Corrigido
