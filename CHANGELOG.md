@@ -5,6 +5,22 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.45.1] — 2026-08-13
+
+### Corrigido
+
+- **`SefinClient::get()` não conferia o status HTTP antes de tratar o corpo
+  como resposta válida** — usado por `consultarNfse()`/`xmlNfse()`/
+  `baixarXml()`. Em instabilidade do ADN (502/503/504), o corpo costuma ser
+  uma página de erro HTML, não XML/JSON do SEFIN; sem a checagem, esse HTML
+  virava "XML da NFS-e" pro caller, que podia cachear/persistir o lixo
+  (achado real em produção: `EnviarNFSeLegadoJob` do SINOP salvou uma
+  página `503 Service Unavailable` como XML autorizado, mascarando uma
+  instabilidade transitória do ADN como erro permanente "XML da NFS-e
+  inválido" — o cache corrompido impedia qualquer retry de acertar depois
+  do ADN normalizar). Agora `get()` lança `SefinException` em HTTP ≥500,
+  mesmo padrão já usado em `postJsonGzipB64()` e `baixarDanfse()`.
+
 ## [0.45.0] — 2026-08-06
 
 ### Adicionado

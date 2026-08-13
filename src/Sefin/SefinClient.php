@@ -87,6 +87,13 @@ final class SefinClient
 
     /**
      * Faz GET genérico nos endpoints de consulta (NFS-e por chave, DPS, eventos).
+     *
+     * Confere o status HTTP antes de tratar o corpo como resposta válida —
+     * em instabilidade do ADN (502/503/504), o corpo costuma ser uma página
+     * de erro HTML, não XML/JSON do SEFIN. Sem essa checagem, o caller
+     * (ex: `xmlNfse()`) recebia esse HTML como se fosse XML válido e podia
+     * cachear/persistir o lixo, mascarando a instabilidade como erro
+     * permanente. Mesmo padrão já usado em `postJsonGzipB64()`.
      */
     public function get(string $url): SefinResposta
     {
@@ -94,7 +101,20 @@ final class SefinClient
             'timeout' => $this->config->timeoutSegundos,
             'http_errors' => false,
         ]);
-        return $this->parsearResposta((string) $response->getBody());
+
+        $statusHttp = $response->getStatusCode();
+        $body = (string) $response->getBody();
+
+        if ($statusHttp >= 500) {
+            throw new SefinException(
+                cStat: null,
+                xMotivo: null,
+                message: "SEFIN retornou erro HTTP {$statusHttp} — tente novamente em alguns minutos",
+                rawResponse: $body,
+            );
+        }
+
+        return $this->parsearResposta($body);
     }
 
     /**

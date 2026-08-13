@@ -77,6 +77,22 @@ final class DownloadServiceTest extends TestCase
         self::assertStringContainsString('<nNFSe>123</nNFSe>', $resultado);
     }
 
+    /**
+     * Regressão: ADN instável devolvendo página de erro HTML com HTTP 503
+     * não pode ser tratado como XML válido — antes desse fix, `get()`
+     * ignorava o status e `xmlNfse()` devolvia o HTML como se fosse a NFS-e,
+     * que ficava cacheada (S3/local) pelo caller e mascarava a instabilidade
+     * como erro permanente de XML inválido.
+     */
+    public function test_xmlNfse_lanca_quando_status_5xx_em_vez_de_devolver_corpo_como_xml(): void
+    {
+        $htmlErro = '<HTML><BODY><h2>Service Unavailable</h2></BODY></HTML>';
+        $service = $this->buildService(new Response(503, [], $htmlErro));
+
+        $this->expectException(SefinException::class);
+        $service->xmlNfse(self::CHAVE);
+    }
+
     public function test_pdfDanfse_retry_em_502_e_depois_sucesso(): void
     {
         // Mock devolve 502 → 200 (PDF). Com tentativas=2, deve dar sucesso.
