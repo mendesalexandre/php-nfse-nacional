@@ -281,4 +281,37 @@ final class DanfseXmlParserTest extends TestCase
         self::assertSame('2', $dados->identificacao['ambiente_gerador']);
         self::assertFalse($dados->homologacao);
     }
+
+    /** Leiaute de produção (fixture): finNFSe em <IBSCBS>, dedução em vDedRed/vDR. */
+    public function test_leiaute_producao_le_finNFSe_do_IBSCBS_e_vDR(): void
+    {
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $dados = (new DanfseXmlParser())->parse($xml);
+
+        self::assertSame('0', $dados->identificacao['finalidade']);
+        self::assertSame(9.89, $dados->tributacaoMunicipal['total_deducoes_reducoes']);
+    }
+
+    /**
+     * Leiaute 1.01-prodrest-20261020 (NT 009): finNFSe em infDPS e
+     * vDedRed/vDR → vAjusteBC/vAjusteBCISSQN.
+     */
+    public function test_leiaute_novo_le_finNFSe_de_infDPS_e_vAjusteBC(): void
+    {
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
+        self::assertNotFalse($xml);
+        $xml = str_replace('<IBSCBS>\n          <finNFSe>0</finNFSe>', '<IBSCBS>', $xml, $a);
+        $xml = preg_replace('#<finNFSe>0</finNFSe>\s*#', '', $xml, 1);
+        $xml = str_replace('<cLocEmi>', '<finNFSe>3</finNFSe><cLocEmi>', $xml, $b);
+        $xml = str_replace('<vDedRed>', '<vAjusteBC>', $xml);
+        $xml = str_replace('</vDedRed>', '</vAjusteBC>', $xml);
+        $xml = str_replace('<vDR>9.89</vDR>', '<vAjusteBCISSQN>9.89</vAjusteBCISSQN>', $xml);
+        self::assertGreaterThanOrEqual(1, $b, 'fixture precisa de <cLocEmi> no DPS');
+
+        $dados = (new DanfseXmlParser())->parse($xml);
+
+        self::assertSame('3', $dados->identificacao['finalidade'], 'finNFSe de infDPS tem precedência');
+        self::assertSame(9.89, $dados->tributacaoMunicipal['total_deducoes_reducoes']);
+    }
 }

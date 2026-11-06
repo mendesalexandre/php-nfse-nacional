@@ -16,13 +16,16 @@ use PhpNfseNacional\DTO\Servico;
 use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
 use PhpNfseNacional\Enums\Ambiente;
+use PhpNfseNacional\Enums\LeiauteDps;
 use PhpNfseNacional\Enums\RegimeEspecialTributacao;
 use PHPUnit\Framework\TestCase;
 
 final class DpsBuilderTest extends TestCase
 {
-    private function configPadrao(RegimeEspecialTributacao $regime = RegimeEspecialTributacao::Nenhum): Config
-    {
+    private function configPadrao(
+        RegimeEspecialTributacao $regime = RegimeEspecialTributacao::Nenhum,
+        ?LeiauteDps $leiaute = null,
+    ): Config {
         $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
         $prestador = new Prestador(
             cnpj: '12345678000195',
@@ -31,7 +34,7 @@ final class DpsBuilderTest extends TestCase
             endereco: $endereco,
             regimeEspecial: $regime,
         );
-        return new Config($prestador, Ambiente::Homologacao);
+        return new Config($prestador, Ambiente::Homologacao, leiaute: $leiaute);
     }
 
     private function tomadorPf(): Tomador
@@ -1280,7 +1283,7 @@ final class DpsBuilderTest extends TestCase
             chaveNfe: str_repeat('1', 44),
         );
 
-        $builder = new DpsBuilder($this->configPadrao());
+        $builder = new DpsBuilder($this->configPadrao(leiaute: LeiauteDps::V1_01));
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -1320,7 +1323,7 @@ final class DpsBuilderTest extends TestCase
             chaveNfse: $chave,
         );
 
-        $builder = new DpsBuilder($this->configPadrao());
+        $builder = new DpsBuilder($this->configPadrao(leiaute: LeiauteDps::V1_01));
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -1341,7 +1344,7 @@ final class DpsBuilderTest extends TestCase
             numeroDocumento: 'RECIBO-123/2026',
         );
 
-        $builder = new DpsBuilder($this->configPadrao());
+        $builder = new DpsBuilder($this->configPadrao(leiaute: LeiauteDps::V1_01));
         $xml = $builder->build(
             new Identificacao(numeroDps: 1),
             $this->tomadorPf(),
@@ -2111,5 +2114,144 @@ final class DpsBuilderTest extends TestCase
         self::assertLessThan($posFone, $posIm);
         self::assertLessThan($posEmail, $posFone);
         self::assertLessThan($posReg, $posEmail);
+    }
+
+    // ------------------------------------------------------------------
+    // Leiaute por ambiente (LeiauteDps) — XSD de produção x produção restrita
+    // ------------------------------------------------------------------
+
+    private function xmlDps(Config $config, ?Valores $valores = null): string
+    {
+        return (new DpsBuilder($config))->build(
+            new Identificacao(numeroDps: 100),
+            $this->tomadorPf(),
+            $this->servico(),
+            $valores ?? new Valores(100.00, 20.00, 4.00),
+        );
+    }
+
+    /** @return list<string> mensagens do libxml (ignora o quirk do pattern da `serie`) */
+    private function errosXsd(string $xml, string $versaoPasta, string $xsd): array
+    {
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $previous = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+        $dom->schemaValidate(__DIR__ . "/../../../docs/schemas/{$versaoPasta}/{$xsd}");
+        $erros = [];
+        foreach (libxml_get_errors() as $e) {
+            // libxml2 não casa o pattern `^0{0,4}\d{1,5}$` de TSSerieDPS nem pra "1";
+            // o SEFIN aceita. Ruído do validador, não do builder.
+            if (str_contains($e->message, '}serie')) {
+                continue;
+            }
+            $erros[] = trim($e->message);
+        }
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        return $erros;
+    }
+
+    public function test_leiaute_padrao_por_ambiente(): void
+    {
+        $prest = $this->configPadrao()->prestador;
+        self::assertSame(LeiauteDps::V1_01_PRODREST, (new Config($prest, Ambiente::Homologacao))->leiauteDps());
+        self::assertSame(LeiauteDps::V1_01, (new Config($prest, Ambiente::Producao))->leiauteDps());
+        self::assertSame(
+            LeiauteDps::V1_01_PRODREST,
+            (new Config($prest, Ambiente::Producao, leiaute: LeiauteDps::V1_01_PRODREST))->leiauteDps(),
+            'leiaute explícito vence o padrão do ambiente',
+        );
+    }
+
+    /** @return array<string, array{0: LeiauteDps, 1: string, 2: string, 3: bool}> */
+    public static function leiautesEXsd(): array
+    {
+        return [
+            'produção, sem IBS/CBS' => [LeiauteDps::V1_01, '1.01', 'DPS_v1.01.xsd', false],
+            'produção, com IBS/CBS' => [LeiauteDps::V1_01, '1.01', 'DPS_v1.01.xsd', true],
+            'prod. restrita, sem IBS/CBS' => [LeiauteDps::V1_01_PRODREST, '1.01-prodrest-20261020', 'DPS_v1.01.xsd', false],
+            'prod. restrita, com IBS/CBS' => [LeiauteDps::V1_01_PRODREST, '1.01-prodrest-20261020', 'DPS_v1.01.xsd', true],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('leiautesEXsd')]
+    public function test_dps_valida_contra_o_xsd_do_proprio_leiaute(LeiauteDps $leiaute, string $pasta, string $xsd, bool $ibscbs): void
+    {
+        $base = $this->configPadrao(leiaute: $leiaute);
+        $config = new Config($base->prestador, Ambiente::Homologacao, incluirIbsCbs: $ibscbs, leiaute: $leiaute);
+
+        self::assertSame([], $this->errosXsd($this->xmlDps($config), $pasta, $xsd));
+    }
+
+    public function test_leiaute_antigo_nao_valida_no_xsd_novo_e_vice_versa(): void
+    {
+        // Garante que o teste acima de fato distingue os dois schemas.
+        $antigo = $this->xmlDps($this->configPadrao(leiaute: LeiauteDps::V1_01));
+        $novo = $this->xmlDps($this->configPadrao(leiaute: LeiauteDps::V1_01_PRODREST));
+
+        self::assertNotSame([], $this->errosXsd($antigo, '1.01-prodrest-20261020', 'DPS_v1.01.xsd'));
+        self::assertNotSame([], $this->errosXsd($novo, '1.01', 'DPS_v1.01.xsd'));
+    }
+
+    public function test_leiaute_novo_ordem_e_elementos(): void
+    {
+        $dom = new DOMDocument();
+        $dom->loadXML($this->xmlDps($this->configPadrao(leiaute: LeiauteDps::V1_01_PRODREST)));
+        $xp = new DOMXPath($dom);
+        $xp->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        // finNFSe logo após tpEmit, antes de cLocEmi
+        self::assertSame('finNFSe', $xp->query('//n:infDPS/n:tpEmit/following-sibling::*[1]')->item(0)?->localName);
+        self::assertSame('cLocEmi', $xp->query('//n:infDPS/n:finNFSe/following-sibling::*[1]')->item(0)?->localName);
+        // cNBS antes de xDescServ
+        self::assertSame('xDescServ', $xp->query('//n:cServ/n:cNBS/following-sibling::*[1]')->item(0)?->localName);
+        // vDedRed → vAjusteBC/vAjusteBCISSQN
+        self::assertSame(0, $xp->query('//n:vDedRed')->length);
+        self::assertSame('20.00', $xp->query('//n:valores/n:vAjusteBC/n:vAjusteBCISSQN')->item(0)?->textContent);
+    }
+
+    public function test_leiaute_novo_finNFSe_sai_de_dentro_do_IBSCBS(): void
+    {
+        $base = $this->configPadrao()->prestador;
+        $config = new Config($base, Ambiente::Homologacao, incluirIbsCbs: true, leiaute: LeiauteDps::V1_01_PRODREST);
+        $dom = new DOMDocument();
+        $dom->loadXML($this->xmlDps($config));
+        $xp = new DOMXPath($dom);
+        $xp->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(1, $xp->query('//n:finNFSe')->length);
+        self::assertSame(0, $xp->query('//n:IBSCBS/n:finNFSe')->length);
+        self::assertSame(1, $xp->query('//n:IBSCBS/n:valores/n:trib/n:CST')->length, 'CST direto em <trib>');
+        self::assertSame(0, $xp->query('//n:gIBSCBS/n:CST')->length);
+    }
+
+    public function test_leiaute_antigo_mantem_estrutura_de_producao(): void
+    {
+        $dom = new DOMDocument();
+        $dom->loadXML($this->xmlDps($this->configPadrao(leiaute: LeiauteDps::V1_01)));
+        $xp = new DOMXPath($dom);
+        $xp->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+
+        self::assertSame(0, $xp->query('//n:infDPS/n:finNFSe')->length);
+        self::assertSame('cLocEmi', $xp->query('//n:infDPS/n:tpEmit/following-sibling::*[1]')->item(0)?->localName);
+        self::assertSame('cNBS', $xp->query('//n:cServ/n:xDescServ/following-sibling::*[1]')->item(0)?->localName);
+        self::assertSame('20.00', $xp->query('//n:valores/n:vDedRed/n:vDR')->item(0)?->textContent);
+    }
+
+    public function test_leiaute_novo_rejeita_documentos_de_deducao_com_erro_claro(): void
+    {
+        $doc = new \PhpNfseNacional\DTO\DocumentoDeducao(
+            tipo: \PhpNfseNacional\Enums\TipoDeducaoReducao::Materiais,
+            dataEmissaoDocumento: new \DateTimeImmutable('2026-05-01'),
+            valorDedutivel: 50.00,
+            valorDeducao: 30.00,
+            numeroDocumento: 'NF-1',
+        );
+        $valores = new Valores(valorServicos: 100.00, deducoesReducoes: 0.0, aliquotaIssqnPercentual: 4.00, documentosDeducao: [$doc]);
+
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        $this->expectExceptionMessage('Dedução por documentos indisponível');
+        $this->xmlDps($this->configPadrao(leiaute: LeiauteDps::V1_01_PRODREST), $valores);
     }
 }

@@ -35,9 +35,15 @@ ainda anuncia `SefinNacional_1.6.0`).
   `vCalcDR` → `vCalcAjusteBCISSQN`; novos grupos de imóveis
   (`TCEnderImovel`, `gAjusteBCLocImoveis`, `vCalcAjusteBCLocImoveis`).
 
-Status no SDK: o `DpsBuilder` ainda gera o leiaute de **produção**; a
-migração para o leiaute novo está pendente. Para validar o XML gerado
-localmente (reproduz o erro do SEFIN):
+Status no SDK: `Config::$leiaute` (`Enums\LeiauteDps`) escolhe o leiaute do
+DPS. Default `null` = por ambiente: **Homologação → `V1_01_PRODREST`**,
+**Produção → `V1_01`**. Quando o SEFIN migrar a produção, basta
+`new Config(..., leiaute: LeiauteDps::V1_01_PRODREST)`. Validado em
+06/11/2026: NFS-e emitida em homologação (cStat 100) com o leiaute novo.
+Limitação: `documentosDeducao` (`docAjusteBC`) ainda não mapeado no leiaute
+novo — lança `ValidationException`; dedução por valor (`vAjusteBCISSQN`) ok.
+
+Para validar o XML gerado localmente (reproduz o erro do SEFIN):
 
 ```php
 $d = new DOMDocument(); $d->load('dps.xml');

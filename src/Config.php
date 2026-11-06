@@ -7,6 +7,7 @@ namespace PhpNfseNacional;
 use PhpNfseNacional\DTO\EndpointPersonalizado;
 use PhpNfseNacional\DTO\Prestador;
 use PhpNfseNacional\Enums\Ambiente;
+use PhpNfseNacional\Enums\LeiauteDps;
 use PhpNfseNacional\Exceptions\ValidationException;
 
 /**
@@ -74,6 +75,13 @@ final class Config
         public readonly ?EndpointPersonalizado $endpointPersonalizado = null,
         /** Prazo para estabelecer conexão no cliente HTTP padrão (não é o tempo total). */
         public readonly int $timeoutConexaoSegundos = 30,
+        /**
+         * Leiaute/XSD do DPS. Default `null` = decide pelo ambiente:
+         * Homologação → `V1_01_PRODREST` (schema de 20/10/2026, o único que a
+         * produção restrita aceita), Produção → `V1_01`. Passe explicitamente
+         * pra virar a produção quando o SEFIN migrar (ou testar o outro).
+         */
+        public readonly ?LeiauteDps $leiaute = null,
     ) {
         $errors = [];
         if ($timeoutSegundos < 5 || $timeoutSegundos > 300) {
@@ -92,5 +100,11 @@ final class Config
         if (!empty($errors)) {
             throw new ValidationException($errors, 'Config inválida');
         }
+    }
+
+    /** Leiaute efetivo do DPS: o informado ou o padrão do ambiente. */
+    public function leiauteDps(): LeiauteDps
+    {
+        return $this->leiaute ?? LeiauteDps::padraoDoAmbiente($this->ambiente);
     }
 }

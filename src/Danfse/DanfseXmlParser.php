@@ -125,7 +125,10 @@ final class DanfseXmlParser
             'local_incidencia' => $this->texto($xpath, '//n:infNFSe/n:xLocIncid'),
             'cod_municipio_incidencia' => $this->texto($xpath, '//n:infNFSe/n:cLocIncid'),
             'tipo_emitente' => $this->texto($xpath, '//n:infNFSe/n:DPS/n:infDPS/n:tpEmit'),
-            'finalidade' => $this->texto($xpath, '//n:infNFSe/n:DPS/n:infDPS/n:IBSCBS/n:finNFSe'),
+            // Leiaute 1.01-prodrest-20261020: finNFSe em infDPS (obrigatório).
+            // Leiaute 1.01 de produção: dentro de <IBSCBS>.
+            'finalidade' => $this->texto($xpath, '//n:infNFSe/n:DPS/n:infDPS/n:finNFSe')
+                ?? $this->texto($xpath, '//n:infNFSe/n:DPS/n:infDPS/n:IBSCBS/n:finNFSe'),
         ];
     }
 
@@ -287,7 +290,9 @@ final class DanfseXmlParser
             'numero_processo_suspensao' => $this->texto($xpath, $valPath . '/n:tribMun/n:exigSusp/n:nProcesso'),
             'beneficio_municipal' => $this->texto($xpath, $valPath . '/n:tpBM'),
             'calculo_bm' => $this->float($xpath, $valPath . '/n:vCalcBM'),
-            'total_deducoes_reducoes' => $this->float($xpath, $valPath . '/n:vDedRed/n:vDR'),
+            // vDedRed/vDR (leiaute de produção) → vAjusteBC/vAjusteBCISSQN (NT 009, 20/10/2026)
+            'total_deducoes_reducoes' => $this->float($xpath, $valPath . '/n:vDedRed/n:vDR')
+                ?? $this->float($xpath, $valPath . '/n:vAjusteBC/n:vAjusteBCISSQN'),
             'desconto_incondicionado' => $this->float($xpath, $valPath . '/n:vDescCondIncond/n:vDescIncond'),
             'base_calculo_issqn' => $this->float($xpath, '//n:infNFSe/n:valores/n:vBC'),
             'aliquota_aplicada' => $this->float($xpath, '//n:infNFSe/n:valores/n:pAliqAplic'),

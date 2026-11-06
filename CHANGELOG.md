@@ -5,6 +5,35 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+
+- **Leiaute do DPS por ambiente** — `Enums\LeiauteDps` (`V1_01` = produção,
+  `V1_01_PRODREST` = schema de 20/10/2026) e `Config::$leiaute`
+  (`?LeiauteDps`, default `null` = decide pelo ambiente: Homologação →
+  novo, Produção → `V1_01`). A homologação passou a rejeitar o leiaute
+  antigo com `cStat=1235`. No leiaute novo o `DpsBuilder` emite: `finNFSe`
+  em `infDPS` após `tpEmit` (e não mais dentro de `<IBSCBS>`), `cNBS` antes
+  do `xDescServ`, `vAjusteBC/vAjusteBCISSQN` no lugar de `vDedRed/vDR`, e
+  `CST`/`cClassTrib` direto em `IBSCBS/valores/trib` (`gIBSCBS` só envolve
+  `cCredPres`/`gTribRegular`). Validado: DPS gerado passa no `schemaValidate`
+  do XSD de cada leiaute (testes) e NFS-e emitida em homologação (cStat 100).
+  `incluirIbsCbs` continua `false` por padrão.
+- O parser da DANFSe lê os dois leiautes (`finNFSe` em `infDPS` ou em
+  `<IBSCBS>`; `vAjusteBC/vAjusteBCISSQN` ou `vDedRed/vDR`) — sem isso a
+  "Finalidade" saía "-" em NFS-e do leiaute novo.
+
+### Limitações
+
+- No leiaute novo, `Valores::$documentosDeducao` lança `ValidationException`
+  (`docDedRed` virou `docAjusteBC`, estrutura diferente, ainda não mapeada).
+  Use `deducoesReducoes` (valor) ou `Config::$leiaute = LeiauteDps::V1_01`.
+
+### Mudança de comportamento
+
+- Quem usa `Ambiente::Homologacao` sem informar `leiaute` passa a gerar o
+  leiaute novo (o único aceito pela produção restrita desde 20/10/2026).
+  Produção não muda.
+
 ### Documentação
 
 - **`docs/` reorganizado por tipo e versão**, com índice em `docs/README.md`:

@@ -171,6 +171,11 @@ final class DpsBuilder
             $dCompetSrc->setTimezone(new \DateTimeZone(Config::TIMEZONE_DPS))->format('Y-m-d'),
         ));
         $infDPS->appendChild($this->el($doc, 'tpEmit', (string) $id->tipoEmissao->value));
+        if ($this->config->leiauteDps()->isPosRtc20261020()) {
+            // cMotivoEmisTI? (só emissão por TI) → finNFSe → chNFSeRej? → cLocEmi.
+            // 0 = NFS-e regular (as demais finalidades não são expostas pelo SDK).
+            $infDPS->appendChild($this->el($doc, 'finNFSe', '0'));
+        }
         $infDPS->appendChild($this->el($doc, 'cLocEmi', $this->config->prestador->endereco->codigoMunicipioIbge));
     }
 
@@ -381,10 +386,17 @@ final class DpsBuilder
         if ($servico->cTribMun !== null) {
             $cServ->appendChild($this->el($doc, 'cTribMun', $servico->cTribMun));
         }
-        $cServ->appendChild($this->el($doc, 'xDescServ',
+        $xDescServ = $this->el($doc, 'xDescServ',
             TextoSanitizador::paraNFSe($servico->discriminacao, 2000, preservarQuebras: true),
-        ));
-        $cServ->appendChild($this->el($doc, 'cNBS', $servico->cNBS));
+        );
+        if ($this->config->leiauteDps()->isPosRtc20261020()) {
+            // TCCServ novo: cTribNac → cTribMun? → cNBS? → cIntContrib? → xDescServ
+            $cServ->appendChild($this->el($doc, 'cNBS', $servico->cNBS));
+            $cServ->appendChild($xDescServ);
+        } else {
+            $cServ->appendChild($xDescServ);
+            $cServ->appendChild($this->el($doc, 'cNBS', $servico->cNBS));
+        }
         $serv->appendChild($cServ);
 
         // Ordem oficial em <serv> conforme TCServ (XSD V1.01 linhas 1273-1312):
@@ -459,7 +471,24 @@ final class DpsBuilder
         // vDedRed (opcional) — choice no schema: pDR | vDR | documentos.
         // pDR (percentual) ainda não exposto; vDR e documentos sim.
         // O DTO Valores já valida que ambos não coexistem.
-        if (count($valores->documentosDeducao) > 0) {
+        $leiauteNovo = $this->config->leiauteDps()->isPosRtc20261020();
+        if ($leiauteNovo && count($valores->documentosDeducao) > 0) {
+            // `docDedRed` virou `docAjusteBC` (NT 009 §2.3) com estrutura
+            // diferente (tpAjusteBC, vTotDoc, vAjusteAplic, choice DFe/outro).
+            // Ainda não mapeado — falhar é melhor que enviar XML inválido.
+            throw new \PhpNfseNacional\Exceptions\ValidationException(
+                ['documentosDeducao ainda não suportado no leiaute 1.01-prodrest-20261020 (docAjusteBC); use deducoesReducoes (valor) ou Config::$leiaute = LeiauteDps::V1_01'],
+                'Dedução por documentos indisponível no leiaute novo',
+            );
+        }
+        if ($leiauteNovo && $valores->deducoesReducoes > 0) {
+            // vDedRed/vDR → vAjusteBC/vAjusteBCISSQN (choice com pAjusteBCISSQN)
+            $vAjusteBC = $this->el($doc, 'vAjusteBC');
+            $vAjusteBC->appendChild($this->el($doc, 'vAjusteBCISSQN',
+                number_format($valores->deducoesReducoes, 2, '.', ''),
+            ));
+            $valNode->appendChild($vAjusteBC);
+        } elseif (count($valores->documentosDeducao) > 0) {
             $vDedRed = $this->el($doc, 'vDedRed');
             $docs = $this->el($doc, 'documentos');
             foreach ($valores->documentosDeducao as $dd) {
@@ -648,7 +677,10 @@ final class DpsBuilder
         }
 
         $ibscbs = $this->el($doc, 'IBSCBS');
-        $ibscbs->appendChild($this->el($doc, 'finNFSe', '0'));   // 0 = Normal
+        if (!$this->config->leiauteDps()->isPosRtc20261020()) {
+            // No leiaute novo o finNFSe saiu de <IBSCBS> (agora em infDPS).
+            $ibscbs->appendChild($this->el($doc, 'finNFSe', '0'));   // 0 = Normal
+        }
         $ibscbs->appendChild($this->el($doc, 'indFinal', '1'));   // 1 = Consumidor final
         $ibscbs->appendChild($this->el($doc, 'cIndOp', $servico->cIndOp));
         // indDest: 0 = destinatário é o próprio tomador (caso normal);
@@ -663,11 +695,18 @@ final class DpsBuilder
         // o caller informa a combinação certa via Valores::$cstIbsCbs /
         // Valores::$cClassTrib — o SDK não valida a combinação contra a
         // tabela oficial, só o formato.
+        $leiauteNovo = $this->config->leiauteDps()->isPosRtc20261020();
         $gIBSCBS = $this->el($doc, 'gIBSCBS');
-        $gIBSCBS->appendChild($this->el($doc, 'CST', $valores->cstIbsCbs));
-        $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', $valores->cClassTrib));
-        // Ordem oficial (TCRTCInfoTributosSitClas): CST → cClassTrib →
-        // cCredPres? → gTribRegular? → gDif?
+        if ($leiauteNovo) {
+            // TCRTCInfoTribIBSCBS novo: CST e cClassTrib direto em <trib>;
+            // <gIBSCBS> só envolve cCredPres?/gTribRegular?/gDif? (opcional).
+            $trib->appendChild($this->el($doc, 'CST', $valores->cstIbsCbs));
+            $trib->appendChild($this->el($doc, 'cClassTrib', $valores->cClassTrib));
+        } else {
+            $gIBSCBS->appendChild($this->el($doc, 'CST', $valores->cstIbsCbs));
+            $gIBSCBS->appendChild($this->el($doc, 'cClassTrib', $valores->cClassTrib));
+        }
+        // Ordem oficial (TCRTCInfoTributosSitClas): cCredPres? → gTribRegular? → gDif?
         if ($valores->cCredPres !== null) {
             $gIBSCBS->appendChild($this->el($doc, 'cCredPres', $valores->cCredPres));
         }
@@ -677,7 +716,9 @@ final class DpsBuilder
             $gTribRegular->appendChild($this->el($doc, 'cClassTribReg', $valores->tribRegular->cClassTribReg));
             $gIBSCBS->appendChild($gTribRegular);
         }
-        $trib->appendChild($gIBSCBS);
+        if (!$leiauteNovo || $gIBSCBS->hasChildNodes()) {
+            $trib->appendChild($gIBSCBS);
+        }
         $valNode->appendChild($trib);
         $ibscbs->appendChild($valNode);
 
