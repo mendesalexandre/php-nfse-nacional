@@ -599,9 +599,19 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Contribuição Previdenciária - Retida',
             DanfseLayout::formatarMoeda($f['contribuicao_previdenciaria'] ?? null),
             corFundo: $this->corDestaqueSePossuirValor($f['contribuicao_previdenciaria'] ?? null));
+        // NT 008 v1.02: com tpRetPisCofins=1 (PIS/COFINS Retido) o campo traz
+        // vRetCSLL + vPis + vCofins; nos demais casos, só o vRetCSLL.
+        $tpRetPisCofins = (string) ($f['descricao_contrib_sociais'] ?? '');
+        $contribSociaisRetidas = $f['contribuicoes_sociais_retidas'] ?? null;
+        if ($tpRetPisCofins === '1' && ($contribSociaisRetidas !== null
+            || isset($f['pis_debito']) || isset($f['cofins_debito']))) {
+            $contribSociaisRetidas = (float) $contribSociaisRetidas
+                + (float) ($f['pis_debito'] ?? 0)
+                + (float) ($f['cofins_debito'] ?? 0);
+        }
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Contribuições Sociais - Retidas',
-            DanfseLayout::formatarMoeda($f['contribuicoes_sociais_retidas'] ?? null),
-            corFundo: $this->corDestaqueSePossuirValor($f['contribuicoes_sociais_retidas'] ?? null));
+            DanfseLayout::formatarMoeda($contribSociaisRetidas),
+            corFundo: $this->corDestaqueSePossuirValor($contribSociaisRetidas));
         $this->cursorY += $h;
 
         // Nota "***" do Anexo I (NT 008): a linha PIS/COFINS/Descrição só é
@@ -623,12 +633,20 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
                 ? DanfseLayout::COR_AMARELO_DESTAQUE
                 : null;
 
+            // NT 008 v1.02: com tpRetPisCofins=1 o débito de apuração própria
+            // é 0,00 (o valor já foi agregado em "Contribuições Sociais - Retidas").
+            $pisDebito = $tpPC === '1' ? 0.0 : ($f['pis_debito'] ?? null);
+            $cofinsDebito = $tpPC === '1' ? 0.0 : ($f['cofins_debito'] ?? null);
+            $descricaoRetencao = ctype_digit($tpPC)
+                ? (DanfseLayout::tipoRetencaoPisCofins()[(int) $tpPC] ?? $tpPC)
+                : $tpPC;
+
             $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'PIS - Débito Apuração Própria',
-                DanfseLayout::formatarMoeda($f['pis_debito'] ?? null));
+                DanfseLayout::formatarMoeda($pisDebito));
             $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'COFINS - Débito Apuração Própria',
-                DanfseLayout::formatarMoeda($f['cofins_debito'] ?? null));
+                DanfseLayout::formatarMoeda($cofinsDebito));
             $this->renderCelula(10.51, $this->cursorY, 10.19, $h, 'Descrição Contrib. Sociais - Retidas',
-                $this->s($f['descricao_contrib_sociais'] ?? null),
+                $this->s($descricaoRetencao),
                 corFundo: $corFundoPisCofins);
             $this->cursorY += $h;
         }

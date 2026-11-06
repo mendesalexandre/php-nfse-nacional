@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido
+
+- **DANFSe V2 alinhado à NT 008 v1.02 (14/07/2026)** — bloco TRIBUTAÇÃO
+  FEDERAL: com `tpRetPisCofins=1` (PIS/COFINS Retido), "Contribuições
+  Sociais - Retidas" passa a mostrar `vRetCSLL + vPis + vCofins` e
+  "PIS/COFINS - Débito Apuração Própria" mostra `0,00`; nos demais casos
+  mostra o valor informado. "Descrição Contrib. Sociais - Retidas" agora
+  imprime a **descrição** da opção (domínio 0–9 do Anexo I v1.01
+  20/10/2026, ex.: "PIS/COFINS Retido"), não o código cru
+  (`DanfseLayout::tipoRetencaoPisCofins()`). O V1 não foi alterado.
+
 ## [0.45.2] — 2026-11-06
 
 ### Corrigido

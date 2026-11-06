@@ -260,6 +260,29 @@ final class DanfseLayout
         ];
     }
 
+    /**
+     * Descrições do `tpRetPisCofins` (Anexo I v1.01 de 20/10/2026, domínio
+     * 0–9). A NT 008 v1.02 manda imprimir a DESCRIÇÃO da opção em
+     * "Descrição Contrib. Sociais - Retidas", não o código.
+     *
+     * @return array<int, string>
+     */
+    public static function tipoRetencaoPisCofins(): array
+    {
+        return [
+            0 => 'PIS/COFINS/CSLL Não Retidos',
+            1 => 'PIS/COFINS Retido',
+            2 => 'PIS/COFINS Não Retido',
+            3 => 'PIS/COFINS/CSLL Retidos',
+            4 => 'PIS/COFINS Retidos, CSLL Não Retido',
+            5 => 'PIS Retido, COFINS/CSLL Não Retido',
+            6 => 'COFINS Retido, PIS/CSLL Não Retido',
+            7 => 'PIS Não Retido, COFINS/CSLL Retidos',
+            8 => 'PIS/COFINS Não Retidos, CSLL Retido',
+            9 => 'COFINS Não Retido, PIS/CSLL Retidos',
+        ];
+    }
+
     public static function formatarMoeda(mixed $valor): string
     {
         if ($valor === null || $valor === '' || !is_numeric($valor)) {
