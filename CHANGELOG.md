@@ -22,6 +22,13 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   `<IBSCBS>`; `vAjusteBC/vAjusteBCISSQN` ou `vDedRed/vDR`) — sem isso a
   "Finalidade" saía "-" em NFS-e do leiaute novo.
 
+### Corrigido
+
+- **DANFSe V2: legenda de autenticidade do QR Code quase encostada na linha**
+  do bloco PRESTADOR (~0,6 mm). QR e legenda sobem 0,12 cm e a entrelinha da
+  legenda passa de 2,0 para 1,9 mm (~1,5 mm de folga). Só o V2; `QR_Y_CM`
+  (compartilhada com o V1) não mudou.
+
 ### Limitações
 
 - No leiaute novo, `Valores::$documentosDeducao` lança `ValidationException`

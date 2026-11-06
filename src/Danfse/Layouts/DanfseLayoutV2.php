@@ -59,6 +59,18 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
      */
     private const MARGEM_FOLHA_CM = 0.30;
 
+    /**
+     * Deslocamento vertical (cm, negativo = pra cima) do QR Code e da
+     * legenda de autenticidade só no V2. A última linha da legenda ficava a
+     * ~0,6 mm da linha do bloco PRESTADOR (quase encostada); subir 0,12 cm
+     * + entrelinha menor dá ~1,5 mm de folga. Não altera `QR_Y_CM`, que o
+     * V1 também usa.
+     */
+    private const AJUSTE_VERTICAL_QR_CM = -0.12;
+
+    /** Entrelinha (mm) da legenda do QR. */
+    private const ENTRELINHA_LEGENDA_QR_MM = 1.9;
+
     public function versao(): DanfseVersao
     {
         return DanfseVersao::V2;
@@ -209,7 +221,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
                 $dados->qrCodeUrl,
                 'QRCODE,M',
                 DanfseLayout::cmToMm(DanfseLayout::QR_X_CM),
-                DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM),
+                DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM + self::AJUSTE_VERTICAL_QR_CM),
                 DanfseLayout::cmToMm(DanfseLayout::QR_TAMANHO_CM),
                 DanfseLayout::cmToMm(DanfseLayout::QR_TAMANHO_CM),
                 ['border' => false, 'padding' => 0],
@@ -218,11 +230,11 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_DESCRICAO_QR);
             $this->pdf->SetXY(
                 DanfseLayout::cmToMm(15.62),
-                DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM + DanfseLayout::QR_TAMANHO_CM + 0.05),
+                DanfseLayout::cmToMm(DanfseLayout::QR_Y_CM + self::AJUSTE_VERTICAL_QR_CM + DanfseLayout::QR_TAMANHO_CM + 0.05),
             );
             $this->pdf->MultiCell(
                 DanfseLayout::cmToMm(4.78),
-                2.0,
+                self::ENTRELINHA_LEGENDA_QR_MM,
                 DanfseLayout::TEXTO_AUTENTICIDADE_QR,
                 0,
                 'L',
