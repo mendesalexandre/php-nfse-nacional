@@ -5,6 +5,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Documentação
+
+- **`docs/` reorganizado por tipo e versão**, com índice em `docs/README.md`:
+  `schemas/` (1.00, 1.01 produção, **1.01-prodrest-20261020** + diff entre
+  os dois), `anexos/` (Anexos I/II da produção restrita 20/10/2026, VI/VII
+  da NT 009, CSV V1.00.02) e `nts/` (NT 007, **NT 008 v1.02**, NT 009).
+  Registra que a homologação já valida o schema novo (`finNFSe` em `infDPS`,
+  `vDedRed` → `vAjusteBC`, `cNBS` antes do `xDescServ`) enquanto o
+  `DpsBuilder` ainda gera o leiaute de produção.
+
 ### Corrigido
 
 - **DANFSe V2 alinhado à NT 008 v1.02 (14/07/2026)** — bloco TRIBUTAÇÃO
