@@ -5,6 +5,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.46.0] — 2026-11-06
+
 ### Adicionado
 
 - **Leiaute do DPS por ambiente** — `Enums\LeiauteDps` (`V1_01` = produção,
@@ -29,30 +31,6 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   legenda passa de 2,0 para 1,9 mm (~1,5 mm de folga). Só o V2; `QR_Y_CM`
   (compartilhada com o V1) não mudou.
 
-### Limitações
-
-- No leiaute novo, `Valores::$documentosDeducao` lança `ValidationException`
-  (`docDedRed` virou `docAjusteBC`, estrutura diferente, ainda não mapeada).
-  Use `deducoesReducoes` (valor) ou `Config::$leiaute = LeiauteDps::V1_01`.
-
-### Mudança de comportamento
-
-- Quem usa `Ambiente::Homologacao` sem informar `leiaute` passa a gerar o
-  leiaute novo (o único aceito pela produção restrita desde 20/10/2026).
-  Produção não muda.
-
-### Documentação
-
-- **`docs/` reorganizado por tipo e versão**, com índice em `docs/README.md`:
-  `schemas/` (1.00, 1.01 produção, **1.01-prodrest-20261020** + diff entre
-  os dois), `anexos/` (Anexos I/II da produção restrita 20/10/2026, VI/VII
-  da NT 009, CSV V1.00.02) e `nts/` (NT 007, **NT 008 v1.02**, NT 009).
-  Registra que a homologação já valida o schema novo (`finNFSe` em `infDPS`,
-  `vDedRed` → `vAjusteBC`, `cNBS` antes do `xDescServ`) enquanto o
-  `DpsBuilder` ainda gera o leiaute de produção.
-
-### Corrigido
-
 - **SEFIN: timeout de conexão configurável, padrão de 30s** — o cliente mTLS
   padrão usava `connect_timeout=10` fixo, mesmo com timeout total maior. Novo
   `Config::timeoutConexaoSegundos` (1..300, default30), acrescentado ao fim do
@@ -68,6 +46,28 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   imprime a **descrição** da opção (domínio 0–9 do Anexo I v1.01
   20/10/2026, ex.: "PIS/COFINS Retido"), não o código cru
   (`DanfseLayout::tipoRetencaoPisCofins()`). O V1 não foi alterado.
+
+### Mudança de comportamento
+
+- Quem usa `Ambiente::Homologacao` sem informar `leiaute` passa a gerar o
+  leiaute novo (o único aceito pela produção restrita desde 20/10/2026).
+  Produção não muda.
+
+### Limitações
+
+- No leiaute novo, `Valores::$documentosDeducao` lança `ValidationException`
+  (`docDedRed` virou `docAjusteBC`, estrutura diferente, ainda não mapeada).
+  Use `deducoesReducoes` (valor) ou `Config::$leiaute = LeiauteDps::V1_01`.
+
+### Documentação
+
+- **`docs/` reorganizado por tipo e versão**, com índice em `docs/README.md`:
+  `schemas/` (1.00, 1.01 produção, **1.01-prodrest-20261020** + diff entre
+  os dois), `anexos/` (Anexos I/II da produção restrita 20/10/2026, VI/VII
+  da NT 009, CSV V1.00.02) e `nts/` (NT 007, **NT 008 v1.02**, NT 009).
+  Registra que a homologação valida o schema novo (`finNFSe` em `infDPS`,
+  `vDedRed` → `vAjusteBC`, `cNBS` antes do `xDescServ`), já suportado via
+  `LeiauteDps`.
 
 ## [0.45.2] — 2026-11-06
 
