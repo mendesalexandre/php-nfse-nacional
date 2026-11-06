@@ -72,10 +72,15 @@ final class Config
          * sincronização de DFe) — só as chamadas SEFIN.
          */
         public readonly ?EndpointPersonalizado $endpointPersonalizado = null,
+        /** Prazo para estabelecer conexão no cliente HTTP padrão (não é o tempo total). */
+        public readonly int $timeoutConexaoSegundos = 30,
     ) {
         $errors = [];
         if ($timeoutSegundos < 5 || $timeoutSegundos > 300) {
             $errors[] = "timeoutSegundos fora de [5..300]: {$timeoutSegundos}";
+        }
+        if ($timeoutConexaoSegundos < 1 || $timeoutConexaoSegundos > 300) {
+            $errors[] = "timeoutConexaoSegundos fora de [1..300]: {$timeoutConexaoSegundos}";
         }
         if ($maxTentativas < 1 || $maxTentativas > 10) {
             $errors[] = "maxTentativas fora de [1..10]: {$maxTentativas}";

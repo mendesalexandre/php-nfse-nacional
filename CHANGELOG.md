@@ -17,6 +17,13 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Corrigido
 
+- **SEFIN: timeout de conexão configurável, padrão de 30s** — o cliente mTLS
+  padrão usava `connect_timeout=10` fixo, mesmo com timeout total maior. Novo
+  `Config::timeoutConexaoSegundos` (1..300, default30), acrescentado ao fim do
+  construtor para preservar chamadas posicionais. `timeoutSegundos` continua
+  independente, sem alterar retries, autenticação ou verificação TLS. Clientes
+  HTTP externos mantêm suas opções de conexão. Regressão coberta sem rede.
+
 - **DANFSe V2 alinhado à NT 008 v1.02 (14/07/2026)** — bloco TRIBUTAÇÃO
   FEDERAL: com `tpRetPisCofins=1` (PIS/COFINS Retido), "Contribuições
   Sociais - Retidas" passa a mostrar `vRetCSLL + vPis + vCofins` e

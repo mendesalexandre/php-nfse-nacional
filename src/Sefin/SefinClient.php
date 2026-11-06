@@ -544,7 +544,7 @@ final class SefinClient
             'cert' => $tmpCert,
             'ssl_key' => $tmpKey,
             'verify' => true,
-            'connect_timeout' => 10,
+            'connect_timeout' => $this->config->timeoutConexaoSegundos,
         ]);
     }
 }

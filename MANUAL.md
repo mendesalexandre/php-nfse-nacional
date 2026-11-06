@@ -169,11 +169,27 @@ final class Config
         public readonly bool $debugLogPayload = false,    // log XML do DPS no debug
         public readonly bool $incluirIbsCbs = false,      // Reforma Tributária — opt-in
         public readonly ?EndpointPersonalizado $endpointPersonalizado = null,  // município com infra própria
+        public readonly int $timeoutConexaoSegundos = 30, // 1..300, cliente HTTP padrão
     );
 }
 ```
 
 > **Sem helper `isProduction()`.** Comparação direta com o enum é mais expressiva e segue o estilo do `nfephp-org/sped-nfe`: `if ($config->ambiente === Ambiente::Producao) { ... }`.
+
+**Timeouts:** `timeoutConexaoSegundos` define o prazo para estabelecer a conexão no
+cliente HTTP padrão (Guzzle com mTLS). O padrão passou de 10s fixos para **30s**,
+configurável de 1 a 300 segundos. `timeoutSegundos` continua sendo o limite total
+por requisição, incluindo a conexão; ele não foi aumentado. Exemplo:
+
+```php
+$config = new Config($prestador, timeoutSegundos: 90, timeoutConexaoSegundos: 30);
+```
+
+O menor limite efetivo encerra a operação: configurar conexão acima do total não
+prolonga o total. Clientes HTTP injetados em `NFSe::create(..., http: $cliente)`
+continuam responsáveis por seu próprio `connect_timeout`. mTLS e verificação TLS
+permanecem habilitados no cliente padrão. O novo argumento foi acrescentado ao
+fim do construtor para preservar chamadas posicionais existentes.
 
 Imutável. Habilite `debugLogPayload: true` quando estiver investigando rejeição da SEFIN — o `SefinClient` vai logar o XML completo via PSR-3 no nível `debug`.
 
