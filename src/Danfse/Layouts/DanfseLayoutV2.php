@@ -767,24 +767,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $i = $dados->informacoesComplementares;
         $this->iniciarBloco('INFORMAÇÕES COMPLEMENTARES');
 
-        $linhas = [];
-        if (!empty($i['chave_substituida'])) {
-            $linhas[] = 'NFS-e Subst.: ' . $i['chave_substituida'];
-        }
-        if (!empty($i['codigo_obra']) || !empty($i['inscricao_imobiliaria'])) {
-            $linhas[] = 'Cod. Obra: ' . ($i['codigo_obra'] ?? '-')
-                . ' | Insc. Imob.: ' . ($i['inscricao_imobiliaria'] ?? '-');
-        }
-        if (!empty($i['id_atividade_evento'])) {
-            $linhas[] = 'Cod. Evt.: ' . $i['id_atividade_evento'];
-        }
-        if (!empty($i['numero_pedido']) || !empty($i['item_pedido'])) {
-            $linhas[] = 'Doc. Tec.: ' . ($i['numero_pedido'] ?? '-')
-                . ' | Item Ped.: ' . ($i['item_pedido'] ?? '-');
-        }
-        if (!empty($i['informacoes_complementares'])) {
-            $linhas[] = $i['informacoes_complementares'];
-        }
+        $linhas = array_map(
+            static fn (array $l): string => $l[0] . ' ' . $l[1],
+            DanfseLayout::linhasInformacoesComplementares($i),
+        );
 
         if ($this->custom !== null && $this->custom->temObservacoesAdicionais()) {
             $linhas[] = (string) $this->custom->observacoesAdicionais;

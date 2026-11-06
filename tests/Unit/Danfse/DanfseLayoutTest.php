@@ -31,6 +31,45 @@ final class DanfseLayoutTest extends TestCase
      * cTribNac/cNBS são agrupados conforme a hierarquia oficial dos
      * códigos (item.subitem.desdobro / seção.capítulo.subcapítulo.item).
      */
+    /**
+     * NT 008 (bloco INFORMAÇÕES COMPLEMENTARES) fixa ordem e prefixos.
+     * Antes: xInfComp saía por último, xPed era rotulado "Doc. Tec.",
+     * e docRef/idDocTec/xOutInf eram ignorados.
+     */
+    public function test_linhasInformacoesComplementares_ordem_e_prefixos_da_nt(): void
+    {
+        $linhas = DanfseLayout::linhasInformacoesComplementares([
+            'outras_informacoes_atm' => 'ATM',
+            'numero_pedido' => 'PED1',
+            'item_pedido' => '7',
+            'documento_tecnico' => 'ART123',
+            'id_atividade_evento' => 'EVT',
+            'inscricao_imobiliaria' => 'II',
+            'codigo_obra' => 'OBRA',
+            'documento_referencia' => 'DOC',
+            'chave_substituida' => 'CHAVE',
+            'informacoes_complementares' => 'livre',
+        ]);
+
+        self::assertSame([
+            ['Inf. Cont.:', 'livre'],
+            ['NFS-e Subst.:', 'CHAVE'],
+            ['Doc. Ref.:', 'DOC'],
+            ['Cod. Obra:', 'OBRA'],
+            ['Insc. Imob.:', 'II'],
+            ['Cod. Evt.:', 'EVT'],
+            ['Doc. Tec.:', 'ART123'],
+            ['Núm. Ped.:', 'PED1'],
+            ['Item Ped.:', '7'],
+            ['Inf. A. T. Mun.:', 'ATM'],
+        ], $linhas);
+    }
+
+    public function test_linhasInformacoesComplementares_omite_vazios(): void
+    {
+        self::assertSame([], DanfseLayout::linhasInformacoesComplementares(['codigo_obra' => ' ', 'numero_pedido' => null]));
+    }
+
     public function test_formatarCep_formato_oficial_com_ponto_extra(): void
     {
         self::assertSame('01.310-100', DanfseLayout::formatarCep('01310100'));

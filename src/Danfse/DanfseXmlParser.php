@@ -406,6 +406,8 @@ final class DanfseXmlParser
             'id_atividade_evento' => $this->texto($xpath, '//n:DPS/n:infDPS/n:serv/n:atvEvento/n:idAtvEvt'),
             'item_pedido' => $this->texto($xpath, '//n:DPS/n:infDPS/n:serv/n:infoCompl/n:gItemPed/n:xItemPed'),
             'numero_pedido' => $this->texto($xpath, '//n:DPS/n:infDPS/n:serv/n:infoCompl/n:xPed'),
+            'documento_referencia' => $this->texto($xpath, $infoPath . '/n:docRef'),
+            'documento_tecnico' => $this->texto($xpath, $infoPath . '/n:idDocTec'),
             'outras_informacoes_atm' => $this->texto($xpath, '//n:DPS/n:infDPS/n:serv/n:infoCompl/n:xOutInf'),
         ];
     }

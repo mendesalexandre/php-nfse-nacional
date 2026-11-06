@@ -423,4 +423,38 @@ final class DanfseLayout
         $d = preg_replace('/\D/', '', $chave) ?? '';
         return $d !== '' ? $d : '-';
     }
+
+    /**
+     * Linhas do bloco INFORMAÇÕES COMPLEMENTARES na ordem e com os prefixos
+     * da NT 008 (tabela do bloco): `Inf. Cont.:`, `NFS-e Subst.:`,
+     * `Doc. Ref.:`, `Cod. Obra:`, `Insc. Imob.:`, `Cod. Evt.:`, `Doc. Tec.:`,
+     * `Núm. Ped.:`, `Item Ped.:`, `Inf. A. T. Mun.:`. Campos vazios são
+     * omitidos. Compartilhado por V1 e V2 pra não divergirem.
+     *
+     * @param array<string, mixed> $i `DanfseDados::$informacoesComplementares`
+     * @return list<array{0: string, 1: string}> pares [prefixo, valor]
+     */
+    public static function linhasInformacoesComplementares(array $i): array
+    {
+        $campos = [
+            'Inf. Cont.:' => 'informacoes_complementares',
+            'NFS-e Subst.:' => 'chave_substituida',
+            'Doc. Ref.:' => 'documento_referencia',
+            'Cod. Obra:' => 'codigo_obra',
+            'Insc. Imob.:' => 'inscricao_imobiliaria',
+            'Cod. Evt.:' => 'id_atividade_evento',
+            'Doc. Tec.:' => 'documento_tecnico',
+            'Núm. Ped.:' => 'numero_pedido',
+            'Item Ped.:' => 'item_pedido',
+            'Inf. A. T. Mun.:' => 'outras_informacoes_atm',
+        ];
+        $linhas = [];
+        foreach ($campos as $prefixo => $chave) {
+            $valor = trim((string) ($i[$chave] ?? ''));
+            if ($valor !== '') {
+                $linhas[] = [$prefixo, $valor];
+            }
+        }
+        return $linhas;
+    }
 }

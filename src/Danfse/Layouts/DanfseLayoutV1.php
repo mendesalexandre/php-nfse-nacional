@@ -707,25 +707,15 @@ final class DanfseLayoutV1 implements DanfseLayoutStrategy
         // significa linha de texto puro sem label (informações complementares
         // livres do XML, observações customizadas).
         $linhas = [];
-        if (!empty($i['chave_substituida'])) {
-            $linhas[] = ['NFS-e Subst.:', $i['chave_substituida']];
+        foreach (DanfseLayout::linhasInformacoesComplementares($i) as $linha) {
+            $linhas[] = $linha;
+            // NBS (extra do V1, fora da NT) logo após a chave substituída
+            if ($linha[0] === 'NFS-e Subst.:' && !empty($dados->servico['codigo_nbs'])) {
+                $linhas[] = ['NBS:', (string) $dados->servico['codigo_nbs']];
+            }
         }
-        if (!empty($dados->servico['codigo_nbs'])) {
-            $linhas[] = ['NBS:', $dados->servico['codigo_nbs']];
-        }
-        if (!empty($i['codigo_obra']) || !empty($i['inscricao_imobiliaria'])) {
-            $linhas[] = ['Cod. Obra:',
-                ($i['codigo_obra'] ?? '-') . ' | Insc. Imob.: ' . ($i['inscricao_imobiliaria'] ?? '-')];
-        }
-        if (!empty($i['id_atividade_evento'])) {
-            $linhas[] = ['Cod. Evt.:', (string) $i['id_atividade_evento']];
-        }
-        if (!empty($i['numero_pedido']) || !empty($i['item_pedido'])) {
-            $linhas[] = ['Doc. Tec.:',
-                ($i['numero_pedido'] ?? '-') . ' | Item Ped.: ' . ($i['item_pedido'] ?? '-')];
-        }
-        if (!empty($i['informacoes_complementares'])) {
-            $linhas[] = [null, (string) $i['informacoes_complementares']];
+        if (empty($i['chave_substituida']) && !empty($dados->servico['codigo_nbs'])) {
+            array_unshift($linhas, ['NBS:', (string) $dados->servico['codigo_nbs']]);
         }
         if ($this->custom !== null && $this->custom->temObservacoesAdicionais()) {
             $linhas[] = [null, (string) $this->custom->observacoesAdicionais];

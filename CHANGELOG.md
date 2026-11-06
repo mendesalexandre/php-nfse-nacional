@@ -5,6 +5,20 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.45.2] — 2026-11-06
+
+### Corrigido
+
+- **DANFSe: bloco INFORMAÇÕES COMPLEMENTARES fora da NT 008** (V1 e V2) —
+  achado comparando com `paseto/nfse-nacional-pdf`. A NT fixa a ordem
+  `Inf. Cont.:` → `NFS-e Subst.:` → `Doc. Ref.:` → `Cod. Obra:` →
+  `Insc. Imob.:` → `Cod. Evt.:` → `Doc. Tec.:` → `Núm. Ped.:` →
+  `Item Ped.:` → `Inf. A. T. Mun.:`. Antes: `xInfComp` saía por último e sem
+  prefixo, `xPed` era rotulado "Doc. Tec." (o certo é "Núm. Ped."),
+  `docRef` e `idDocTec` não eram lidos e `xOutInf` era lido mas nunca
+  impresso. Lógica centralizada em
+  `DanfseLayout::linhasInformacoesComplementares()`.
+
 ## [0.45.1] — 2026-08-13
 
 ### Corrigido
@@ -14,7 +28,7 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   `baixarXml()`. Em instabilidade do ADN (502/503/504), o corpo costuma ser
   uma página de erro HTML, não XML/JSON do SEFIN; sem a checagem, esse HTML
   virava "XML da NFS-e" pro caller, que podia cachear/persistir o lixo
-  (achado real em produção: `EnviarNFSeLegadoJob` do SINOP salvou uma
+  (achado real em produção: `EnviarNFSeLegadoJob` de um consumidor salvou uma
   página `503 Service Unavailable` como XML autorizado, mascarando uma
   instabilidade transitória do ADN como erro permanente "XML da NFS-e
   inválido" — o cache corrompido impedia qualquer retry de acertar depois
