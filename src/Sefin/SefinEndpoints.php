@@ -118,4 +118,26 @@ final class SefinEndpoints
     {
         return $this->adnBaseUrl() . '/contribuintes/NFSe/' . $chave . '/Eventos';
     }
+
+    /**
+     * Convênio do município com o Sistema Nacional (API de Parâmetros
+     * Municipais do ADN). Wire format:
+     *   GET /parametrizacao/{codigoMunicipioIbge}/convenio
+     */
+    public function parametrosConvenio(string $codigoMunicipio): string
+    {
+        return $this->adnBaseUrl() . '/parametrizacao/' . $codigoMunicipio . '/convenio';
+    }
+
+    /**
+     * Alíquota do ISS de um serviço no município, vigente na competência.
+     * `$codigoServico` no formato `NN.NN.NN.NNN` e `$competencia` em
+     * `MM-DD-AAAA` (formato exigido pela API). Wire format:
+     *   GET /parametrizacao/{municipio}/{servico}/{competencia}/aliquota
+     */
+    public function parametrosAliquota(string $codigoMunicipio, string $codigoServico, string $competencia): string
+    {
+        return $this->adnBaseUrl() . '/parametrizacao/' . $codigoMunicipio
+            . '/' . $codigoServico . '/' . $competencia . '/aliquota';
+    }
 }

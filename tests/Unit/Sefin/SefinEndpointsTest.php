@@ -93,4 +93,19 @@ final class SefinEndpointsTest extends TestCase
         $ep = new SefinEndpoints(Ambiente::Producao, $custom);
         self::assertStringContainsString('adn.nfse.gov.br', $ep->adnBaseUrl());
     }
+
+    public function test_parametros_municipais_usam_o_adn_do_ambiente(): void
+    {
+        $hom = new SefinEndpoints(Ambiente::Homologacao);
+        $prod = new SefinEndpoints(Ambiente::Producao);
+
+        self::assertSame(
+            'https://adn.producaorestrita.nfse.gov.br/parametrizacao/3550308/convenio',
+            $hom->parametrosConvenio('3550308'),
+        );
+        self::assertSame(
+            'https://adn.nfse.gov.br/parametrizacao/3550308/21.01.01.000/11-13-2026/aliquota',
+            $prod->parametrosAliquota('3550308', '21.01.01.000', '11-13-2026'),
+        );
+    }
 }

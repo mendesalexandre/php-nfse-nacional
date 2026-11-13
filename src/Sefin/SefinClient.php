@@ -375,6 +375,38 @@ final class SefinClient
     }
 
     /**
+     * GET em endpoint JSON do ADN (API de Parâmetros Municipais). Devolve o
+     * corpo decodificado; qualquer status diferente de 200 vira
+     * `SefinException` com a `mensagem` do ADN quando houver — não confunde
+     * "município sem parametrização" (404) com sucesso.
+     *
+     * @return array<string, mixed>
+     */
+    public function getParametros(string $url): array
+    {
+        $response = $this->http->request('GET', $url, [
+            'timeout' => $this->config->timeoutSegundos,
+            'http_errors' => false,
+            'headers' => ['Accept' => 'application/json'],
+        ]);
+        $body = (string) $response->getBody();
+        $status = $response->getStatusCode();
+        $json = @json_decode($body, true);
+
+        if ($status === 200 && is_array($json)) {
+            return $json;
+        }
+
+        $detalhe = is_array($json) ? (string) ($json['mensagem'] ?? $json['Mensagem'] ?? '') : '';
+        throw new SefinException(
+            cStat: null,
+            xMotivo: $detalhe !== '' ? $detalhe : null,
+            message: "Falha ao consultar parâmetros municipais: HTTP {$status}" . ($detalhe !== '' ? " — {$detalhe}" : ''),
+            rawResponse: $body,
+        );
+    }
+
+    /**
      * Parseia o XML retornado pelo SEFIN (possivelmente com gzip+base64
      * em campos `*GZipB64`) e normaliza pra `SefinResposta`.
      */

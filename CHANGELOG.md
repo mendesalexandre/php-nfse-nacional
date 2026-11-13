@@ -5,6 +5,18 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+
+- **Parâmetros municipais (ADN)** — `$nfse->consultarConvenioMunicipio($ibge)`
+  (`ConvenioMunicipal`: adesão ao ambiente/emissor nacional, MAN, aproveitamento
+  de créditos) e `$nfse->consultarAliquotaMunicipal($ibge, $servico, $competencia?)`
+  (`AliquotaMunicipal`: alíquota do ISS vigente na competência, com `incidencia`
+  e vigência). Servem pra conferir, antes de emitir, se a alíquota configurada
+  ainda é a publicada pelo município. Endpoints `GET /parametrizacao/{mun}/convenio`
+  e `/parametrizacao/{mun}/{servico}/{MM-DD-AAAA}/aliquota` no ADN do ambiente.
+  Status diferente de 200 (ex.: município sem parametrização) vira
+  `SefinException` com a mensagem do ADN. Ideia vinda da lib Java `t3wv/nfse`.
+
 ## [0.46.0] — 2026-11-06
 
 ### Adicionado

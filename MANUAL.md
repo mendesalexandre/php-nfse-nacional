@@ -26,6 +26,7 @@ Para histórico de versões, ver [CHANGELOG.md](CHANGELOG.md).
    - [Verificação idempotente](#verificação-idempotente) — `$nfse->verificarDps()`
    - [Listagem de eventos](#listagem-de-eventos-por-nfs-e) — `$nfse->listarEventos()`
    - [Distribuição DFe](#distribuição-dfe-caixa-postal) — `$nfse->sincronizarDfe()`
+   - [Parâmetros municipais](#parâmetros-municipais-alíquota-e-convênio) — `$nfse->consultarAliquotaMunicipal()`
    - [DANFSe local](#danfse-local) — `$nfse->danfseLocal()`
 4. [Tipos de retorno](#tipos-de-retorno)
    - [`SefinResposta`](#sefinresposta)
@@ -573,6 +574,33 @@ $cache->set('dfe_ultimo_nsu', $resp->ultimoNsu);
 **Limites:** `maxPaginas` default 20 → até 1000 DFes/chamada (ADN devolve ~50 por página). Acima disso, faça loop externo controlando `$ultimoNsu` entre as chamadas.
 
 **Quando `temMais === true`**: você atingiu o teto de páginas mas ainda há DFes pendentes. Cache o `ultimoNsu` e chame de novo (pode usar `setTimeout` ou um job assíncrono).
+
+### Parâmetros municipais (alíquota e convênio)
+
+Consultas à API de Parâmetros Municipais do ADN. Não exigem nenhuma configuração extra
+além do `NFSe::create()`.
+
+```php
+$nfse->consultarConvenioMunicipio(string $codigoMunicipioIbge): ConvenioMunicipal
+$nfse->consultarAliquotaMunicipal(string $codigoMunicipioIbge, string $codigoServico, ?\DateTimeInterface $competencia = null): AliquotaMunicipal
+```
+
+```php
+$convenio = $nfse->consultarConvenioMunicipio('3550308');
+$convenio->aderenteAmbienteNacional;   // bool
+$convenio->aderenteEmissorNacional;    // bool
+$convenio->permiteAproveitamentoCreditos;
+
+// Código nacional com 6 ou 9 dígitos (aceita máscara); competência default = hoje
+$aliquota = $nfse->consultarAliquotaMunicipal('3550308', '01.01.01');
+$aliquota->aliquotaPercentual;         // 5.0
+$aliquota->incidencia;                 // bool
+$aliquota->vigenciaInicio;             // '2025-01-01T00:00:00'
+```
+
+Quando o município não publicou alíquota pro serviço (ou responde com erro), lança
+`SefinException`; código de município/serviço malformado lança `ValidationException`
+antes de qualquer chamada de rede. Com várias vigências, vale a que cobre a competência.
 
 ### DANFSe local
 

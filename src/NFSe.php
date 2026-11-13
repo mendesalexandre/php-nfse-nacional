@@ -23,6 +23,8 @@ use PhpNfseNacional\DTO\Tomador;
 use PhpNfseNacional\DTO\Valores;
 use PhpNfseNacional\Enums\AutorManifestacao;
 use PhpNfseNacional\Enums\DanfseVersao;
+use PhpNfseNacional\Sefin\AliquotaMunicipal;
+use PhpNfseNacional\Sefin\ConvenioMunicipal;
 use PhpNfseNacional\Sefin\RespostaDfe;
 use PhpNfseNacional\Sefin\SefinClient;
 use PhpNfseNacional\Sefin\SefinEndpoints;
@@ -31,6 +33,7 @@ use PhpNfseNacional\Services\CancelamentoService;
 use PhpNfseNacional\Services\ConsultaService;
 use PhpNfseNacional\Services\DanfseService;
 use PhpNfseNacional\Services\DfeService;
+use PhpNfseNacional\Services\ParametrosMunicipaisService;
 use PhpNfseNacional\Services\DownloadService;
 use PhpNfseNacional\Services\EmissaoService;
 use PhpNfseNacional\Services\ManifestacaoService;
@@ -62,6 +65,7 @@ final class NFSe
         private readonly DownloadService $downloadService,
         private readonly DanfseService $danfseService,
         private readonly DfeService $dfeService,
+        private readonly ParametrosMunicipaisService $parametrosMunicipaisService,
     ) {}
 
     /**
@@ -93,6 +97,7 @@ final class NFSe
             downloadService: new DownloadService($client, $endpoints),
             danfseService: new DanfseService(),
             dfeService: new DfeService($client, $certificate),
+            parametrosMunicipaisService: new ParametrosMunicipaisService($client, $endpoints),
         );
     }
 
@@ -256,6 +261,30 @@ final class NFSe
     public function sincronizarDfe(int $ultimoNsu = 0, int $maxPaginas = 20): RespostaDfe
     {
         return $this->dfeService->sincronizar($ultimoNsu, $maxPaginas);
+    }
+
+    // ───────── Parâmetros municipais (ADN) ─────────
+
+    /**
+     * Convênio do município com o Sistema Nacional da NFS-e: se aderiu ao
+     * ambiente/emissor nacional e se permite aproveitamento de créditos.
+     */
+    public function consultarConvenioMunicipio(string $codigoMunicipioIbge): ConvenioMunicipal
+    {
+        return $this->parametrosMunicipaisService->convenio($codigoMunicipioIbge);
+    }
+
+    /**
+     * Alíquota do ISS publicada pelo município pro serviço (código nacional
+     * de 6 ou 9 dígitos) na competência — default hoje. Útil pra conferir a
+     * alíquota configurada antes de emitir.
+     */
+    public function consultarAliquotaMunicipal(
+        string $codigoMunicipioIbge,
+        string $codigoServico,
+        ?\DateTimeInterface $competencia = null,
+    ): AliquotaMunicipal {
+        return $this->parametrosMunicipaisService->aliquota($codigoMunicipioIbge, $codigoServico, $competencia);
     }
 
     // ───────── DANFSe local ─────────
