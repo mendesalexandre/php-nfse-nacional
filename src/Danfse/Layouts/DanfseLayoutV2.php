@@ -801,7 +801,14 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             $linhas[] = (string) $this->custom->observacoesAdicionais;
         }
 
-        $linhas[] = DanfseLayout::linhaTotaisAproximadosTributos($dados->valorTotal);
+        $linhas[] = DanfseLayout::linhaTotaisAproximadosTributos($dados->valorTotal, [
+            'federais' => (float) ($dados->tributacaoFederal['irrf'] ?? 0)
+                + (float) ($dados->tributacaoFederal['contribuicao_previdenciaria'] ?? 0)
+                + (float) ($dados->tributacaoFederal['contribuicoes_sociais_retidas'] ?? 0)
+                + (float) ($dados->tributacaoFederal['pis_debito'] ?? 0)
+                + (float) ($dados->tributacaoFederal['cofins_debito'] ?? 0),
+            'municipais' => (float) ($dados->tributacaoMunicipal['issqn_apurado'] ?? 0),
+        ]);
 
         // NT 008: reticências quando o conteúdo passa de 1997 caracteres, SEM
         // prejuízo da linha fixa de totais (Lei 12.741), que é a última.

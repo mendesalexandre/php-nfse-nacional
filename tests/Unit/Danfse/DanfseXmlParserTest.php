@@ -122,33 +122,36 @@ final class DanfseXmlParserTest extends TestCase
         );
     }
 
-    public function test_linha_totais_aproximados_prioriza_monetario_depois_percentual(): void
+    public function test_linha_totais_aproximados_formato_do_portal(): void
     {
         $l = \PhpNfseNacional\Danfse\DanfseLayout::class;
+        $p = 'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: ';
+        // vTotTrib do DPS tem prioridade.
         self::assertSame(
-            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: R$ 1,50; Estaduais: R$ 0,00; Municipais: R$ 2.000,00;',
-            $l::linhaTotaisAproximadosTributos([
-                'valor_total_tributos_federais' => 1.5, 'valor_total_tributos_municipais' => 2000.0,
-                'percentual_total_tributos_municipais' => 4.0,
-            ]),
+            $p . 'Federais R$ 1,50 ; Estaduais R$ 0,00 ; Municipais R$ 2.000,00',
+            $l::linhaTotaisAproximadosTributos(
+                ['valor_total_tributos_federais' => 1.5, 'valor_total_tributos_municipais' => 2000.0],
+                ['municipais' => 9.0],
+            ),
+        );
+        // Sem vTotTrib: usa os apurados (portal real: Municipais = ISSQN 2,16).
+        self::assertSame(
+            $p . 'Federais R$ 0,00 ; Estaduais R$ 0,00 ; Municipais R$ 2,16',
+            $l::linhaTotaisAproximadosTributos(['percentual_total_tributos_municipais' => 4.0], ['municipais' => 2.16]),
         );
         self::assertSame(
-            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: 0,00%; Estaduais: 0,00%; Municipais: 4,00%;',
-            $l::linhaTotaisAproximadosTributos(['percentual_total_tributos_municipais' => 4.0]),
-        );
-        self::assertSame(
-            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: R$ 0,00; Estaduais: R$ 0,00; Municipais: R$ 0,00;',
+            $p . 'Federais R$ 0,00 ; Estaduais R$ 0,00 ; Municipais R$ 0,00',
             $l::linhaTotaisAproximadosTributos([]),
         );
     }
 
-    public function test_local_prestacao_resolve_uf_e_pais(): void
+    public function test_local_prestacao_municipio_e_pais_como_no_portal(): void
     {
         $l = \PhpNfseNacional\Danfse\DanfseLayout::class;
-        self::assertSame('Cuiabá / MT / BR', $l::formatarLocalPrestacao([
+        self::assertSame('Cuiabá / BR', $l::formatarLocalPrestacao([
             'municipio_prestacao' => 'Cuiabá', 'codigo_municipio_prestacao' => '5103403',
         ]));
-        self::assertSame('- / - / BR', $l::formatarLocalPrestacao([]));
+        self::assertSame('- / BR', $l::formatarLocalPrestacao([]));
     }
 
     private function xmlComIbsCbs(float $vIbsTot, float $vCbs, float $vLiq, float $vTotNF): string

@@ -482,50 +482,50 @@ final class DanfseLayout
     }
 
     /**
-     * Linha fixa "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012"
-     * (NT 008 nota 10): valores monetários (`vTotTrib*`) se algum > 0; senão
-     * percentuais (`pTotTrib*`) se algum > 0; senão zeros em R$. Os valores
-     * são DECLARATÓRIOS do DPS — nunca derivados da tributação apurada.
+     * Linha "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012" no formato
+     * do portal nacional (DANFSe real de 20/11/2026): `Federais R$ x ; Estaduais
+     * R$ y ; Municipais R$ z` — sem dois-pontos, com espaço antes do `;`. (O
+     * modelo da NT 008 e o gerador da RFB usam `Federais: ...;`; o portal manda.)
+     *
+     * Valores: `vTotTrib*` do DPS quando algum for > 0; senão os tributos
+     * apurados na própria nota (`$apurados['federais'|'estaduais'|'municipais']`).
+     * `pTotTrib*` (percentual) não entra: o portal mostra sempre R$.
      *
      * @param array<string, mixed> $v `DanfseDados::$valorTotal`
+     * @param array{federais?: float, estaduais?: float, municipais?: float} $apurados
      */
-    public static function linhaTotaisAproximadosTributos(array $v): string
+    public static function linhaTotaisAproximadosTributos(array $v, array $apurados = []): string
     {
-        $prefixo = 'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: ';
-        $monetarios = [];
-        $percentuais = [];
+        $valores = [];
         foreach (['federais', 'estaduais', 'municipais'] as $nivel) {
-            $monetarios[] = (float) ($v['valor_total_tributos_' . $nivel] ?? 0);
-            $percentuais[] = (float) ($v['percentual_total_tributos_' . $nivel] ?? 0);
+            $valores[$nivel] = (float) ($v['valor_total_tributos_' . $nivel] ?? 0);
         }
-        $usaPercentual = max($monetarios) <= 0 && max($percentuais) > 0;
-        $valores = $usaPercentual ? $percentuais : $monetarios;
-        $fmt = static fn (float $x): string => $usaPercentual
-            ? number_format($x, 2, ',', '.') . '%'
-            : 'R$ ' . number_format($x, 2, ',', '.');
+        if (max($valores) <= 0) {
+            foreach ($valores as $nivel => $_) {
+                $valores[$nivel] = (float) ($apurados[$nivel] ?? 0);
+            }
+        }
+        $fmt = static fn (float $x): string => 'R$ ' . number_format($x, 2, ',', '.');
 
-        return $prefixo
-            . 'Federais: ' . $fmt($valores[0]) . '; '
-            . 'Estaduais: ' . $fmt($valores[1]) . '; '
-            . 'Municipais: ' . $fmt($valores[2]) . ';';
+        return 'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: '
+            . 'Federais ' . $fmt($valores['federais']) . ' ; '
+            . 'Estaduais ' . $fmt($valores['estaduais']) . ' ; '
+            . 'Municipais ' . $fmt($valores['municipais']);
     }
 
     /**
-     * "Local da Prestação / Sigla UF / País": município (xLocPrestacao), UF
-     * resolvida pelo `cLocPrestacao` (tabela IBGE) e país (`cPaisPrestacao`,
-     * "BR" quando ausente). Partes sem informação viram "-".
+     * "Local da Prestação / Sigla UF / País": o portal imprime `Município / País`
+     * (ex.: `Cuiabá / BR`), sem a UF, apesar do rótulo — DANFSe real 20/11/2026.
+     * Partes sem informação viram "-"; país "BR" quando ausente.
      *
      * @param array<string, mixed> $servico `DanfseDados::$servico`
      */
     public static function formatarLocalPrestacao(array $servico): string
     {
         $municipio = trim((string) ($servico['municipio_prestacao'] ?? ''));
-        $info = \PhpNfseNacional\Support\IbgeMunicipios::buscar((string) ($servico['codigo_municipio_prestacao'] ?? ''));
         $pais = strtoupper(trim((string) ($servico['pais_prestacao'] ?? '')));
 
-        return ($municipio !== '' ? $municipio : '-')
-            . ' / ' . ($info['uf'] ?? '-')
-            . ' / ' . ($pais !== '' ? $pais : 'BR');
+        return ($municipio !== '' ? $municipio : '-') . ' / ' . ($pais !== '' ? $pais : 'BR');
     }
 
     /**

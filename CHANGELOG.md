@@ -15,6 +15,12 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 - **Descrição do Serviço (DANFSe V2)** com altura mínima de 1,10 cm; a NT 008 manda
   0,63 cm (cresce só se o texto precisar). Textos curtos ocupavam quase o dobro.
 
+- **DANFSe: "Local da Prestação" e linha da Lei 12.741 voltam ao formato do portal.** A
+  comparação com uma DANFSe real do portal (20/11/2026) mostrou que a v0.47.0 tinha
+  seguido o gerador da RFB onde o portal difere: Local = `Município / País` (sem UF) e
+  totais = `Federais R$ x ; Estaduais R$ y ; Municipais R$ z` (sem dois-pontos). Sem
+  `vTotTrib` no DPS, os valores vêm dos tributos apurados na nota (Municipais = ISSQN).
+
 ### Segurança
 
 - Mínimo do **`guzzlehttp/guzzle` elevado de `^7.5` para `^7.15.2`**: as versões
