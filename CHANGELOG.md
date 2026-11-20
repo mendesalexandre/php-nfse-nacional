@@ -11,6 +11,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   recuo de 0,20 cm e colunas de 4,50 cm. Agora 0,67 cm de altura, x=0,30, largura
   20,40 cm, y=28,10 e células "Data Cientificação"/"Identificação e Assinatura" de
   5,09 cm. O bloco de informações complementares ganha ~0,6 cm.
+- **Descrição do Serviço (DANFSe V2)** com altura mínima de 1,10 cm; a NT 008 manda
+  0,63 cm (cresce só se o texto precisar). Textos curtos ocupavam quase o dobro.
 
 ### Segurança
 

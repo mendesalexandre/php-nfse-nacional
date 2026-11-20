@@ -505,7 +505,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             DanfseLayout::cmToMm(20.40 - 1.0),
             $textoDescricao,
         );
-        $alturaDescricaoCm = max(1.10, ($alturaTextoMm / 10) + 0.35);
+        // NT 008: altura mínima 0,63 cm (cresce com o texto).
+        $alturaDescricaoCm = max(0.63, ($alturaTextoMm / 10) + 0.35);
         $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, $alturaDescricaoCm,
             $textoDescricao,
             label: 'Descrição do Serviço');
