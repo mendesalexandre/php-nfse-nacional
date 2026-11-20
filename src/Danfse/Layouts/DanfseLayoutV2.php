@@ -823,8 +823,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
      * diferente do resto do documento (que encosta na moldura), o canhoto
      * fica com uma respiração visual pra não parecer "colado" na borda.
      */
-    /** Sem recuo: o canhoto ocupa a largura útil inteira (x=0,30; 20,40 cm). */
-    private const PADDING_CANHOTO_CM = 0.0;
+    /** Recuo lateral: o canhoto não encosta na moldura da folha (como no portal). */
+    private const PADDING_CANHOTO_CM = 0.20;
 
     /**
      * Valor efetivo do canhoto considerando o default quando NENHUMA
