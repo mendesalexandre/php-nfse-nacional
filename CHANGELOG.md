@@ -10,6 +10,7 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 - **Canhoto da DANFSe (V2) fora das medidas da NT 008**: tinha 1,30 cm de altura,
   recuo de 0,20 cm e colunas de 4,50 cm. Agora 0,67 cm de altura, y=28,10 e células "Data Cientificação"/"Identificação e Assinatura" de
   5,09 cm, com recuo lateral de 0,20 cm para não encostar na moldura da folha.
+  Borda do canhoto com a mesma espessura da moldura da folha (0,353 mm).
   O bloco de informações complementares ganha ~0,6 cm.
 - **Descrição do Serviço (DANFSe V2)** com altura mínima de 1,10 cm; a NT 008 manda
   0,63 cm (cresce só se o texto precisar). Textos curtos ocupavam quase o dobro.

@@ -859,6 +859,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $y = DanfseLayout::cmToMm($this->cursorY);
         $largura = DanfseLayout::cmToMm($larguraCm);
         $altura = DanfseLayout::cmToMm(self::ALTURA_CANHOTO_CM);
+        // Mesma espessura da moldura da folha (ESPESSURA_BORDA_MM), não a das linhas de célula.
+        $this->pdf->SetLineWidth(self::ESPESSURA_BORDA_MM);
+        $this->pdf->SetDrawColor(...DanfseLayout::COR_BORDA);
         $this->pdf->Rect($marginX, $y, $largura, $altura, 'D');
 
         // Colunas assimétricas: "Data Cientificação" e "Identificação e
