@@ -370,6 +370,53 @@ final class DpsBuilderTest extends TestCase
         self::assertStringContainsString('<cClassTrib>000001</cClassTrib>', $xml);
     }
 
+    public function test_IBSCBS_emite_tpOper_logo_apos_cIndOp_quando_informado(): void
+    {
+        $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');
+        $config = new Config(
+            prestador: new Prestador(
+                cnpj: '12345678000195',
+                inscricaoMunicipal: '12345',
+                razaoSocial: 'EMPRESA EXEMPLO LTDA',
+                endereco: $endereco,
+            ),
+            ambiente: Ambiente::Homologacao,
+            incluirIbsCbs: true,
+        );
+        $servico = new \PhpNfseNacional\DTO\Servico(
+            discriminacao: 'Servico de exemplo com tpOper informado',
+            codigoMunicipioPrestacao: '3550308',
+            cTribNac: '250501',
+            tpOper: '5',
+        );
+        $xml = (new DpsBuilder($config))->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $servico,
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertMatchesRegularExpression('#<cIndOp>\d{6}</cIndOp><tpOper>5</tpOper><indDest>#', $xml);
+
+        // Sem tpOper nada é emitido.
+        $sem = (new DpsBuilder($config))->build(
+            new Identificacao(numeroDps: 1),
+            $this->tomadorPf(),
+            $this->servico(),
+            new Valores(100.00, 20.00, 4.00),
+        );
+        self::assertStringNotContainsString('<tpOper>', $sem);
+    }
+
+    public function test_servico_rejeita_tpOper_fora_do_dominio(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\ValidationException::class);
+        new \PhpNfseNacional\DTO\Servico(
+            discriminacao: 'Servico de exemplo com tpOper invalido',
+            codigoMunicipioPrestacao: '3550308',
+            tpOper: '9',
+        );
+    }
+
     public function test_IBSCBS_usa_cst_e_classTrib_customizados(): void
     {
         $endereco = new Endereco('Rua', '1', 'Centro', '01310100', '3550308', 'SP');

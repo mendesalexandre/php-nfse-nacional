@@ -58,15 +58,27 @@ q = """select c.CNIL_LSLC_CD, c.CNIL_NBS_CD, io.IOIC_CD, ct.CLTR_CD,
 for lc, n, ind, clt, ini, fim, ps, adq in db.execute(q):
     nbs.setdefault(n, []).append([ctrib(lc), ind, clt, ini, fim, int(ps), int(adq)])
 
+# cClassTrib aplicáveis à NFS-e (TIPO_DFE_CLASSIFICACAO × TIPO_DFE 'NFS-e'), com vigência.
+# O SEFIN rejeita (cStat 958) cClassTrib fora desta lista mesmo que apareça em
+# CLASSIF_NBS_INDOP_LC — confirmado em homologação (campanha de 20/11/2026).
+cltr_nfse = {}
+for cd, ini, fim in db.execute("""select ct.CLTR_CD, td.TDCL_INICIO_VIGENCIA, td.TDCL_FIM_VIGENCIA
+    from TIPO_DFE_CLASSIFICACAO td
+    join CLASSIFICACAO_TRIBUTARIA ct on ct.CLTR_ID = td.TDCL_CLTR_ID
+    join TIPO_DFE t on t.TPDF_ID = td.TDCL_TPDF_ID
+    where t.TPDF_SIGLA = 'NFS-e' order by ct.CLTR_CD, td.TDCL_INICIO_VIGENCIA"""):
+    cltr_nfse.setdefault(cd, []).append([ini, fim])
+
 saida = {
     'fonte': 'ReceitaFederal/calculadora-rtc-regime-regular (MIT) — flyway/sql',
     'versaoBase': versao,
     'geradoEm': date.today().isoformat(),
     'colunas': ['cTribNac(prefixo de 4 ou 6 dígitos)', 'cIndOp', 'cClassTrib', 'inicio', 'fim', 'psOnerosa', 'adqExterior'],
     'indop': indop,
+    'classTribNfse': cltr_nfse,
     'nbs': nbs,
 }
 destino = 'resources/data/indop-nbs.json'
 with open(destino, 'w', encoding='utf-8') as fh:
     json.dump(saida, fh, ensure_ascii=False, separators=(',', ':'))
-print(f'{destino}: base {versao}, {len(indop)} cIndOp, {len(nbs)} NBS, {sum(map(len, nbs.values()))} combinações')
+print(f'{destino}: base {versao}, {len(indop)} cIndOp, {len(nbs)} NBS, {len(cltr_nfse)} cClassTrib NFS-e, {sum(map(len, nbs.values()))} combinações')

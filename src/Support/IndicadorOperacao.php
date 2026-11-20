@@ -31,7 +31,7 @@ use DateTimeInterface;
  */
 final class IndicadorOperacao
 {
-    /** @var array{versaoBase: string, geradoEm: string, indop: array<string, array{d: string, l: string, i: string, f: string|null}>, nbs: array<string, list<array{0: string, 1: string, 2: string, 3: string, 4: string|null, 5: int, 6: int}>>}|null */
+    /** @var array{versaoBase: string, geradoEm: string, classTribNfse: array<string, list<array{0: string, 1: string|null}>>, indop: array<string, array{d: string, l: string, i: string, f: string|null}>, nbs: array<string, list<array{0: string, 1: string, 2: string, 3: string, 4: string|null, 5: int, 6: int}>>}|null */
     private static ?array $cache = null;
 
     /**
@@ -49,6 +49,9 @@ final class IndicadorOperacao
         $saida = [];
         foreach ($linhas as [$prefixo, $cIndOp, $cClassTrib, $inicio, $fim, $ps, $adq]) {
             if ($inicio > $dia || ($fim !== null && $fim < $dia)) {
+                continue;
+            }
+            if (!self::classTribAplicavelNfse($cClassTrib, $dia)) {
                 continue;
             }
             if ($trib !== null && !str_starts_with($trib, $prefixo)) {
@@ -108,6 +111,33 @@ final class IndicadorOperacao
     }
 
     /**
+     * O cClassTrib se aplica a NFS-e na data? A tabela de combinações lista
+     * cClassTrib que o SEFIN recusa em NFS-e (cStat 958 — ex.: 011002,
+     * 011005, 200003); só 73 dos 187 cClassTrib valem pra NFS-e.
+     */
+    public static function classTribAplicavelNfse(string $cClassTrib, DateTimeInterface|string $data): bool
+    {
+        $dia = self::dia($data);
+        foreach (self::carregar()['classTribNfse'][$cClassTrib] ?? [] as [$inicio, $fim]) {
+            if ($inicio <= $dia && ($fim === null || $fim >= $dia)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * O serviço exige `tpOper` (tipo de operação com entes governamentais ou
+     * serviço sobre bem imóvel)? Itens da LC 116 apontados pelo SEFIN no
+     * cStat 903: 25.05, 15.09, 17.12 e 10.05 (além de compra governamental).
+     * Lista extraída da mensagem de rejeição — não é tabela oficial.
+     */
+    public static function exigeTpOper(string $cTribNac): bool
+    {
+        return in_array(substr(self::soDigitos($cTribNac), 0, 4), ['2505', '1509', '1712', '1005'], true);
+    }
+
+    /**
      * Descrição e local de incidência de um cIndOp (Anexo VII).
      *
      * @return array{descricao: string, local: string}|null
@@ -140,20 +170,20 @@ final class IndicadorOperacao
     }
 
     /**
-     * @return array{versaoBase: string, geradoEm: string, indop: array<string, array{d: string, l: string, i: string, f: string|null}>, nbs: array<string, list<array{0: string, 1: string, 2: string, 3: string, 4: string|null, 5: int, 6: int}>>}
+     * @return array{versaoBase: string, geradoEm: string, classTribNfse: array<string, list<array{0: string, 1: string|null}>>, indop: array<string, array{d: string, l: string, i: string, f: string|null}>, nbs: array<string, list<array{0: string, 1: string, 2: string, 3: string, 4: string|null, 5: int, 6: int}>>}
      */
     private static function carregar(): array
     {
         if (self::$cache !== null) {
             return self::$cache;
         }
-        $vazio = ['versaoBase' => '', 'geradoEm' => '', 'indop' => [], 'nbs' => []];
+        $vazio = ['versaoBase' => '', 'geradoEm' => '', 'classTribNfse' => [], 'indop' => [], 'nbs' => []];
         $conteudo = @file_get_contents(__DIR__ . '/../../resources/data/indop-nbs.json');
         $data = $conteudo === false ? null : json_decode($conteudo, true);
         if (!is_array($data) || !isset($data['nbs'], $data['indop'])) {
             return self::$cache = $vazio;
         }
-        /** @var array{versaoBase: string, geradoEm: string, indop: array<string, array{d: string, l: string, i: string, f: string|null}>, nbs: array<string, list<array{0: string, 1: string, 2: string, 3: string, 4: string|null, 5: int, 6: int}>>} $data */
+        /** @var array{versaoBase: string, geradoEm: string, classTribNfse: array<string, list<array{0: string, 1: string|null}>>, indop: array<string, array{d: string, l: string, i: string, f: string|null}>, nbs: array<string, list<array{0: string, 1: string, 2: string, 3: string, 4: string|null, 5: int, 6: int}>>} $data */
         return self::$cache = $data;
     }
 }

@@ -13,7 +13,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   (731 NBS; muda em 2026-12-01). Dados em `resources/data/indop-nbs.json`,
   gerados por `tools/gerar-indop-nbs.py` a partir do repositório oficial da RFB
   (MIT). Não é imposta pelo `DpsBuilder` (escopo = sintaxe). Ver
-  `docs/indicador-operacao.md`.
+  `docs/indicador-operacao.md`. A tabela também filtra por **aplicabilidade do
+  cClassTrib à NFS-e** (`classTribAplicavelNfse()`): `011002`/`011005` constam na
+  tabela de NBS mas o SEFIN recusa (cStat 958).
+- **`Servico::$tpOper`** (1 a 5) emitido em `<IBSCBS>` logo após `cIndOp`. O SEFIN
+  exige (cStat 903) pra 25.05, 15.09, 17.12, 10.05 e compra governamental —
+  `IndicadorOperacao::exigeTpOper()`. Opcional, sem BC-break.
+- `examples/campanha-indop-homologacao.php` — campanha de combinações em
+  homologação (controle + amostra da tabela + negativos). Resultado em
+  `docs/indicador-operacao.md`: SEFIN valida cClassTrib × NFS-e e `tpOper`, mas
+  **não valida cIndOp × NBS**.
 
 ## [0.47.0] — 2026-11-20
 

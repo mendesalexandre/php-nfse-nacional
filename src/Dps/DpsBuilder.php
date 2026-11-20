@@ -683,6 +683,9 @@ final class DpsBuilder
         }
         $ibscbs->appendChild($this->el($doc, 'indFinal', '1'));   // 1 = Consumidor final
         $ibscbs->appendChild($this->el($doc, 'cIndOp', $servico->cIndOp));
+        if ($servico->tpOper !== null) {
+            $ibscbs->appendChild($this->el($doc, 'tpOper', $servico->tpOper));
+        }
         // indDest: 0 = destinatário é o próprio tomador (caso normal);
         // 1 = destinatário é outra pessoa/empresa diferente do tomador.
         $ibscbs->appendChild($this->el($doc, 'indDest', '0'));

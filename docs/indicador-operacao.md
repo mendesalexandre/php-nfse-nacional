@@ -44,3 +44,27 @@ rode:
 git clone --depth 1 https://github.com/ReceitaFederal/calculadora-rtc-regime-regular /tmp/rtc
 python3 tools/gerar-indop-nbs.py /tmp/rtc
 ```
+
+## Validado em homologação (campanha de 20/11/2026)
+
+`examples/campanha-indop-homologacao.php` emitiu 20 NFS-e (competência 2026-11-20,
+IBS/CBS ligado, `vServ` 1000,00). Resultado:
+
+| O que | Resultado |
+|---|---|
+| 17 combinações que a tabela dá como válidas (cClassTrib 000001, 010002, 011003, 200016, 200025, 200028, 200029, 200038) | **todas cStat=100** |
+| cClassTrib inexistente pra NBS (`200003`) | cStat=958 — a tabela também rejeita |
+| cClassTrib que a tabela de NBS lista mas **não vale pra NFS-e** (`011002`, `011005`) | cStat=958 → por isso `classTribAplicavelNfse()` (só 73 dos 187 cClassTrib valem pra NFS-e) |
+| serviços 25.05, 15.09, 17.12, 10.05 sem `tpOper` | cStat=903 → `Servico::$tpOper` + `exigeTpOper()` |
+| **cIndOp inválido pro NBS** (`050101` no cartório) | **cStat=100 — o SEFIN NÃO valida cIndOp × NBS.** Esta tabela é a única checagem |
+
+Valores devolvidos (todos com as invariantes OK: `vCBS = vBC × pAliqEfetCBS`,
+`vIBSTot = UF + Mun`, `vTotNF = vLiq` em 2026): `vBC = 960,00` (o ISSQN de 4% sai
+da base na transição); `000001` → CBS 0,9% (8,64) + IBS 0,1% (0,96); reduzidos
+(`011003`/`200028`/`200029`/`200038`) → CBS 0,36% (3,46) + IBS 0,38; `200016`
+→ 0/0; `200025` → CBS 0 + IBS 0,38.
+
+O cIndOp **não alterou os valores de 2026** (mesmos números com `050101` e
+`100301`): o efeito dele é no ente que recebe o IBS, que só pesa quando a
+partilha IBS começa. A competência futura (>= 2026-12-01) só pode ser testada
+a partir do dia 01/12 — `dCompet` não pode ser posterior à emissão.

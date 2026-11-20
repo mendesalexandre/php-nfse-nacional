@@ -69,6 +69,19 @@ final class Servico
          * serviços vinculados a eventos artísticos/culturais/esportivos.
          */
         public readonly ?AtividadeEvento $atvEvento = null,
+        /**
+         * `<tpOper>` do grupo `<IBSCBS>` — tipo de operação com entes
+         * governamentais ou outros serviços sobre bens imóveis (1 a 5,
+         * `TSRTCTpOper`). O SEFIN exige (cStat 903) pra compra governamental
+         * e pros serviços LC 116 25.05, 15.09, 17.12 e 10.05
+         * (`Support\IndicadorOperacao::exigeTpOper()`). Só é emitido com
+         * `Config::$incluirIbsCbs`. Domínio: 1 fornecimento com pagamento
+         * posterior; 2 recebimento do pagamento com fornecimento já
+         * realizado; 3 fornecimento com pagamento já realizado; 4 recebimento
+         * do pagamento com fornecimento posterior; 5 fornecimento e
+         * recebimento concomitantes.
+         */
+        public readonly ?string $tpOper = null,
     ) {
         $this->cTribNac = $cTribNac instanceof ListaServicosNacional ? $cTribNac->value : $cTribNac;
         $this->cNBS = $cNBS instanceof ListaNbs ? $cNBS->value : $cNBS;
@@ -86,6 +99,9 @@ final class Servico
         }
         if (!preg_match('/^\d{6}$/', $this->cTribNac)) {
             $errors[] = "cTribNac inválido: {$this->cTribNac} (esperado 6 dígitos)";
+        }
+        if ($tpOper !== null && !preg_match('/^[1-5]$/', $tpOper)) {
+            $errors[] = "tpOper inválido: {$tpOper} (esperado 1 a 5)";
         }
         if ($cTribMun !== null && !preg_match('/^\d{3}$/', $cTribMun)) {
             $errors[] = "cTribMun inválido: {$cTribMun} (esperado 3 dígitos)";

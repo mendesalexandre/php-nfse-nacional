@@ -64,4 +64,22 @@ final class IndicadorOperacaoTest extends TestCase
             }
         }
     }
+
+    public function test_classTrib_fora_da_NFSe_eh_rejeitado_mesmo_listado_na_tabela_de_nbs(): void
+    {
+        // 011002 consta em CLASSIF_NBS_INDOP_LC mas não se aplica a NFS-e
+        // (SEFIN homologação: cStat 958, campanha de 20/11/2026).
+        self::assertFalse(IndicadorOperacao::classTribAplicavelNfse('011002', '2026-11-20'));
+        self::assertFalse(IndicadorOperacao::valida('109101000', '100301', '011002', '042301', '2026-11-20'));
+        self::assertTrue(IndicadorOperacao::classTribAplicavelNfse('200025', '2026-11-20'));
+        self::assertTrue(IndicadorOperacao::valida('122041000', '100301', '200025', '080101', '2026-11-20'));
+    }
+
+    public function test_exigeTpOper_para_itens_apontados_pelo_sefin(): void
+    {
+        foreach (['250501', '150901', '171201', '100501'] as $c) {
+            self::assertTrue(IndicadorOperacao::exigeTpOper($c), $c);
+        }
+        self::assertFalse(IndicadorOperacao::exigeTpOper('210101'));
+    }
 }
