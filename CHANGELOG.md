@@ -5,6 +5,12 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Segurança
+
+- Mínimo do **`guzzlehttp/guzzle` elevado de `^7.5` para `^7.15.2`**: as versões
+  abaixo tinham 13 advisories (cookies/host/proxy/CRLF, em guzzle e psr7). Testes
+  e phpstan verdes com a versão nova.
+
 ### Adicionado
 
 - **Tabela NBS → cIndOp** — `Support\IndicadorOperacao` (`combinacoes()`,

@@ -11,6 +11,8 @@ Portal de origem: <https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica
 
 - [`indicador-operacao.md`](indicador-operacao.md) — tabela NBS → cIndOp (vigência, muda em 2026-12-01) e como atualizar.
 
+- [`guia-de-revisao.md`](guia-de-revisao.md) — guia para revisão técnica sênior: mapa, decisões, riscos, limites e dívida.
+
 ## Schemas (`schemas/`)
 
 | Pasta | Origem | Ambiente |
