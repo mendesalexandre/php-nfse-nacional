@@ -42,7 +42,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     private const ALTURA_TITULO_BLOCO_CM = 0.40;
 
     /** Altura do bloco "Canhoto" opcional (item 2.1.13), quando ativado */
-    private const ALTURA_CANHOTO_CM = 1.30;
+    /** NT 008 tabela 2.4.5: canhoto = 0,67 cm de altura, 20,40 cm de largura, x=0,30, y=28,10. */
+    private const ALTURA_CANHOTO_CM = 0.67;
 
     /** Espessura mínima de linha em mm pra 0,5pt (item 2.2.3) */
     private const ESPESSURA_LINHA_MM = 0.176;
@@ -806,7 +807,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $totais = array_pop($linhas);
         $corpo = DanfseLayout::truncarComReticencias(implode("\n", $linhas), 1997);
         $texto = $corpo === '' ? (string) $totais : $corpo . "\n" . $totais;
-        $limiteInferior = 28.7 - ($this->canhotoEfetivo() !== null ? self::ALTURA_CANHOTO_CM : 0.0);
+        $limiteInferior = 28.77 - ($this->canhotoEfetivo() !== null ? self::ALTURA_CANHOTO_CM : 0.0);
         $alturaRestante = max(2.0, $limiteInferior - $this->cursorY);
         $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, $alturaRestante, $texto);
         $this->cursorY += $alturaRestante;
@@ -821,7 +822,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
      * diferente do resto do documento (que encosta na moldura), o canhoto
      * fica com uma respiração visual pra não parecer "colado" na borda.
      */
-    private const PADDING_CANHOTO_CM = 0.20;
+    /** Sem recuo: o canhoto ocupa a largura útil inteira (x=0,30; 20,40 cm). */
+    private const PADDING_CANHOTO_CM = 0.0;
 
     /**
      * Valor efetivo do canhoto considerando o default quando NENHUMA
@@ -863,8 +865,10 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // "Nº NFS-e / Chave NFS-e" precisa de muito mais (número + chave
         // de 50 dígitos, ~60 chars) — dividir em 3 partes iguais estourava
         // a folha.
-        $col1Cm = 4.50;
-        $col2Cm = 4.50;
+        // NT 008: DATA CIENTIFICAÇÃO e IDENTIFICAÇÃO E ASSINATURA com 5,09 cm cada;
+        // o restante (10,22 cm) é de "Nº NFS-e / Chave NFS-e".
+        $col1Cm = 5.09;
+        $col2Cm = 5.09;
         $col3Cm = $larguraCm - $col1Cm - $col2Cm;
 
         // Linhas divisórias entre as colunas (visual de tabela, como o
