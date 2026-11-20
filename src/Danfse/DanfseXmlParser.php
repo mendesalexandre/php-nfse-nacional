@@ -37,6 +37,13 @@ final class DanfseXmlParser
 {
     public function parse(string $xml): DanfseDados
     {
+        // Hardening (mesma regra do gerador oficial da RFB, ADR-006): XML de
+        // NFS-e nunca tem DTD/entidades — rejeita antes de parsear (billion
+        // laughs / XXE).
+        if (preg_match('/<!\\s*(DOCTYPE|ENTITY)/i', $xml) === 1) {
+            throw new NfseException('XML da NFS-e inválido: declaração DOCTYPE/ENTITY não é permitida');
+        }
+
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->preserveWhiteSpace = false;
         if (!@$dom->loadXML($xml)) {
@@ -209,8 +216,11 @@ final class DanfseXmlParser
         $cpf = $this->texto($xpath, $destPath . '/n:CPF');
 
         if ($cnpj === null && $cpf === null) {
-            // Sem destinatário próprio — assume tomador como destinatário
-            return $tomador;
+            // DPS sem <dest>: o bloco sai como "DESTINATÁRIO DA OPERAÇÃO NÃO
+            // IDENTIFICADO NA NFS-e" (NT 008 tabela 2.4.5 nota 2). "É O PRÓPRIO
+            // TOMADOR" (nota 3) só quando o <dest> traz o mesmo documento do
+            // tomador — comparação feita em DanfseDados::destinatarioIgualTomador().
+            return [];
         }
 
         return [
@@ -266,7 +276,7 @@ final class DanfseXmlParser
             'codigo_tributacao_nacional' => $this->texto($xpath, $servPath . '/n:cServ/n:cTribNac'),
             'descricao_tributacao_nacional' => $this->texto($xpath, '//n:infNFSe/n:xTribNac'),
             'codigo_tributacao_municipal' => $this->texto($xpath, $servPath . '/n:cServ/n:cTribMun'),
-            'descricao_tributacao_municipal' => $this->texto($xpath, $servPath . '/n:cServ/n:xTribMun'),
+            'descricao_tributacao_municipal' => $this->texto($xpath, '//n:infNFSe/n:xTribMun'),
             'codigo_nbs' => $this->texto($xpath, $servPath . '/n:cServ/n:cNBS'),
             'descricao_nbs' => $this->texto($xpath, '//n:infNFSe/n:xNBS'),
             'descricao_servico' => $this->texto($xpath, $servPath . '/n:cServ/n:xDescServ'),
@@ -370,6 +380,7 @@ final class DanfseXmlParser
             : null;
 
         $pTotTribPath = $dpsValPath . '/n:trib/n:totTrib/n:pTotTrib';
+        $vTotTribPath = $dpsValPath . '/n:trib/n:totTrib/n:vTotTrib';
         return [
             'valor_servicos' => $this->float($xpath, $dpsValPath . '/n:vServPrest/n:vServ'),
             'desconto_incondicionado' => $this->float($xpath, $dpsValPath . '/n:vDescCondIncond/n:vDescIncond'),
@@ -380,17 +391,24 @@ final class DanfseXmlParser
             'total_retencoes' => $this->float($xpath, '//n:infNFSe/n:valores/n:vTotalRet'),
             'valor_liquido' => $vLiq,
             'total_ibscbs' => $vTotIbsCbs,
-            // valor líquido + IBS/CBS: somatório (NT 008 item 2.1.11).
-            // Sem IBS/CBS real ($vTotIbsCbs null), o portal nacional
-            // mostra "R$ 0,00" aqui — NÃO cai pra vLiq sozinho (confirmado
-            // contra DANFSe real 05/08/2026). Fallback é null (a camada
-            // de exibição decide o "0,00" default), não $vLiq.
-            'valor_liquido_mais_ibscbs' => $vLiq !== null && $vTotIbsCbs !== null
-                ? $vLiq + $vTotIbsCbs
-                : null,
+            // "VALOR LÍQUIDO + IBS/CBS" = `infNFSe/IBSCBS/totCIBS/vTotNF`
+            // (NT 008 tabela 2.4.5; XSD: "vTotNF = vLiq em 2026, vLiq + vCBS +
+            // vIBSTot a partir de 2027"). Lido direto do XML, NUNCA recalculado
+            // (somar vLiq + IBS/CBS em 2026 dava um valor a mais que o SEFIN).
+            // Sem `<IBSCBS>` o campo não existe e o portal mostra "R$ 0,00" —
+            // fica null aqui, a camada de exibição aplica o 0,00.
+            'valor_liquido_mais_ibscbs' => $this->float($xpath, $totPath . '/n:vTotNF'),
             'issqn_apurado' => $this->float($xpath, '//n:infNFSe/n:valores/n:vISSQN'),
+            // Insumos de "Exclusões e Reduções da BC" (fórmula do gerador oficial
+            // da RFB): vCalcDR (leiaute novo: vCalcAjusteBCISSQN) e vCalcReeRepRes.
+            'v_calc_dr' => $this->float($xpath, '//n:infNFSe/n:valores/n:vCalcDR')
+                ?? $this->float($xpath, '//n:infNFSe/n:valores/n:vCalcAjusteBCISSQN'),
+            'v_calc_ree_rep_res' => $this->float($xpath, '//n:infNFSe/n:IBSCBS/n:valores/n:vCalcReeRepRes'),
             // Totais aproximados Lei 12.741/2012 (Transparência Fiscal).
             // Declaratórios — vêm do DPS <pTotTrib>.
+            'valor_total_tributos_federais' => $this->float($xpath, $vTotTribPath . '/n:vTotTribFed'),
+            'valor_total_tributos_estaduais' => $this->float($xpath, $vTotTribPath . '/n:vTotTribEst'),
+            'valor_total_tributos_municipais' => $this->float($xpath, $vTotTribPath . '/n:vTotTribMun'),
             'percentual_total_tributos_federais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribFed'),
             'percentual_total_tributos_estaduais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribEst'),
             'percentual_total_tributos_municipais' => $this->float($xpath, $pTotTribPath . '/n:pTotTribMun'),

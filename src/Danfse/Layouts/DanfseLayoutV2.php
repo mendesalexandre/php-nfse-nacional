@@ -482,11 +482,15 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Código da NBS',
             DanfseLayout::formatarNbs($s['codigo_nbs'] ?? null));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Local da Prestação / Sigla UF / País',
-            ($s['municipio_prestacao'] ?? '-') . ' / BR');
+            DanfseLayout::formatarLocalPrestacao($s));
         $this->cursorY += $h;
 
         $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, 0.45,
-            $s['descricao_tributacao_nacional'] ?? '-');
+            // NT 008: xTribMun se informado, senão xTribNac; reticências > 170.
+            DanfseLayout::truncarComReticencias(
+                (string) (($s['descricao_tributacao_municipal'] ?? null) ?: ($s['descricao_tributacao_nacional'] ?? '-')),
+                170,
+            ));
         $this->cursorY += 0.45;
 
         // Altura dinâmica: descrição de serviço não tem tamanho máximo (até
@@ -494,7 +498,7 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         // bloco seguinte quando o texto precisava de mais de ~2 linhas.
         // Mede quantas linhas o MultiCell vai realmente usar e reserva esse
         // espaço, com o mínimo de 1.10cm de antes (textos curtos).
-        $textoDescricao = $s['descricao_servico'] ?? '-';
+        $textoDescricao = DanfseLayout::truncarComReticencias((string) ($s['descricao_servico'] ?? '-'), 1300);
         $this->setFonte(DanfseLayout::FONTE_CONTEUDO, '', DanfseLayout::TAM_CONTEUDO);
         $alturaTextoMm = $this->pdf->getStringHeight(
             DanfseLayout::cmToMm(20.40 - 1.0),
@@ -702,7 +706,9 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(5.41, $this->cursorY, 5.09, $h, 'Base de Cálculo Após Exclusões e Reduções',
             DanfseLayout::formatarMoeda($i['vbc_apos_exclusoes'] ?? null));
         $this->renderCelula(10.51, $this->cursorY, 5.09, $h, 'Red. Alíquota IBS / Red. Alíquota CBS',
-            DanfseLayout::formatarPercentual($this->reducaoAliquotaIbs($i)) . ' / '
+            // NT 008: pRedAliqUF + pRedAliqMun + pRedAliqCBS, formato "%/%/%".
+            DanfseLayout::formatarPercentual($i['p_red_aliq_uf'] ?? null) . ' / '
+            . DanfseLayout::formatarPercentual($i['p_red_aliq_mun'] ?? null) . ' / '
             . DanfseLayout::formatarPercentual($i['p_red_aliq_cbs'] ?? null));
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Alíquota - IBS UF / IBS Mun',
             DanfseLayout::formatarPercentual($i['p_ibs_uf'] ?? null) . ' / '
@@ -728,19 +734,6 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
         $this->renderCelula(15.62, $this->cursorY, 5.09, $h, 'Valor Total Apurado - CBS',
             DanfseLayout::formatarMoeda($i['v_cbs'] ?? null));
         $this->cursorY += $h;
-    }
-
-    /**
-     * @param array<string, scalar|null> $i
-     */
-    private function reducaoAliquotaIbs(array $i): ?float
-    {
-        $mun = $i['p_red_aliq_mun'] ?? null;
-        if ($mun !== null && $mun !== 0.0) {
-            return (float) $mun;
-        }
-        $uf = $i['p_red_aliq_uf'] ?? null;
-        return $uf !== null ? (float) $uf : (is_numeric($mun) ? (float) $mun : null);
     }
 
     // ================================================================
@@ -806,22 +799,13 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             $linhas[] = (string) $this->custom->observacoesAdicionais;
         }
 
-        $tFed = $dados->tributacaoFederal;
-        $tMun = $dados->tributacaoMunicipal;
-        $totFed = (float) ($tFed['irrf'] ?? 0)
-            + (float) ($tFed['contribuicao_previdenciaria'] ?? 0)
-            + (float) ($tFed['contribuicoes_sociais_retidas'] ?? 0)
-            + (float) ($tFed['pis_debito'] ?? 0)
-            + (float) ($tFed['cofins_debito'] ?? 0);
-        $totMun = (float) ($tMun['issqn_apurado'] ?? 0);
-        $linhas[] = sprintf(
-            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: '
-            . 'Federais R$ %s ; Estaduais R$ 0,00 ; Municipais R$ %s',
-            DanfseLayout::formatarMoedaSemPrefixo($totFed),
-            DanfseLayout::formatarMoedaSemPrefixo($totMun),
-        );
+        $linhas[] = DanfseLayout::linhaTotaisAproximadosTributos($dados->valorTotal);
 
-        $texto = implode("\n", $linhas);
+        // NT 008: reticências quando o conteúdo passa de 1997 caracteres, SEM
+        // prejuízo da linha fixa de totais (Lei 12.741), que é a última.
+        $totais = array_pop($linhas);
+        $corpo = DanfseLayout::truncarComReticencias(implode("\n", $linhas), 1997);
+        $texto = $corpo === '' ? (string) $totais : $corpo . "\n" . $totais;
         $limiteInferior = 28.7 - ($this->canhotoEfetivo() !== null ? self::ALTURA_CANHOTO_CM : 0.0);
         $alturaRestante = max(2.0, $limiteInferior - $this->cursorY);
         $this->renderCelulaTextoLongo(0.30, $this->cursorY, 20.40, $alturaRestante, $texto);
@@ -1307,6 +1291,8 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
     {
         return (float) ($dados->valorTotal['desconto_incondicionado'] ?? 0)
             + (float) ($dados->tributacaoMunicipal['issqn_apurado'] ?? 0)
+            + (float) ($dados->valorTotal['v_calc_dr'] ?? 0)
+            + (float) ($dados->valorTotal['v_calc_ree_rep_res'] ?? 0)
             + (float) ($dados->tributacaoFederal['pis_debito'] ?? 0)
             + (float) ($dados->tributacaoFederal['cofins_debito'] ?? 0);
     }

@@ -5,6 +5,26 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.47.0] — 2026-11-20
+
+### Corrigido
+
+- **DANFSe local alinhada ao gerador oficial da RFB** (`ReceitaFederal/calculadora-rtc-gerador-danfse`,
+  comparado por diff de PDF; ver `docs/gerador-oficial-rfb.md`):
+  "VALOR LÍQUIDO + IBS/CBS" lê `vTotNF` (não soma mais por conta própria);
+  linha Lei 12.741 no formato da NT (`vTotTrib`/`pTotTrib`, com `:` e `;`);
+  "Exclusões e Reduções da BC" inclui `vCalcDR`/`vCalcReeRepRes`;
+  "Red. Alíquota IBS / CBS" mostra UF / Mun / CBS; "Local da Prestação" resolve UF e país.
+- `DanfseXmlParser` rejeita XML com `DOCTYPE`/`ENTITY`.
+- **Destinatário ausente**: DPS sem `<dest>` agora imprime "DESTINATÁRIO DA OPERAÇÃO
+  NÃO IDENTIFICADO NA NFS-e" (NT 008 nota 2); "É O PRÓPRIO TOMADOR" só quando o
+  `<dest>` tem o mesmo documento do tomador (nota 3).
+- **Truncamento com reticências** conforme a NT: descrição do serviço (1300),
+  descrição do código de tributação (170) e informações complementares (2000,
+  preservando a linha da Lei 12.741).
+- **`xTribMun`** era lido de `cServ/xTribMun` (inexistente); agora de
+  `infNFSe/xTribMun`, e a DANFSe usa a descrição municipal quando existe.
+
 ### Adicionado
 
 - **Parâmetros municipais (ADN)** — `$nfse->consultarConvenioMunicipio($ibge)`

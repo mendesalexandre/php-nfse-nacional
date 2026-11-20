@@ -330,7 +330,8 @@ final class DanfseGeneratorTest extends TestCase
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertStringContainsString('CST / cClassTrib', $texto);
         self::assertStringContainsString('Exclusões e Reduções da Base de Cálculo', $texto);
-        self::assertSame('R$ 0,92', $this->valorNaColuna($texto, 'Exclusões e Reduções da Base de Cálculo'));
+        // vISSQN (0,92) + vCalcDR (9,89): fórmula do gerador oficial da RFB.
+        self::assertSame('R$ 10,81', $this->valorNaColuna($texto, 'Exclusões e Reduções da Base de Cálculo'));
     }
 
     /** Linha imediatamente após a primeira ocorrência do label no texto do PDF. */
@@ -376,7 +377,7 @@ final class DanfseGeneratorTest extends TestCase
         // (bloco 10: CST/cClassTrib/alíquotas) não é destacado antes da
         // rampa 2027 da Reforma Tributária. Os TOTAIS (bloco 11) sempre
         // mostram o valor real (0,00 quando não há IBS/CBS; aqui há, então
-        // mostra 2,90/35,87) — confirmado contra DANFSe real do portal
+        // mostra 2,90 e vTotNF=32,97 do XML) — confirmado contra DANFSe real do portal
         // nacional, que nunca esconde esses dois campos com "-".
         $pdf = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($this->xmlAutorizado());
         $texto = $this->textoDoPdf($pdf);
@@ -384,7 +385,8 @@ final class DanfseGeneratorTest extends TestCase
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertMatchesRegularExpression('/^\s*-\s*\/\s*-/', $this->linhaApos($texto, 'CST / cClassTrib'));
         self::assertSame('R$ 2,90', $this->valorNaColuna($texto, 'Total do IBS/CBS'));
-        self::assertSame('R$ 35,87', $this->valorNaColuna($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
+        // vTotNF lido do XML (= vLiq em 2026), não vLiq + IBS/CBS.
+        self::assertSame('R$ 32,97', $this->valorNaColuna($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
     }
 
     public function test_ibscbs_exibido_a_partir_de_2027(): void
@@ -397,8 +399,8 @@ final class DanfseGeneratorTest extends TestCase
         self::assertMatchesRegularExpression('/^\s*000\s*\/\s*000001/', $this->linhaApos($texto, 'CST / cClassTrib'));
         // Total do IBS/CBS = vIBSTot (1.04) + vCBS (1.86) = 2.90
         self::assertStringContainsString('2,90', $this->linhaApos($texto, 'Total do IBS/CBS'));
-        // VALOR LÍQUIDO + IBS/CBS = vLiq (32.97) + 2.90 = 35.87
-        self::assertStringContainsString('35,87', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
+        // VALOR LÍQUIDO + IBS/CBS = vTotNF do XML (32.97), nunca recalculado.
+        self::assertStringContainsString('32,97', $this->linhaApos($texto, 'VALOR LÍQUIDO DA NFS-e + IBS/CBS'));
     }
 
     public function test_override_exibirValoresIbsCbs_forca_exibicao_antes_de_2027(): void

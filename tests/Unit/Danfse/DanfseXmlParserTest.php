@@ -90,23 +90,65 @@ final class DanfseXmlParserTest extends TestCase
         self::assertSame(5.00, $i['p_red_aliq_cbs']);
     }
 
-    public function test_total_ibscbs_eh_soma_de_vIBSTot_mais_vCBS_nao_vTotNF(): void
+    public function test_total_ibscbs_eh_soma_de_vIBSTot_mais_vCBS_e_liquido_mais_ibscbs_le_vTotNF(): void
     {
-        // Regressão: o parser usava `totCIBS/vTotNF` como total do IBS/CBS,
-        // mas vTotNF é o valor total da nota (igual ao vLiq), não a soma
-        // dos tributos. Bug visível na DANFSe pra nota R$ 100 c/ IBS+CBS
-        // de R$ 0.97: aparecia "Total IBS/CBS = R$ 100,00" e
-        // "Líquido + IBS/CBS = R$ 200,00".
-        //
-        // XML inline com cenário típico: IBS UF 0.10 + IBS Mun 0 + CBS 0.87
-        // = 0.97 total. Líquido = 100. Líquido + IBS/CBS = 100.97.
+        // "Total do IBS/CBS" = vIBSTot + vCBS (nunca vTotNF). Já "VALOR
+        // LÍQUIDO + IBS/CBS" = vTotNF lido do XML (NT 008 tabela 2.4.5; XSD:
+        // vTotNF = vLiq em 2026, vLiq + IBS/CBS a partir de 2027) — nunca
+        // recalculado. Em 2026 (vTotNF = vLiq) NÃO soma o IBS/CBS por cima.
         $xml = $this->xmlComIbsCbs(vIbsTot: 0.10, vCbs: 0.87, vLiq: 100.00, vTotNF: 100.00);
 
         $dados = (new DanfseXmlParser())->parse($xml);
 
         self::assertSame(0.97, $dados->valorTotal['total_ibscbs']);
         self::assertSame(100.00, $dados->valorTotal['valor_liquido']);
+        self::assertSame(100.00, $dados->valorTotal['valor_liquido_mais_ibscbs']);
+    }
+
+    public function test_liquido_mais_ibscbs_em_2027_acompanha_vTotNF_do_xml(): void
+    {
+        $xml = $this->xmlComIbsCbs(vIbsTot: 0.10, vCbs: 0.87, vLiq: 100.00, vTotNF: 100.97);
+
+        $dados = (new DanfseXmlParser())->parse($xml);
+
         self::assertSame(100.97, $dados->valorTotal['valor_liquido_mais_ibscbs']);
+    }
+
+    public function test_rejeita_xml_com_doctype_ou_entity(): void
+    {
+        $this->expectException(\PhpNfseNacional\Exceptions\NfseException::class);
+        (new DanfseXmlParser())->parse(
+            '<?xml version="1.0"?><!DOCTYPE NFSe [<!ENTITY x "y">]><NFSe/>'
+        );
+    }
+
+    public function test_linha_totais_aproximados_prioriza_monetario_depois_percentual(): void
+    {
+        $l = \PhpNfseNacional\Danfse\DanfseLayout::class;
+        self::assertSame(
+            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: R$ 1,50; Estaduais: R$ 0,00; Municipais: R$ 2.000,00;',
+            $l::linhaTotaisAproximadosTributos([
+                'valor_total_tributos_federais' => 1.5, 'valor_total_tributos_municipais' => 2000.0,
+                'percentual_total_tributos_municipais' => 4.0,
+            ]),
+        );
+        self::assertSame(
+            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: 0,00%; Estaduais: 0,00%; Municipais: 4,00%;',
+            $l::linhaTotaisAproximadosTributos(['percentual_total_tributos_municipais' => 4.0]),
+        );
+        self::assertSame(
+            'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: R$ 0,00; Estaduais: R$ 0,00; Municipais: R$ 0,00;',
+            $l::linhaTotaisAproximadosTributos([]),
+        );
+    }
+
+    public function test_local_prestacao_resolve_uf_e_pais(): void
+    {
+        $l = \PhpNfseNacional\Danfse\DanfseLayout::class;
+        self::assertSame('Cuiabá / MT / BR', $l::formatarLocalPrestacao([
+            'municipio_prestacao' => 'Cuiabá', 'codigo_municipio_prestacao' => '5103403',
+        ]));
+        self::assertSame('- / - / BR', $l::formatarLocalPrestacao([]));
     }
 
     private function xmlComIbsCbs(float $vIbsTot, float $vCbs, float $vLiq, float $vTotNF): string

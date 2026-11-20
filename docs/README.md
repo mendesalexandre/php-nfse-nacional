@@ -7,6 +7,8 @@ contém dado real de contribuinte — não adicione XML/PDF de NFS-e emitida.
 Portal de origem: <https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica>
 (seções "Documentação atual", "Produção restrita" e "RTC").
 
+- [`gerador-oficial-rfb.md`](gerador-oficial-rfb.md) — comparação do DANFSe local com o gerador oficial da RFB (diff, medidas, divergências).
+
 ## Schemas (`schemas/`)
 
 | Pasta | Origem | Ambiente |

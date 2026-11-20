@@ -480,4 +480,65 @@ final class DanfseLayout
         }
         return $linhas;
     }
+
+    /**
+     * Linha fixa "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012"
+     * (NT 008 nota 10): valores monetários (`vTotTrib*`) se algum > 0; senão
+     * percentuais (`pTotTrib*`) se algum > 0; senão zeros em R$. Os valores
+     * são DECLARATÓRIOS do DPS — nunca derivados da tributação apurada.
+     *
+     * @param array<string, mixed> $v `DanfseDados::$valorTotal`
+     */
+    public static function linhaTotaisAproximadosTributos(array $v): string
+    {
+        $prefixo = 'Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: ';
+        $monetarios = [];
+        $percentuais = [];
+        foreach (['federais', 'estaduais', 'municipais'] as $nivel) {
+            $monetarios[] = (float) ($v['valor_total_tributos_' . $nivel] ?? 0);
+            $percentuais[] = (float) ($v['percentual_total_tributos_' . $nivel] ?? 0);
+        }
+        $usaPercentual = max($monetarios) <= 0 && max($percentuais) > 0;
+        $valores = $usaPercentual ? $percentuais : $monetarios;
+        $fmt = static fn (float $x): string => $usaPercentual
+            ? number_format($x, 2, ',', '.') . '%'
+            : 'R$ ' . number_format($x, 2, ',', '.');
+
+        return $prefixo
+            . 'Federais: ' . $fmt($valores[0]) . '; '
+            . 'Estaduais: ' . $fmt($valores[1]) . '; '
+            . 'Municipais: ' . $fmt($valores[2]) . ';';
+    }
+
+    /**
+     * "Local da Prestação / Sigla UF / País": município (xLocPrestacao), UF
+     * resolvida pelo `cLocPrestacao` (tabela IBGE) e país (`cPaisPrestacao`,
+     * "BR" quando ausente). Partes sem informação viram "-".
+     *
+     * @param array<string, mixed> $servico `DanfseDados::$servico`
+     */
+    public static function formatarLocalPrestacao(array $servico): string
+    {
+        $municipio = trim((string) ($servico['municipio_prestacao'] ?? ''));
+        $info = \PhpNfseNacional\Support\IbgeMunicipios::buscar((string) ($servico['codigo_municipio_prestacao'] ?? ''));
+        $pais = strtoupper(trim((string) ($servico['pais_prestacao'] ?? '')));
+
+        return ($municipio !== '' ? $municipio : '-')
+            . ' / ' . ($info['uf'] ?? '-')
+            . ' / ' . ($pais !== '' ? $pais : 'BR');
+    }
+
+    /**
+     * Trunca com reticências ("...") quando o texto passa de `$limite`
+     * caracteres: mantém `$limite - 3` + "..." (NT 008 tabela 2.4.5, ex.:
+     * descrição do serviço 1300 → "supere 1297"; descrição do código de
+     * tributação 170 → 167; informações complementares 2000 → 1997).
+     */
+    public static function truncarComReticencias(string $texto, int $limite): string
+    {
+        if (mb_strlen($texto) <= $limite) {
+            return $texto;
+        }
+        return rtrim(mb_substr($texto, 0, $limite - 3), " \n") . '...';
+    }
 }

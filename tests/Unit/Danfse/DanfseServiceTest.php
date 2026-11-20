@@ -93,9 +93,9 @@ final class DanfseServiceTest extends TestCase
         }
     }
 
-    public function test_pdf_suprime_blocos_opcionais_com_texto_unico(): void
+    public function test_pdf_suprime_blocos_opcionais_com_texto_unico_sem_dest(): void
     {
-        // Fixture tem CPF do tomador = destinatário, sem intermediário.
+        // Fixture sem <dest> e sem intermediário: ambos "NÃO IDENTIFICADO" (nota 2).
         // NT 008 item 2.3.1/2.3.2 — blocos suprimidos viram linha única.
         $service = new DanfseService();
         $pdf = $service->gerarDoXml($this->xmlAutorizado());
@@ -108,8 +108,44 @@ final class DanfseServiceTest extends TestCase
             self::markTestSkipped('pdftotext não disponível');
         }
 
-        self::assertStringContainsString('O DESTINATÁRIO É O PRÓPRIO TOMADOR/ADQUIRENTE', $texto);
+        self::assertStringContainsString('DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e', $texto);
         self::assertStringContainsString('INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e', $texto);
+    }
+
+    public function test_destinatario_com_mesmo_documento_do_tomador_vira_proprio_tomador(): void
+    {
+        $xml = str_replace('<cIndOp>100301</cIndOp>', '<cIndOp>100301</cIndOp><dest><CPF>12345678909</CPF></dest>', $this->xmlAutorizado());
+        $dados = (new \PhpNfseNacional\Danfse\DanfseXmlParser())->parse($xml);
+
+        self::assertTrue($dados->destinatarioIgualTomador());
+    }
+
+    public function test_truncar_com_reticencias_segue_limites_da_nt(): void
+    {
+        $l = \PhpNfseNacional\Danfse\DanfseLayout::class;
+        self::assertSame('abc', $l::truncarComReticencias('abc', 1300));
+        $t = $l::truncarComReticencias(str_repeat('x', 1301), 1300);
+        self::assertSame(1300, mb_strlen($t));
+        self::assertStringEndsWith('...', $t);
+        self::assertSame(str_repeat('x', 1297) . '...', $t);
+    }
+
+    public function test_pdf_suprime_intermediario_nao_identificado(): void
+    {
+        // Fixture sem <dest>.
+        // NT 008 item 2.3.1/2.3.2 — blocos suprimidos viram linha única.
+        $service = new DanfseService();
+        $pdf = $service->gerarDoXml($this->xmlAutorizado());
+        $tmp = tempnam(sys_get_temp_dir(), 'danfse_');
+        file_put_contents($tmp, $pdf);
+        $texto = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null') ?: '';
+        unlink($tmp);
+
+        if ($texto === '') {
+            self::markTestSkipped('pdftotext não disponível');
+        }
+
+                self::assertStringContainsString('INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e', $texto);
     }
 
     public function test_pdf_homologacao_inclui_tarja_sem_validade(): void
