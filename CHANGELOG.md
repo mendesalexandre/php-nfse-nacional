@@ -21,6 +21,14 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   totais = `Federais R$ x ; Estaduais R$ y ; Municipais R$ z` (sem dois-pontos). Sem
   `vTotTrib` no DPS, os valores vêm dos tributos apurados na nota (Municipais = ISSQN).
 
+### Testes
+
+- Nota **com redução** (`vDR`) validada em homologação SEFIN (cStat=100, serviço 77,11 /
+  dedução 23,15 → `vBC` 53,96, ISSQN 2,16) e a DANFSe local confere campo a campo com uma
+  DANFSe real do portal. O SEFIN **não** grava `vCalcDR` na NFS-e: "Exclusões e Reduções da
+  BC" = ISSQN, igual ao portal. XSD do DPS com redução (`vDR` e `documentos`) coberto nos
+  dois leiautes. Lacuna: dedução por `documentos` não existe no leiaute novo (ver SDK).
+
 ### Segurança
 
 - Mínimo do **`guzzlehttp/guzzle` elevado de `^7.5` para `^7.15.2`**: as versões

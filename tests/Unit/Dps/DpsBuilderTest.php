@@ -2231,6 +2231,39 @@ final class DpsBuilderTest extends TestCase
         self::assertSame([], $this->errosXsd($this->xmlDps($config), $pasta, $xsd));
     }
 
+    /** Nota com redução (ex.: cartório): vDR nos dois leiautes valida no XSD de cada um. */
+    public function test_reducao_vdr_valida_no_xsd_dos_dois_leiautes(): void
+    {
+        foreach ([[LeiauteDps::V1_01, '1.01', '//n:vDedRed/n:vDR'], [LeiauteDps::V1_01_PRODREST, '1.01-prodrest-20261020', '//n:vAjusteBC/n:vAjusteBCISSQN']] as [$l, $pasta, $path]) {
+            $config = $this->configPadrao(leiaute: $l);
+            $xml = $this->xmlDps($config, new Valores(77.11, 23.15, 4.00));
+            self::assertSame([], $this->errosXsd($xml, $pasta, 'DPS_v1.01.xsd'), $pasta);
+            $dom = new DOMDocument();
+            $dom->loadXML($xml);
+            $xp = new DOMXPath($dom);
+            $xp->registerNamespace('n', 'http://www.sped.fazenda.gov.br/nfse');
+            self::assertSame('23.15', $xp->query($path)->item(0)?->textContent, $pasta);
+        }
+    }
+
+    /** Dedução por documentos só existe no leiaute de produção (V1_01) por enquanto. */
+    public function test_reducao_por_documentos_valida_no_xsd_de_producao(): void
+    {
+        $doc = new \PhpNfseNacional\DTO\DocumentoDeducao(
+            \PhpNfseNacional\Enums\TipoDeducaoReducao::Outras,
+            new \DateTimeImmutable('2026-11-01'),
+            23.15,
+            23.15,
+            numeroDocumento: 'GUIA-0001',
+            descricaoOutraDeducao: 'Emolumentos repassados',
+        );
+        $xml = $this->xmlDps(
+            $this->configPadrao(leiaute: LeiauteDps::V1_01),
+            new Valores(77.11, 0.0, 4.00, documentosDeducao: [$doc]),
+        );
+        self::assertSame([], $this->errosXsd($xml, '1.01', 'DPS_v1.01.xsd'));
+    }
+
     public function test_leiaute_antigo_nao_valida_no_xsd_novo_e_vice_versa(): void
     {
         // Garante que o teste acima de fato distingue os dois schemas.
