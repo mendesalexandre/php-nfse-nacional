@@ -9,6 +9,8 @@ Portal de origem: <https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica
 
 - [`gerador-oficial-rfb.md`](gerador-oficial-rfb.md) — comparação do DANFSe local com o gerador oficial da RFB (diff, medidas, divergências).
 
+- [`indicador-operacao.md`](indicador-operacao.md) — tabela NBS → cIndOp (vigência, muda em 2026-12-01) e como atualizar.
+
 ## Schemas (`schemas/`)
 
 | Pasta | Origem | Ambiente |

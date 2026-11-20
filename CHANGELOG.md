@@ -5,6 +5,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+
+- **Tabela NBS → cIndOp** — `Support\IndicadorOperacao` (`combinacoes()`,
+  `indicadores()`, `sugerido()`, `valida()`, `descricao()`, `baseDados()`),
+  com a tabela oficial cTribNac × NBS × cIndOp × cClassTrib **com vigência**
+  (731 NBS; muda em 2026-12-01). Dados em `resources/data/indop-nbs.json`,
+  gerados por `tools/gerar-indop-nbs.py` a partir do repositório oficial da RFB
+  (MIT). Não é imposta pelo `DpsBuilder` (escopo = sintaxe). Ver
+  `docs/indicador-operacao.md`.
+
 ## [0.47.0] — 2026-11-20
 
 ### Corrigido

@@ -30,6 +30,14 @@ final class Servico
         public readonly string $codigoMunicipioPrestacao,
         ListaServicosNacional|string $cTribNac = '210101',
         ListaNbs|string $cNBS = '113040000',
+        /**
+         * `<cIndOp>` — indicador de operação do IBS/CBS (6 dígitos). O default
+         * `100301` ("demais serviços") só serve a parte dos NBS: a tabela
+         * oficial NBS × cIndOp muda com a data (nova tabela em 2026-12-01) e
+         * alguns serviços admitem mais de um indicador conforme o caso
+         * concreto. Consulte `Support\IndicadorOperacao::indicadores()` /
+         * `valida()` com o NBS e a competência. Ver `docs/indicador-operacao.md`.
+         */
         public readonly string $cIndOp = '100301',
         /**
          * `<cTribMun>` — Código de tributação municipal do ISSQN, opcional
