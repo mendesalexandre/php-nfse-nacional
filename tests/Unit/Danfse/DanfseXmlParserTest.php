@@ -154,6 +154,20 @@ final class DanfseXmlParserTest extends TestCase
         self::assertSame('- / BR', $l::formatarLocalPrestacao([]));
     }
 
+    /** CST/cClassTrib: leiaute de produção (trib/gIBSCBS/) e leiaute novo (trib/ direto). */
+    public function test_cst_e_cclasstrib_nos_dois_leiautes(): void
+    {
+        $base = $this->xmlComIbsCbs(0.07, 0.67, 77.11, 77.11);
+        $comWrapper = '<IBSCBS><valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib></gIBSCBS></trib></valores></IBSCBS>';
+        $direto = '<IBSCBS><valores><trib><CST>000</CST><cClassTrib>000001</cClassTrib></trib></valores></IBSCBS>';
+        foreach ([$comWrapper, $direto] as $bloco) {
+            $xml = str_replace('</infDPS>', $bloco . '</infDPS>', $base);
+            $dados = (new DanfseXmlParser())->parse($xml);
+            self::assertSame('000', $dados->tributacaoIbsCbs['cst']);
+            self::assertSame('000001', $dados->tributacaoIbsCbs['cclass_trib']);
+        }
+    }
+
     private function xmlComIbsCbs(float $vIbsTot, float $vCbs, float $vLiq, float $vTotNF): string
     {
         return <<<XML

@@ -5,6 +5,13 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido
+
+- **DANFSe: CST / cClassTrib saíam `- / -` com o leiaute novo (20/10/2026).** O parser lia só
+  `trib/gIBSCBS/CST`; no leiaute novo (homologação) CST e cClassTrib ficam direto em `trib/`
+  (`gIBSCBS` só envolve `cCredPres`/`gTribRegular`/`gDif`). Agora aceita os dois. Achado ao
+  simular uma competência de 2027 (o SEFIN não deixa emitir: cStat=15).
+
 ## [0.48.0] — 2026-11-20
 
 ### Corrigido

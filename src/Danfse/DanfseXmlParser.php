@@ -336,8 +336,13 @@ final class DanfseXmlParser
         $totPath = $ibsPath . '/n:totCIBS';
         $dpsIbsPath = '//n:DPS/n:infDPS/n:IBSCBS';
         return [
-            'cst' => $this->texto($xpath, $dpsIbsPath . '/n:valores/n:trib/n:gIBSCBS/n:CST'),
-            'cclass_trib' => $this->texto($xpath, $dpsIbsPath . '/n:valores/n:trib/n:gIBSCBS/n:cClassTrib'),
+            // Leiaute de produção (V1_01): CST/cClassTrib dentro de trib/gIBSCBS.
+            // Leiaute novo (20/10/2026, homologação): direto em trib/ — gIBSCBS
+            // só envolve cCredPres/gTribRegular/gDif.
+            'cst' => $this->texto($xpath, $dpsIbsPath . '/n:valores/n:trib/n:gIBSCBS/n:CST')
+                ?? $this->texto($xpath, $dpsIbsPath . '/n:valores/n:trib/n:CST'),
+            'cclass_trib' => $this->texto($xpath, $dpsIbsPath . '/n:valores/n:trib/n:gIBSCBS/n:cClassTrib')
+                ?? $this->texto($xpath, $dpsIbsPath . '/n:valores/n:trib/n:cClassTrib'),
             'cod_indicador_operacao' => $this->texto($xpath, $dpsIbsPath . '/n:cIndOp'),
             'cod_localidade_incidencia' => $this->texto($xpath, $ibsPath . '/n:cLocalidadeIncid'),
             'localidade_incidencia' => $this->texto($xpath, $ibsPath . '/n:xLocalidadeIncid'),
