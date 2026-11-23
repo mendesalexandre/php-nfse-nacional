@@ -693,15 +693,6 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
             . ($dados->prestador['uf'] ?? '-'));
         $this->cursorY += $h;
 
-        // "Exclusões e Reduções da Base de Cálculo" = ISSQN apurado + PIS/
-        // COFINS débito + desconto incondicionado — o ISSQN já recolhido é
-        // uma exclusão LEGÍTIMA da base do IBS/CBS durante a transição da
-        // Reforma Tributária (evita bitributação), e o SEFIN/portal
-        // nacional mostra esse valor mesmo sem `<gIBSCBS>` declarado no
-        // DPS. Reverte o fix de 03/07/2026 (v0.26.11): aquele diagnóstico
-        // ("nada a ver com IBS/CBS") estava ERRADO — confirmado
-        // comparando com 2 DANFSe reais do portal nacional 05/08/2026
-        // (mesmo sem gIBSCBS, "Exclusões" = ISSQN Apurado, não "-").
         $exclusoes = $this->somarExclusoes($dados);
         $this->renderCelula(0.30, $this->cursorY, 5.09, $h, 'Exclusões e Reduções da Base de Cálculo',
             DanfseLayout::formatarMoeda($exclusoes));
@@ -1304,9 +1295,14 @@ final class DanfseLayoutV2 implements DanfseLayoutStrategy
 
     private function somarExclusoes(DanfseDados $dados): float
     {
+        // O portal exibe as exclusões de tributos mesmo sem base de IBS/CBS apurada.
+        $deducaoCalculada = isset($dados->tributacaoIbsCbs['vbc_apos_exclusoes'])
+            ? (float) ($dados->valorTotal['v_calc_dr'] ?? 0)
+            : 0.0;
+
         return (float) ($dados->valorTotal['desconto_incondicionado'] ?? 0)
             + (float) ($dados->tributacaoMunicipal['issqn_apurado'] ?? 0)
-            + (float) ($dados->valorTotal['v_calc_dr'] ?? 0)
+            + $deducaoCalculada
             + (float) ($dados->valorTotal['v_calc_ree_rep_res'] ?? 0)
             + (float) ($dados->tributacaoFederal['pis_debito'] ?? 0)
             + (float) ($dados->tributacaoFederal['cofins_debito'] ?? 0);

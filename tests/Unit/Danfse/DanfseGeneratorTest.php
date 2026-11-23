@@ -308,16 +308,6 @@ final class DanfseGeneratorTest extends TestCase
 
     public function test_exclusoes_ibscbs_mostra_issqn_mesmo_sem_gibscbs_no_dps(): void
     {
-        // Reverte o fix de 03/07/2026 (v0.26.11) — aquele diagnóstico
-        // estava errado. "Exclusões e Reduções da Base de Cálculo" =
-        // ISSQN apurado + PIS/COFINS débito + desconto incondicionado é o
-        // valor CORRETO mesmo quando a operação não declara <gIBSCBS> no
-        // DPS: o ISSQN já recolhido é uma exclusão legítima da base do
-        // IBS/CBS durante a transição, e o SEFIN/portal nacional mostra
-        // esse valor de qualquer forma. Confirmado comparando com 2 DANFSe
-        // reais do portal nacional 05/08/2026 (nota sem gIBSCBS, "Exclusões"
-        // = ISSQN Apurado, não "-"). Fixture: vISSQN=0,92, sem PIS/COFINS/
-        // desconto — soma = 0,92.
         $xml = file_get_contents(__DIR__ . '/../../fixtures/nfse-autorizada.xml');
         self::assertNotFalse($xml);
         $xmlSemIbscbs = preg_replace('#<IBSCBS>.*?</IBSCBS>#s', '', $xml);
@@ -330,8 +320,13 @@ final class DanfseGeneratorTest extends TestCase
         self::assertStringContainsString('TRIBUTAÇÃO IBS/CBS', $texto);
         self::assertStringContainsString('CST / cClassTrib', $texto);
         self::assertStringContainsString('Exclusões e Reduções da Base de Cálculo', $texto);
-        // vISSQN (0,92) + vCalcDR (9,89): fórmula do gerador oficial da RFB.
-        self::assertSame('R$ 10,81', $this->valorNaColuna($texto, 'Exclusões e Reduções da Base de Cálculo'));
+        self::assertSame('R$ 0,92', $this->valorNaColuna($texto, 'Exclusões e Reduções da Base de Cálculo'));
+
+        $pdfComBaseIbscbs = (new \PhpNfseNacional\Services\DanfseService())->gerarDoXml($xml);
+        self::assertSame(
+            'R$ 10,81',
+            $this->valorNaColuna($this->textoDoPdf($pdfComBaseIbscbs), 'Exclusões e Reduções da Base de Cálculo'),
+        );
     }
 
     /** Linha imediatamente após a primeira ocorrência do label no texto do PDF. */

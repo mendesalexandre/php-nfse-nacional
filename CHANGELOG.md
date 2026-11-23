@@ -5,6 +5,12 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.48.2] — 2026-11-23
+
+### Corrigido
+
+- **DANFSe:** sem base de IBS/CBS apurada, a dedução municipal calculada fica apenas no quadro do ISSQN. O campo de exclusões de IBS/CBS segue a exibição do Portal Nacional para o caso de Sinop (R$ 2,16).
+
 ## [0.48.1] — 2026-11-20
 
 ### Corrigido
